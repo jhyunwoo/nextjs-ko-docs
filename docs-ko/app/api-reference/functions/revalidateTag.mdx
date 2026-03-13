@@ -1,0 +1,136 @@
+---
+title: 태그 재검증
+description: revalidateTag 함수에 대한 API 참조입니다.
+---
+
+`revalidateTag`을 사용하면 특정 캐시 태그에 대해 필요에 따라 [캐시된 데이터](../../guides/caching.mdx)를 무효화할 수 있습니다.
+
+이 기능은 블로그 게시물, 제품 카탈로그, 문서 등 약간의 업데이트 지연이 허용되는 콘텐츠에 이상적입니다. 사용자는 백그라운드에서 새로운 데이터가 로드되는 동안 오래된 콘텐츠를 받습니다.
+
+## 사용법
+
+`revalidateTag`은 서버 기능 및 경로 처리기에서 호출할 수 있습니다.
+
+`revalidateTag`은(는) 서버 환경에서만 작동하므로 클라이언트 구성 요소 또는 프록시에서 호출할 수 없습니다.
+
+### 재검증 동작
+
+재검증 동작은 두 번째 인수 제공 여부에 따라 달라집니다.
+
+- **With `profile="max"` 사용(권장)**: 태그 항목은 오래된 것으로 표시되며 다음에 해당 태그가 있는 리소스를 방문할 때 재검증하는 동안 오래된 의미 체계를 사용합니다. 이는 백그라운드에서 새로운 콘텐츠를 가져오는 동안 오래된 콘텐츠가 제공된다는 의미입니다.
+- **사용자 정의 캐시 수명 프로필**: 고급 사용을 위해 애플리케이션에서 정의한 캐시 수명 프로필을 지정하여 특정 캐싱 요구 사항에 맞는 사용자 정의 재검증 동작을 허용할 수 있습니다.
+- **두 번째 인수 없음(더 이상 사용되지 않음)**: 태그 항목이 즉시 만료되고 해당 리소스에 대한 다음 요청은 차단 재검증/캐시 누락이 됩니다. 이 동작은 이제 더 이상 사용되지 않으므로 `profile="max"`을 사용하거나 [`updateTag`](updateTag.mdx)로 마이그레이션해야 합니다.
+
+> **알아두면 좋은 정보**: `profile="max"`을 사용하면 `revalidateTag`는 태그된 데이터를 오래된 것으로 표시하지만 다음에 해당 태그를 사용하는 페이지를 방문할 때만 새로운 데이터를 가져옵니다. 즉, `revalidateTag`을 호출해도 한 번에 많은 재검증이 즉시 실행되지는 않습니다. 무효화는 해당 태그를 사용하는 페이지를 다음에 방문할 때만 발생합니다.
+
+## 매개변수
+
+```ts
+revalidateTag(tag: string, profile: string | { expire?: number }): void;
+```
+
+- `tag`: 재검증하려는 데이터와 연결된 캐시 태그를 나타내는 문자열입니다. 256자를 초과할 수 없습니다. 이 값은 대소문자를 구분합니다.
+- `profile`: 재검증 동작을 지정하는 문자열입니다. 권장 값은 재검증 중 오래된 의미 체계를 제공하는 `"max"`이거나 [`cacheLife`](../config/next-config-js/cacheLife.mdx)에 정의된 기타 기본 또는 사용자 정의 프로필입니다. 또는 사용자 정의 만료 동작을 위해 `expire` 속성이 포함된 객체를 전달할 수 있습니다.
+
+태그는 먼저 캐시된 데이터에 할당되어야 합니다. 이 작업은 두 가지 방법으로 수행할 수 있습니다.
+
+- 외부 API 요청을 캐싱하기 위해 [`next.tags`](../../guides/caching.mdx#fetch-optionsnexttags-and-revalidatetag) 옵션을 사용합니다.`fetch` for caching external API requests:
+
+```tsx
+fetch(url, { next: { tags: ['posts'] } })
+```
+
+- Using [`cacheTag`](cacheTag.mdx) 사용:`'use cache'` directive:
+
+```tsx
+import { cacheTag } from 'next/cache'
+
+async function getData() {
+  'use cache'
+  cacheTag('posts')
+  // ...
+}
+```
+
+> **알면 좋은 점**: 단일 인수 형식 `revalidateTag(tag)`은 더 이상 사용되지 않습니다. 현재 TypeScript 오류가 억제되면 작동하지만 이 동작은 향후 버전에서 제거될 수 있습니다. 두 인수 서명으로 업데이트됩니다.
+
+## 반품
+
+`revalidateTag`은 값을 반환하지 않습니다.## 과의 관계
+
+## 예`revalidatePath`
+
+`revalidateTag`을 사용하는 방법을 보여줍니다. 두 경우 모두 [`revalidatePath`](revalidatePath.mdx) invalidates specific page or layout paths.을 사용하여 데이터를 오래된 것으로 표시하고 재검증하는 동안 오래된 의미 체계를 사용합니다. 이는 대부분의 사용 사례에 권장되는 접근 방식입니다.
+
+> **알아두면 좋은 정보**: 즉시 만료가 필요한 웹후크 또는 타사 서비스의 경우 [relationship with revalidateTag and updateTag](revalidatePath.mdx#relationship-with-revalidatetag-and-updatetag)를 사용하는 것이 좋습니다.
+
+## Examples
+
+The following examples demonstrate how to use `revalidateTag` in different contexts. In both cases, we're using `profile="max"` to mark data as stale and use stale-while-revalidate semantics, which is the recommended approach for most use cases.
+
+### Server Action
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export default async function submit() {
+  await addPost()
+  revalidateTag('posts', 'max')
+}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export default async function submit() {
+  await addPost()
+  revalidateTag('posts', 'max')
+}
+```
+
+### Route Handler
+
+```ts filename="app/api/revalidate/route.ts" switcher
+import type { NextRequest } from 'next/server'
+import { revalidateTag } from 'next/cache'
+
+export async function GET(request: NextRequest) {
+  const tag = request.nextUrl.searchParams.get('tag')
+
+  if (tag) {
+    revalidateTag(tag, 'max')
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing tag to revalidate',
+  })
+}
+```
+
+```js filename="app/api/revalidate/route.js" switcher
+import { revalidateTag } from 'next/cache'
+
+export async function GET(request) {
+  const tag = request.nextUrl.searchParams.get('tag')
+
+  if (tag) {
+    revalidateTag(tag, 'max')
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing tag to revalidate',
+  })
+}
+```
+
+> **Good to know**: For webhooks or third-party services that need immediate expiration, you can pass `{ expire: 0 }` as the second argument: `revalidateTag(tag, { expire: 0 })`. This pattern is necessary when external systems call your Route Handlers and require data to expire immediately. For all other cases, it's recommended to use [`updateTag`](updateTag.mdx) in Server Actions for immediate updates instead.

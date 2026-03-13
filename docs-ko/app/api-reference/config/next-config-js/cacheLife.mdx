@@ -1,0 +1,79 @@
+---
+title: 캐시라이프
+description: Next.js에서 캐시라이프 구성을 설정하는 방법을 알아보세요.
+related:
+  title: 관련된
+  description: 관련 API 참조를 확인하세요.
+  links:
+    - app/api-reference/directives/use-cache
+    - app/api-reference/config/next-config-js/cacheHandlers
+    - app/api-reference/functions/cacheLife
+---
+
+The `cacheLife` 옵션을 사용하면 구성 요소 또는 기능 내에서 그리고 **사용자 정의 캐시 프로필**을 정의할 수 있습니다.[`cacheLife`](../../functions/cacheLife.mdx) function inside components or functions, and within the scope of the [`use cache` directive](../../directives/use-cache.mdx).
+
+## 사용법
+
+프로필을 정의하려면 [`cacheComponents` 플래그](cacheComponents.mdx)를 활성화하고 `cacheLife` 파일의 `next.config.js` 개체에 캐시 프로필을 추가합니다. 예를 들어 `blog` 프로필은 다음과 같습니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    blog: {
+      stale: 3600, // 1 hour
+      revalidate: 900, // 15 minutes
+      expire: 86400, // 1 day
+    },
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  cacheComponents: true,
+  cacheLife: {
+    blog: {
+      stale: 3600, // 1 hour
+      revalidate: 900, // 15 minutes
+      expire: 86400, // 1 day
+    },
+  },
+}
+```
+
+이제 다음과 같이 구성요소 또는 함수에서 이 사용자 정의 `blog` 구성을 사용할 수 있습니다.
+
+```tsx filename="app/actions.ts" highlight={4,5} switcher
+import { cacheLife } from 'next/cache'
+
+export async function getCachedData() {
+  'use cache'
+  cacheLife('blog')
+  const data = await fetch('/api/data')
+  return data
+}
+```
+
+```jsx filename="app/actions.js" highlight={4,5} switcher
+import { cacheLife } from 'next/cache'
+
+export async function getCachedData() {
+  'use cache'
+  cacheLife('blog')
+  const data = await fetch('/api/data')
+  return data
+}
+```
+
+## 참조
+
+구성 객체에는 다음 형식의 키 값이 있습니다.
+
+| **재산** | **가치** | **설명** | **요구사항** |`stale`      | `number`  | Duration the client should cache a value without checking the server.                                     | Optional                                    |
+| `revalidate` | `number`  | Frequency at which the cache should refresh on the server; stale values may be served while revalidating. | Optional                                    |
+| `expire`     | `number`  | Maximum duration for which a value can remain stale before switching to dynamic.                          | Optional - Must be longer than `revalidate` |

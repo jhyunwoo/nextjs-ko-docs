@@ -1,0 +1,20 @@
+---
+title: 반응엄격모드
+description: 전체 Next.js 런타임은 이제 엄격 모드를 준수합니다. 선택 방법을 알아보세요.
+---
+
+> **알아두면 좋은 정보**: Next.js 13.5.1부터 엄격 모드는 `true` 라우터에서 기본적으로 `app`이므로 위 구성은 `pages`에만 필요합니다. `reactStrictMode: false`을 설정하여 엄격 모드를 비활성화할 수 있습니다.
+
+> **권장**: React의 미래를 위해 애플리케이션을 더 잘 준비하려면 Next.js 애플리케이션에서 엄격 모드를 활성화하는 것이 좋습니다.
+
+React의 [엄격 모드](https://react.dev/reference/react/StrictMode)는 애플리케이션의 잠재적인 문제를 강조하기 위한 개발 모드 전용 기능입니다. 안전하지 않은 수명 주기, 레거시 API 사용 및 기타 여러 기능을 식별하는 데 도움이 됩니다.
+
+Next.js 런타임은 엄격 모드를 준수합니다. 엄격 모드를 선택하려면 `next.config.js`에서 다음 옵션을 구성하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  reactStrictMode: true,
+}
+```
+
+귀하 또는 귀하의 팀이 전체 애플리케이션에서 엄격 모드를 사용할 준비가 되어 있지 않더라도 괜찮습니다! `<React.StrictMode>`을 사용하여 페이지별로 점진적으로 마이그레이션할 수 있습니다.

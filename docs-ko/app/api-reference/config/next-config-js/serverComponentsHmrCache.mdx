@@ -1,0 +1,36 @@
+---
+title: 서버구성요소Hmr캐시
+description: 서버 구성 요소의 가져오기 응답이 HMR 새로 고침 요청 전체에 걸쳐 캐시되는지 여부를 구성합니다.
+version: experimental
+---
+
+실험적인 `serverComponentsHmrCache` 옵션을 사용하면 로컬 개발 시 HMR(핫 모듈 교체) 새로 고침 전반에 걸쳐 서버 구성 요소의 `fetch` 응답을 캐시할 수 있습니다. 그 결과, 청구된 API 통화에 대한 응답 속도가 빨라지고 비용이 절감됩니다.
+
+기본적으로 HMR 캐시는 `fetch` 옵션이 있는 요청을 포함하여 모든 `cache: 'no-store'` 요청에 적용됩니다. 즉, 캐시되지 않은 요청에는 HMR 새로 고침 사이에 최신 데이터가 표시되지 않습니다. 그러나 탐색이나 전체 페이지를 다시 로드하면 캐시가 지워집니다.
+
+`serverComponentsHmrCache` 파일에서 `false`을 `next.config.js`로 설정하여 HMR 캐시를 비활성화할 수 있습니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    serverComponentsHmrCache: false, // defaults to true
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    serverComponentsHmrCache: false, // defaults to true
+  },
+}
+
+module.exports = nextConfig
+```
+
+> **알아두면 좋은 점:** 더 나은 관찰 가능성을 위해 개발 중에 콘솔에서 캐시 적중 및 누락 가져오기를 로그하는 [`logging.fetches`](logging.mdx) 옵션을 사용하는 것이 좋습니다.

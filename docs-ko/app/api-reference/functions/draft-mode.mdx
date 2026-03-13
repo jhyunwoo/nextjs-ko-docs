@@ -1,0 +1,131 @@
+---
+title: 초안 모드
+description: draftMode 함수에 대한 API 참조입니다.
+related:
+  title: 다음 단계
+  description: 이 단계별 가이드를 통해 초안 모드를 사용하는 방법을 알아보세요.
+  links:
+    - app/guides/draft-mode
+---
+
+`draftMode`은 **비동기** 기능으로, [초안 모드](../../guides/draft-mode.mdx)를 활성화 및 비활성화할 수 있을 뿐만 아니라 [서버 구성 요소](../../getting-started/server-and-client-components.mdx)에서 초안 모드가 활성화되어 있는지 확인할 수 있습니다.
+
+```tsx filename="app/page.ts" switcher
+import { draftMode } from 'next/headers'
+
+export default async function Page() {
+  const { isEnabled } = await draftMode()
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { draftMode } from 'next/headers'
+
+export default async function Page() {
+  const { isEnabled } = await draftMode()
+}
+```
+
+## 참조
+
+다음 메서드와 속성을 사용할 수 있습니다.
+
+| 방법 | 설명 |`isEnabled` | A boolean value that indicates if Draft Mode is enabled.                          |`enable()`  | Enables Draft Mode in a Route Handler by setting a cookie (`__prerender_bypass`). |
+| `disable()` | Disables Draft Mode in a Route Handler by deleting a cookie.                      |
+
+## 알아두면 좋은 점
+
+- `draftMode`은 약속을 반환하는 **비동기** 함수입니다. `async/await` 또는 React의 [`use`](https://react.dev/reference/react/use) 함수를 사용해야 합니다.
+  - 버전 14 이하에서는 `draftMode`이 동기 함수였습니다. 이전 버전과의 호환성을 돕기 위해 Next.js 15에서 동기적으로 계속 액세스할 수 있지만 이 동작은 향후 더 이상 사용되지 않습니다.
+- A new bypass cookie value will be generated each time you run `next build`을 실행할 때마다 새로운 우회 쿠키 값이 생성됩니다. 이렇게 하면 우회 쿠키를 추측할 수 없습니다.
+- HTTP를 통해 로컬로 초안 모드를 테스트하려면 브라우저에서 제3자 쿠키와 로컬 저장소 액세스를 허용해야 합니다.
+
+## 예
+
+### 초안 모드 활성화
+
+초안 모드를 활성화하려면 새 [경로 처리기](../file-conventions/route.mdx)를 만들고 `enable()` 메서드를 호출하세요.
+
+```tsx filename="app/draft/route.ts" switcher
+import { draftMode } from 'next/headers'
+
+export async function GET(request: Request) {
+  const draft = await draftMode()
+  draft.enable()
+  return new Response('Draft mode is enabled')
+}
+```
+
+```js filename="app/draft/route.js" switcher
+import { draftMode } from 'next/headers'
+
+export async function GET(request) {
+  const draft = await draftMode()
+  draft.enable()
+  return new Response('Draft mode is enabled')
+}
+```
+
+### 초안 모드 비활성화
+
+기본적으로 초안 모드 세션은 브라우저가 닫힐 때 종료됩니다.
+
+초안 모드를 수동으로 비활성화하려면 `disable()` 메서드를 호출하세요.[Route Handler](../file-conventions/route.mdx):
+
+```tsx filename="app/draft/route.ts" switcher
+import { draftMode } from 'next/headers'
+
+export async function GET(request: Request) {
+  const draft = await draftMode()
+  draft.disable()
+  return new Response('Draft mode is disabled')
+}
+```
+
+```js filename="app/draft/route.js" switcher
+import { draftMode } from 'next/headers'
+
+export async function GET(request) {
+  const draft = await draftMode()
+  draft.disable()
+  return new Response('Draft mode is disabled')
+}
+```
+
+그런 다음 경로 처리기를 호출하라는 요청을 보냅니다. [`<Link>` 구성 요소](../components/link.mdx)를 사용하여 경로를 호출하는 경우 미리 가져오기 시 실수로 쿠키를 삭제하는 것을 방지하기 위해 `prefetch={false}`을 전달해야 합니다.
+
+### 초안 모드가 활성화되어 있는지 확인 중
+
+You can check if Draft Mode is enabled in a Server Component with the `isEnabled` 속성을 사용하여 서버 구성 요소에서 초안 모드가 활성화되어 있는지 확인할 수 있습니다.
+
+```tsx filename="app/page.ts" switcher
+import { draftMode } from 'next/headers'
+
+export default async function Page() {
+  const { isEnabled } = await draftMode()
+  return (
+    <main>
+      <h1>My Blog Post</h1>
+      <p>Draft Mode is currently {isEnabled ? 'Enabled' : 'Disabled'}</p>
+    </main>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { draftMode } from 'next/headers'
+
+export default async function Page() {
+  const { isEnabled } = await draftMode()
+  return (
+    <main>
+      <h1>My Blog Post</h1>
+      <p>Draft Mode is currently {isEnabled ? 'Enabled' : 'Disabled'}</p>
+    </main>
+  )
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.0.0-RC` | `draftMode` is now an async function. A [codemod](../../guides/upgrading/codemods.mdx#150) is available. |`v13.4.0`    | `draftMode` introduced.                                                                                  |

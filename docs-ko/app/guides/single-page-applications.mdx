@@ -1,0 +1,421 @@
+---
+title: Next.js로 단일 페이지 애플리케이션을 구축하는 방법
+nav_title: SPA
+description: Next.js는 단일 페이지 애플리케이션(SPA) 구축을 완벽하게 지원합니다.
+---
+
+Next.js는 단일 페이지 애플리케이션(SPA) 구축을 완벽하게 지원합니다.
+
+여기에는 프리페칭을 통한 빠른 경로 전환, 클라이언트 측 데이터 가져오기, 브라우저 API 사용, 타사 클라이언트 라이브러리와의 통합, 정적 경로 생성 등이 포함됩니다.
+
+기존 SPA가 있는 경우 코드를 크게 변경하지 않고도 Next.js으로 마이그레이션할 수 있습니다. Next.js를 사용하면 필요에 따라 서버 기능을 점진적으로 추가할 수 있습니다.
+
+## 단일 페이지 애플리케이션이란 무엇입니까?
+
+SPA의 정의는 다양합니다. "엄격한 SPA"를 다음과 같이 정의하겠습니다.
+
+- **클라이언트 측 렌더링(CSR)**: 앱은 하나의 HTML 파일(예: `index.html`)로 제공됩니다. 모든 경로, 페이지 전환 및 데이터 가져오기는 브라우저의 JavaScript에 의해 처리됩니다.
+- **전체 페이지 다시 로드 없음**: 각 경로에 대해 새 문서를 요청하는 대신 클라이언트 측 JavaScript는 현재 페이지의 DOM를 조작하고 필요에 따라 데이터를 가져옵니다.
+
+엄격한 SPA에서는 페이지가 대화형이 되기 전에 로드하기 위해 많은 양의 JavaScript가 필요한 경우가 많습니다. 또한 클라이언트 데이터 폭포는 관리하기 어려울 수 있습니다. Next.js를 사용하여 SPA를 구축하면 이러한 문제를 해결할 수 있습니다.
+
+## SPA에 Next.js를 사용하는 이유는 무엇인가요?
+
+Next.js는 JavaScript 번들을 자동으로 코드 분할하고 여러 HTML 진입점을 다른 경로로 생성할 수 있습니다. 이렇게 하면 클라이언트 측에서 불필요한 JavaScript 코드가 로드되는 것을 방지하여 번들 크기를 줄이고 페이지 로드 속도를 높일 수 있습니다.
+
+The [`next/link`](../api-reference/components/link.mdx) 구성 요소는 자동으로 경로를 [프리페치](../api-reference/components/link.mdx#prefetch)하여 엄격한 SPA의 빠른 페이지 전환을 제공하지만 연결 및 공유를 위해 애플리케이션 라우팅 상태를 URL에 유지하는 이점이 있습니다.
+
+Next.js는 정적 사이트로 시작하거나 모든 것이 클라이언트측에서 렌더링되는 엄격한 SPA로 시작할 수 있습니다. 프로젝트가 성장하는 경우 Next.js를 사용하면 필요에 따라 더 많은 서버 기능(예: [React 서버 구성 요소](../getting-started/server-and-client-components.mdx), [서버 작업](../getting-started/updating-data.mdx) 등)을 점진적으로 추가할 수 있습니다.
+
+## 예
+
+SPA를 구축하는 데 사용되는 일반적인 패턴과 Next.js가 이를 해결하는 방법을 살펴보겠습니다.
+
+### 컨텍스트 제공자 내에서 React의 `use` 사용
+
+상위 구성 요소(또는 레이아웃)에서 데이터를 가져오고 Promise를 반환한 다음 React의 [`use` 후크](https://react.dev/reference/react/use)를 사용하여 클라이언트 구성 요소의 값을 래핑 해제하는 것이 좋습니다.
+
+Next.js는 서버에서 초기에 데이터 가져오기를 시작할 수 있습니다. 이 예에서는 이것이 애플리케이션의 진입점인 루트 레이아웃입니다. 서버는 즉시 클라이언트에 대한 응답 스트리밍을 시작할 수 있습니다.데이터를 루트 레이아웃으로 "호이스팅"함으로써 Next.js는 애플리케이션의 다른 구성 요소보다 먼저 서버에서 지정된 요청을 시작합니다. 이렇게 하면 클라이언트 폭포가 제거되고 클라이언트와 서버 간에 여러 번의 왕복이 발생하는 것을 방지할 수 있습니다. 또한 서버가 데이터베이스가 있는 위치에 더 가깝고 이상적으로는 같은 위치에 있으므로 성능이 크게 향상될 수 있습니다.
+
+예를 들어, Promise를 호출하도록 루트 레이아웃을 업데이트하되 기다리지 .
+
+클라이언트 구성 요소에 대한 prop으로 *not* await it.할 수 있지만 일반적으로 이 패턴은 React 컨텍스트 공급자와 쌍을 이룹니다. 이를 통해 사용자 정의 React 후크를 사용하여 클라이언트 구성 요소에서 더 쉽게 액세스할 수 있습니다.
+
+```tsx filename="app/layout.tsx" switcher
+import { UserProvider } from './user-provider'
+import { getUser } from './user' // some server-side function
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  let userPromise = getUser() // do NOT await
+
+  return (
+    <html lang="en">
+      <body>
+        <UserProvider userPromise={userPromise}>{children}</UserProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { UserProvider } from './user-provider'
+import { getUser } from './user' // some server-side function
+
+export default function RootLayout({ children }) {
+  let userPromise = getUser() // do NOT await
+
+  return (
+    <html lang="en">
+      <body>
+        <UserProvider userPromise={userPromise}>{children}</UserProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+마지막으로 클라이언트 구성 요소에서 [defer and pass a single Promise](../getting-started/fetching-data.mdx#streaming-data-with-the-use-hook) as a prop to a Client Component, we generally see this pattern paired with a React context provider. This enables easier access from Client Components with a custom React Hook. 사용자 정의 후크를 호출하고 약속을 풀 수 있습니다.
+
+Promise를 사용하는 구성 요소(예: 위의 )는 일시 중지됩니다. 이를 통해 부분적인 수분 공급이 가능해집니다. JavaScript 로드가 완료되기 전에 스트리밍 및 사전 렌더링된 HTML를 볼 수 있습니다.
+
+```ts filename="app/user-provider.ts" switcher
+'use client';
+
+import { createContext, useContext, ReactNode } from 'react';
+
+type User = any;
+type UserContextType = {
+  userPromise: Promise<User | null>;
+};
+
+const UserContext = createContext<UserContextType | null>(null);
+
+export function useUser(): UserContextType {
+  let context = useContext(UserContext);
+  if (context === null) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+}
+
+export function UserProvider({
+  children,
+  userPromise
+}: {
+  children: ReactNode;
+  userPromise: Promise<User | null>;
+}) {
+  return (
+    <UserContext.Provider value={{ userPromise }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+```
+
+```js filename="app/user-provider.js" switcher
+'use client'
+
+import { createContext, useContext, ReactNode } from 'react'
+
+const UserContext = createContext(null)
+
+export function useUser() {
+  let context = useContext(UserContext)
+  if (context === null) {
+    throw new Error('useUser must be used within a UserProvider')
+  }
+  return context
+}
+
+export function UserProvider({ children, userPromise }) {
+  return (
+    <UserContext.Provider value={{ userPromise }}>
+      {children}
+    </UserContext.Provider>
+  )
+}
+```
+
+이는 서버 구성 요소이므로 `useUser()`은 쿠키, 헤더를 안전하게 읽거나 데이터베이스와 통신할 수 있습니다. 별도의 API 경로가 필요하지 않습니다.  아래의 클라이언트 구성 요소는 동일한 키로 을 호출하여 사용자 데이터를 검색할 수 있습니다. 이 포함된 구성 요소 코드는 기존 클라이언트 가져오기 솔루션에서 .
+
+```tsx filename="app/profile.tsx" switcher
+'use client'
+
+import { use } from 'react'
+import { useUser } from './user-provider'
+
+export function Profile() {
+  const { userPromise } = useUser()
+  const user = use(userPromise)
+
+  return '...'
+}
+```
+
+```jsx filename="app/profile.js" switcher
+'use client'
+
+import { use } from 'react'
+import { useUser } from './user-provider'
+
+export function Profile() {
+  const { userPromise } = useUser()
+  const user = use(userPromise)
+
+  return '...'
+}
+```
+
+The component that consumes the Promise (e.g. `Profile` 데이터는 사전 렌더링되어 초기 HTML 응답에 포함된 다음 을 사용하여 하위 구성 요소에서 즉시 읽을 수 있습니다. SWR의 폴링, 재검증, 캐싱은 여전히 ​​ 실행되므로 SPA에 필요한 모든 상호 작용이 유지됩니다.초기  데이터는 Next.js에 의해 자동으로 처리되므로 이제 이 인지 확인하는 데 필요했던 조건부 논리를 삭제할 수 있습니다. 데이터가 로드되는 동안 가장 가까운  경계가 일시 중지됩니다.
+
+### React 쿼리가 포함된 SPA
+
+[SWR](https://swr.vercel.app) is a popular React library for data fetching.
+
+With SWR 2.3.0 (and React 19+), you can gradually adopt server features alongside your existing SWR-based client data fetching code. This is an abstraction of the above `use()` pattern. This means you can move data fetching between the client and server-side, or use both:에서 자세히 알아보세요.
+
+- **Client-only:** `useSWR(key, fetcher)`
+- **Server-only:** `useSWR(key)` + RSC-provided data
+- **Mixed:** `useSWR(key, fetcher)` + RSC-provided data
+
+클라이언트 구성 요소는 `<SWRConfig>` 중에 `fallback`:됩니다. 클라이언트 구성 요소에 대한 사전 렌더링을 비활성화하고 브라우저 환경에서만 로드하려면 을 사용할 수 있습니다.
+
+```tsx filename="app/layout.tsx" switcher
+import { SWRConfig } from 'swr'
+import { getUser } from './user' // some server-side function
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SWRConfig
+      value={{
+        fallback: {
+          // We do NOT await getUser() here
+          // Only components that read this data will suspend
+          '/api/user': getUser(),
+        },
+      }}
+    >
+      {children}
+    </SWRConfig>
+  )
+}
+```
+
+```js filename="app/layout.js" switcher
+import { SWRConfig } from 'swr'
+import { getUser } from './user' // some server-side function
+
+export default function RootLayout({ children }) {
+  return (
+    <SWRConfig
+      value={{
+        fallback: {
+          // We do NOT await getUser() here
+          // Only components that read this data will suspend
+          '/api/user': getUser(),
+        },
+      }}
+    >
+      {children}
+    </SWRConfig>
+  )
+}
+```
+
+Next.js에서 `getUser()` can securely read cookies, headers, or talk to your database. No separate API route is needed. Client components below the `<SWRConfig>` can call `useSWR()` with the same key to retrieve the user data. The component code with `useSWR` **does not require any changes** from your existing client-fetching solution.이 작동하는 방식에 대해 자세히 알아보세요.
+
+```tsx filename="app/profile.tsx" switcher
+'use client'
+
+import useSWR from 'swr'
+
+export function Profile() {
+  const fetcher = (url) => fetch(url).then((res) => res.json())
+  // The same SWR pattern you already know
+  const { data, error } = useSWR('/api/user', fetcher)
+
+  return '...'
+}
+```
+
+```jsx filename="app/profile.js" switcher
+'use client'
+
+import useSWR from 'swr'
+
+export function Profile() {
+  const fetcher = (url) => fetch(url).then((res) => res.json())
+  // The same SWR pattern you already know
+  const { data, error } = useSWR('/api/user', fetcher)
+
+  return '...'
+}
+```
+
+JavaScript 함수를 호출하는 것과 유사하게 클라이언트에서 서버 작업을 가져와 사용할 수 있습니다. API 엔드포인트를 수동으로 생성할 필요는 없습니다.`fallback` data can be prerendered and included in the initial HTML response, then immediately read in the child components using `useSWR`. SWR’s polling, revalidation, and caching still run **client-side only**, so it preserves all the interactivity you rely on for an SPA.
+
+Since the initial `fallback` data is automatically handled by Next.js, you can now delete any conditional logic previously needed to check if `data` was `undefined`. When the data is loading, the closest `<Suspense>` boundary will be suspended.에 대해 자세히 알아보세요.
+
+Next.js는 또한 완전한 <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |<Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Deduplicate requests | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Client-side features | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
+
+### SPAs with React Query
+
+정적 내보내기를 활성화하려면 구성을 업데이트하세요.
+
+Learn more in the [React Query documentation](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr).를 실행한 후 Next.js는 애플리케이션에 대한 HTML/CSS/JS 자산이 포함된  폴더를 생성합니다.
+
+### Rendering components only in the browser
+
+다음 가이드에 따라 Next.js로 점진적으로 마이그레이션할 수 있습니다.[prerendered](https://github.com/reactwg/server-components/discussions/4) during `next build`. If you want to disable prerendering for a Client Component and only load it in the browser environment, you can use [`next/dynamic`](lazy-loading.mdx#nextdynamic):
+
+```jsx
+import dynamic from 'next/dynamic'
+
+const ClientOnlyComponent = dynamic(() => import('./component'), {
+  ssr: false,
+})
+```
+
+이미 페이지 라우터와 함께 SPA를 사용하고 있다면 `window` or `document`. You can also add a `useEffect` that checks for the existence of these APIs, and if they do not exist, return `null` or a loading state which would be prerendered.하는 방법을 알아볼 수 있습니다.
+
+### Shallow routing on the client
+
+If you are migrating from a strict SPA like [Create React App](migrating/from-create-react-app.mdx) or [Vite](migrating/from-vite.mdx), you might have existing code which shallow routes to update the URL state. This can be useful for manual transitions between views in your application *without* using the default Next.js file-system routing.
+
+Next.js allows you to use the native [`window.history.pushState`](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState) and [`window.history.replaceState`](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState) methods to update the browser's history stack without reloading the page.
+
+`pushState` and `replaceState` calls integrate into the Next.js Router, allowing you to sync with [`usePathname`](../api-reference/functions/use-pathname.mdx) and [`useSearchParams`](../api-reference/functions/use-search-params.mdx).
+
+```tsx fileName="app/ui/sort-products.tsx" switcher
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export default function SortProducts() {
+  const searchParams = useSearchParams()
+
+  function updateSorting(sortOrder: string) {
+    const urlSearchParams = new URLSearchParams(searchParams.toString())
+    urlSearchParams.set('sort', sortOrder)
+    window.history.pushState(null, '', `?${urlSearchParams.toString()}`)
+  }
+
+  return (
+    <>
+      <button onClick={() => updateSorting('asc')}>Sort Ascending</button>
+      <button onClick={() => updateSorting('desc')}>Sort Descending</button>
+    </>
+  )
+}
+```
+
+```jsx fileName="app/ui/sort-products.js" switcher
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export default function SortProducts() {
+  const searchParams = useSearchParams()
+
+  function updateSorting(sortOrder) {
+    const urlSearchParams = new URLSearchParams(searchParams.toString())
+    urlSearchParams.set('sort', sortOrder)
+    window.history.pushState(null, '', `?${urlSearchParams.toString()}`)
+  }
+
+  return (
+    <>
+      <button onClick={() => updateSorting('asc')}>Sort Ascending</button>
+      <button onClick={() => updateSorting('desc')}>Sort Descending</button>
+    </>
+  )
+}
+```
+
+Learn more about how [routing and navigation](../getting-started/linking-and-navigating.mdx#how-navigation-works) work in Next.js.
+
+### Using Server Actions in Client Components
+
+You can progressively adopt Server Actions while still using Client Components. This allows you to remove boilerplate code to call an API route, and instead use React features like `useActionState` to handle loading and error states.
+
+For example, create your first Server Action:
+
+```tsx filename="app/actions.ts" switcher
+'use server'
+
+export async function create() {}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+export async function create() {}
+```
+
+You can import and use a Server Action from the client, similar to calling a JavaScript function. You do not need to create an API endpoint manually:
+
+```tsx filename="app/button.tsx" switcher
+'use client'
+
+import { create } from './actions'
+
+export function Button() {
+  return <button onClick={() => create()}>Create</button>
+}
+```
+
+```jsx filename="app/button.js" switcher
+'use client'
+
+import { create } from './actions'
+
+export function Button() {
+  return <button onClick={() => create()}>Create</button>
+}
+```
+
+Learn more about [mutating data with Server Actions](../getting-started/updating-data.mdx).
+
+## Static export (optional)
+
+Next.js also supports generating a fully [static site](static-exports.mdx). This has some advantages over strict SPAs:
+
+- **Automatic code-splitting**: Instead of shipping a single `index.html`, Next.js will generate an HTML file per route, so your visitors get the content faster without waiting for the client JavaScript bundle.
+- **Improved user experience:** Instead of a minimal skeleton for all routes, you get fully rendered pages for each route. When users navigate client side, transitions remain instant and SPA-like.
+
+To enable a static export, update your configuration:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  output: 'export',
+}
+
+export default nextConfig
+```
+
+After running `next build`, Next.js will create an `out` folder with the HTML/CSS/JS assets for your application.
+
+> **Note:** Next.js server features are not supported with static exports. [Learn more](static-exports.mdx#unsupported-features).
+
+## Migrating existing projects to Next.js
+
+You can incrementally migrate to Next.js by following our guides:
+
+- [Migrating from Create React App](migrating/from-create-react-app.mdx)
+- [Migrating from Vite](migrating/from-vite.mdx)
+
+If you are already using a SPA with the Pages Router, you can learn how to [incrementally adopt the App Router](migrating/app-router-migration.mdx).

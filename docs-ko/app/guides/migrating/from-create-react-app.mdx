@@ -1,0 +1,587 @@
+---
+title: Create React App에서 Next.js로 마이그레이션하는 방법
+nav_title: 반응 앱 만들기
+description: 기존 React 애플리케이션을 Create React App에서 Next.js로 마이그레이션하는 방법을 알아보세요.
+---
+
+이 가이드는 기존 Create React App(CRA) 사이트를 Next.js로 마이그레이션하는 데 도움이 됩니다.
+
+## 스위치를 사용하는 이유는 무엇인가요?
+
+React 앱 생성에서 Next.js로 전환하려는 데에는 몇 가지 이유가 있습니다.
+
+### 초기 페이지 로딩 시간이 느림
+
+React 앱 생성은 순수 클라이언트 측 렌더링을 사용합니다. [단일 페이지 애플리케이션(SPA)](../single-page-applications.mdx)이라고도 하는 클라이언트 측 전용 애플리케이션에서는 초기 페이지 로드 시간이 느린 경우가 많습니다. 이는 다음과 같은 몇 가지 이유로 인해 발생합니다.
+
+1. 브라우저는 코드가 데이터 로드 요청을 보낼 수 있기 전에 React 코드와 전체 애플리케이션 번들이 다운로드 및 실행될 때까지 기다려야 합니다.
+1. 새로운 기능과 종속성을 추가할 때마다 애플리케이션 코드가 늘어납니다.
+
+### 자동 코드 분할 없음
+
+느린 로딩 시간이라는 이전 문제는 코드 분할을 통해 어느 정도 완화될 수 있습니다. 그러나 코드 분할을 수동으로 수행하려고 하면 실수로 네트워크 워터폴이 발생할 수 있습니다. Next.js는 라우터 및 빌드 파이프라인에 내장된 자동 코드 분할 및 트리 쉐이킹 기능을 제공합니다.
+
+### 네트워크 폭포수
+
+성능 저하의 일반적인 원인은 애플리케이션이 데이터를 가져오기 위해 순차적으로 클라이언트-서버 요청을 할 때 발생합니다. [SPA](../single-page-applications.mdx)에서 데이터를 가져오는 패턴 중 하나는 자리 표시자를 렌더링한 다음 구성 요소가 마운트된 후 데이터를 가져오는 것입니다. 안타깝게도 하위 구성 요소는 상위 구성 요소가 자체 데이터 로드를 완료한 후에만 데이터 가져오기를 시작할 수 있어 요청이 '폭포수'로 발생합니다.
+
+클라이언트 측 데이터 가져오기는 Next.js에서 지원되지만 Next.js를 사용하면 데이터 가져오기를 서버로 이동할 수도 있습니다. 이는 종종 클라이언트-서버 폭포를 완전히 제거합니다.
+
+### 빠르고 의도적인 로딩 상태
+
+With built-in support for [React 일시 중단을 통한 스트리밍](../../getting-started/linking-and-navigating.mdx#streaming)에 대한 기본 지원을 사용하면 네트워크 워터폴을 만들지 않고도 UI의 어느 부분이 어떤 순서로 먼저 로드되는지 정의할 수 있습니다.
+
+이를 통해 [레이아웃 변경](https://vercel.com/blog/how-core-web-vitals-affect-seo)을 더 빠르게 로드하고 제거하는 페이지를 구축할 수 있습니다.
+
+### 데이터 가져오기 전략 선택
+
+필요에 따라 Next.js를 사용하면 페이지 또는 구성 요소 수준에서 데이터 가져오기 전략을 선택할 수 있습니다. 예를 들어 CMS에서 데이터를 가져오고 빠른 로드 속도를 위해 빌드 시간(SSG)에 블로그 게시물을 렌더링하거나 필요한 경우 요청 시간(SSR)에 데이터를 가져올 수 있습니다.
+
+### 프록시
+
+[Next.js 프록시](../../api-reference/file-conventions/proxy.mdx)를 사용하면 요청이 완료되기 전에 서버에서 코드를 실행할 수 있습니다. 예를 들어 인증 전용 페이지에 대한 프록시의 로그인 페이지로 사용자를 리디렉션하여 인증되지 않은 콘텐츠가 깜박이는 것을 방지할 수 있습니다. A/B 테스트, 실험, [국제화](../internationalization.mdx)와 같은 기능에도 사용할 수 있습니다.
+
+### 내장 최적화,  및 는 종종 애플리케이션 성능에 큰 영향을 미칩니다. Next.js에는 자동으로 최적화하는 특수 구성 요소와 API가 포함되어 있습니다.
+
+[SPA](../../api-reference/components/image.mdx))으로 처리합니다. 이렇게 하면 복잡성과 병합 충돌이 줄어듭니다.[fonts](../../api-reference/components/font.mdx), and [third-party scripts](../scripts.mdx) often have a large impact on an application’s performance. Next.js includes specialized components and APIs that automatically optimize them for you.
+
+## Migration Steps
+
+기존 프로젝트에 Next.js를 설치합니다.[SPA](../single-page-applications.mdx)) without immediately replacing your existing router. This reduces complexity and merge conflicts.
+
+> **참고**: `homepage`을 사용한다는 것은 정적 내보내기를 수행한다는 의미입니다. SSR가나 API와 같은 서버 측 기능에 액세스할 수 `package.json`, a custom service worker, or specific Babel/webpack tweaks, please see the **없습니다**. Next.js 서버 기능을 활용하려면 이 줄을 제거할 수 있습니다.
+
+### 3단계: 루트 레이아웃 만들기
+
+Next.js  애플리케이션에는 모든 페이지를 래핑하는 인  파일이 포함되어야 합니다.
+
+```bash filename="Terminal"
+npm install next@latest
+```
+
+### Step 2: Create the Next.js Configuration File
+
+이제 이전 `next.config.ts`의 콘텐츠를 이 `package.json` 구성 요소에 복사하세요. [Next.js configuration options](../../api-reference/config/next-config-js/index.mdx).(및 )를 로 바꿉니다.
+
+```js filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  output: 'export', // Outputs a Single-Page Application (SPA)
+  distDir: 'build', // Changes the build output directory to `build`
+}
+
+export default nextConfig
+```
+
+> **알아두면 좋은 정보**: Next.js는 기본적으로 CRA의 `output: 'export'`, 추가 아이콘 및 **not** have access to server-side features like SSR or APIs. You can remove this line to leverage Next.js server features.을 무시합니다. 이러한 기능이 필요한 경우 Next.js에서는  및  설정을 지원합니다.### 4단계: 메타데이터
+
+### Step 3: Create the Root Layout
+
+Next.js에는 [App Router](../../index.mdx) application must include a [root layout](../../api-reference/file-conventions/layout.mdx#root-layout) file, which is a [React Server Component](../../getting-started/server-and-client-components.mdx) that will wrap all your pages. 및  태그가 자동으로 포함되므로 에서 제거할 수 있습니다.
+
+The closest equivalent of the root layout file in a CRA application is `public/index.html`, `<html>`, `<head>`과 같은 모든 `<body>`의 최상위 수준에 배치되어 있는 한 애플리케이션  태그에 자동으로 추가됩니다. 디렉토리. 을  디렉터리로 이동한 후 해당  태그를 안전하게 삭제할 수 있습니다.
+
+1. Create a new `app` directory inside your `src` folder (or at your project root if you prefer `app` at the root).
+1. Inside the `app` directory, create a `layout.tsx` (or `layout.js`) file:
+
+```tsx filename="app/layout.tsx" switcher
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return '...'
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function RootLayout({ children }) {
+  return '...'
+}
+```
+
+마지막으로 Next.js는 `index.html` 태그를 관리할 수 있습니다. 최종 메타데이터 정보를 내보낸 `<RootLayout>` component. Replace `body div#root` (and `body noscript`) with `<div id="root">{children}</div>`.로 이동합니다.
+
+```tsx filename="app/layout.tsx" switcher
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+> **Good to know**: Next.js ignores CRA’s `public/manifest.json`, additional iconography, and [testing configuration](../testing/index.mdx) by default. If you need these, Next.js has support with its [Metadata API](../../getting-started/metadata-and-og-images.mdx) and [Testing](../testing/index.mdx) setup.
+
+### 5단계: 스타일
+
+CRA와 마찬가지로 Next.js는 기본적으로 `<meta charset="UTF-8" />` and `<meta name="viewport" content="width=device-width, initial-scale=1" />` tags, so you can remove them from `<head>`:을 지원합니다. 또한 를 지원합니다.
+
+```tsx filename="app/layout.tsx" switcher
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+이는 Next.js에 빈 슬러그([서버 구성 요소](../../getting-started/metadata-and-og-images.mdx#file-based-metadata)입니다.`favicon.ico`, `icon.png`, `robots.txt` are automatically added to the application `<head>` tag as long as you have them placed into the top level of the `app` directory. After moving [all supported files](../../getting-started/metadata-and-og-images.mdx#file-based-metadata) into the `app` directory you can safely delete their `<link>` tags:
+
+```tsx filename="app/layout.tsx" switcher
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <head>
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head>
+        <title>React App</title>
+        <meta name="description" content="Web site created..." />
+      </head>
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+이제 새 구성요소를 사용하려면 `<head>`(또는 [Metadata API](../../getting-started/metadata-and-og-images.mdx). Move your final metadata info into an exported [`metadata` object](../../api-reference/functions/generate-metadata.mdx#metadata-object):)를 업데이트하세요.
+
+```tsx filename="app/layout.tsx" switcher
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'React App',
+  description: 'Web site created with Next.js.',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export const metadata = {
+  title: 'React App',
+  description: 'Web site created with Next.js.',
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+CRA에서 이미지 파일을 가져오면 공개 URL가 문자열로 반환됩니다.`index.html` to using Next.js' convention-based approach built into the framework ([Metadata API](../../getting-started/metadata-and-og-images.mdx)). This approach enables you to more easily improve your SEO and web shareability of your pages.
+
+### Step 5: Styles
+
+Next.js를 사용하면 정적 이미지 가져오기가 객체를 반환합니다. 그런 다음 객체를 Next.js [CSS Modules 구성 요소](../../getting-started/css.mdx#css-modules)와 함께 직접 사용하거나 기존 [global CSS imports](../../getting-started/css.mdx#global-css). 태그와 함께 객체의  속성을 사용할 수 있습니다.
+
+If you have a global CSS file, import it into your `app/layout.tsx` 구성요소에는 의 추가 이점이 있습니다.  구성 요소는 이미지 크기에 따라 결과 의  및  속성을 자동으로 설정합니다. 이렇게 하면 이미지가 로드될 때 레이아웃이 바뀌는 것을 방지할 수 있습니다. 그러나 앱에 크기 중 하나만 스타일 지정되고 다른 크기는 로 스타일 지정된 이미지가 포함된 경우 문제가 발생할 수 있습니다. 으로 스타일이 지정되지 않은 경우 치수는 기본적으로  치수 속성 값으로 설정되므로 이미지가 왜곡되어 나타날 수 있습니다.
+
+```tsx filename="app/layout.tsx" switcher
+import '../index.css'
+
+export const metadata = {
+  title: 'React App',
+  description: 'Web site created with Next.js.',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <div id="root">{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+If you're using Tailwind CSS, see our [installation docs](../../getting-started/css.mdx#tailwind-css).
+
+### 9단계: 환경 변수 마이그레이션
+
+Next.js는 CRA와 유사하게 `src/index.tsx` 접두사가 `index.js`) as the entry point. In Next.js (App Router), each folder inside the `app` directory corresponds to a route, and each folder should have a `page.tsx`.합니다.
+
+주요 차이점은 클라이언트 측에서 환경 변수를 노출하는 데 사용되는 접두사입니다. **all** routes, we’ll use an [optional catch-all route](../../api-reference/file-conventions/dynamic-routes.mdx#optional-catch-all-segments). 접두사가 있는 모든 환경 변수를 로 변경합니다.
+
+1. **Create a `[[...slug]]` directory inside `app`.**
+
+```bash
+app
+ ┣ [[...slug]]
+ ┃ ┗ page.tsx
+ ┣ layout.tsx
+```
+
+2. **Add the following to `page.tsx`**:
+
+```tsx filename="app/[[...slug]]/page.tsx" switcher
+export function generateStaticParams() {
+  return [{ slug: [''] }]
+}
+
+export default function Page() {
+  return '...' // We'll update this
+}
+```
+
+```jsx filename="app/[[...slug]]/page.js" switcher
+export function generateStaticParams() {
+  return [{ slug: [''] }]
+}
+
+export default function Page() {
+  return '...' // We'll update this
+}
+```
+
+This tells Next.js to generate a single route for the empty slug (`/`), effectively mapping **all** routes to the same page. This page is a [http://localhost:3000](../../getting-started/server-and-client-components.mdx)을 엽니다. 이제 Next.js(SPA 모드)에서 실행 중인 애플리케이션을 볼 수 있습니다.
+
+### 11단계: 정리
+
+이제 React 앱 생성과 관련된 아티팩트를 제거할 수 있습니다.[Client Component](../../getting-started/server-and-client-components.mdx) so that all logic remains client-side. If this is your first time using Next.js, it's worth knowing that clients components (by default) are still prerendered on the server. You can think about them as having the additional capability of running client-side JavaScript.
+
+CRA `client.tsx`의 `client.js` 필드를 사용하여 특정 하위 경로에서 앱을 제공한 경우 다음의 `app/[[...slug]]/`:
+
+```tsx filename="app/[[...slug]]/client.tsx" switcher
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const App = dynamic(() => import('../../App'), { ssr: false })
+
+export function ClientOnly() {
+  return <App />
+}
+```
+
+```jsx filename="app/[[...slug]]/client.js" switcher
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const App = dynamic(() => import('../../App'), { ssr: false })
+
+export function ClientOnly() {
+  return <App />
+}
+```
+
+- The `'use client'` directive makes this file a **Client Component**.
+- The `dynamic` import with `ssr: false` disables server-side rendering for the `<App />` component, making it truly client-only (SPA).
+
+CRA에 사용자 정의 웹팩 또는 Babel 구성이 있는 경우 `page.tsx`에서 Next.js의 구성을 확장할 수 있습니다.`page.js`) to use your new component:
+
+```tsx filename="app/[[...slug]]/page.tsx" switcher
+import { ClientOnly } from './client'
+
+export function generateStaticParams() {
+  return [{ slug: [''] }]
+}
+
+export default function Page() {
+  return <ClientOnly />
+}
+```
+
+```jsx filename="app/[[...slug]]/page.js" switcher
+import { ClientOnly } from './client'
+
+export function generateStaticParams() {
+  return [{ slug: [''] }]
+}
+
+export default function Page() {
+  return <ClientOnly />
+}
+```
+
+### Step 8: Update Static Image Imports
+
+React 생성 앱은 번들링을 위해 webpack를 사용합니다. 더 빠른 로컬 개발을 위해 Next.js의 기본값은 이제 입니다.
+
+```tsx
+import image from './img.png'
+
+export default function App() {
+  return <img src={image} />
+}
+```
+
+대신 Webpack를 사용하려면(CRA와 유사):[`<Image>` component](../../api-reference/components/image.mdx), or you can use the object's `src` property with your existing `<img>` tag.
+
+CRA에서 고급 웹팩 설정을 마이그레이션해야 하는 경우에도 `<Image>` component has the added benefits of [사용자 정의 웹팩 구성](../../api-reference/components/image.mdx)을 제공할 수 있습니다.`<Image>` component automatically sets the `width` and `height` attributes of the resulting `<img>` based on the image's dimensions. This prevents layout shifts when the image loads. However, this can cause issues if your app contains images with only one of their dimensions being styled without the other styled to `auto`. When not styled to `auto`, the dimension will default to the `<img>` dimension attribute's value, which can cause the image to appear distorted.
+
+모든 것이 제대로 작동했다면 이제 단일 페이지 애플리케이션으로 실행되는 Next.js 애플리케이션이 작동하는 것입니다. 아직 서버측 렌더링이나 파일 기반 라우팅과 같은 Next.js 기능을 활용하고 있지 않지만 이제 점진적으로 활용할 수 있습니다.`<img>` tag will reduce the amount of changes in your application and prevent the above issues. You can then optionally later migrate to the `<Image>` component to take advantage of optimizing images by [configuring a loader](../../api-reference/components/image.mdx#loader), or moving to the default Next.js server which has automatic image optimization.
+
+**Convert absolute import paths for images imported from `/public` into relative imports:**
+
+```tsx
+// Before
+import logo from '/logo.png'
+
+// After
+import logo from '../public/logo.png'
+```
+
+**Pass the image `src` property instead of the whole image object to your `<img>` tag:**
+
+```tsx
+// Before
+<img src={logo} />
+
+// After
+<img src={logo.src} />
+```
+
+Alternatively, you can reference the public URL for the image asset based on the filename. For example, `public/logo.png` will serve the image at `/logo.png` for your application, which would be the `src` value.
+
+> **참고**: 정적 내보내기(`src`)를 사용하면 `next-env.d.ts` 후크 또는 기타 서버 기능입니다. 모든 Next.js 기능을 사용하려면 [`include` array](https://www.typescriptlang.org/tsconfig#include) of your `tsconfig.json`에서 을 제거하세요.
+
+### Step 9: Migrate Environment Variables
+
+Next.js supports [environment variables](../environment-variables.mdx) similarly to CRA but **requires** a `NEXT_PUBLIC_` prefix for any variable you want to expose in the browser.
+
+The main difference is the prefix used to expose environment variables on the client-side. Change all environment variables with the `REACT_APP_` prefix to `NEXT_PUBLIC_`.
+
+### Step 10: Update Scripts in `package.json`
+
+Update your `package.json` scripts to use Next.js commands. Also, add `.next` and `next-env.d.ts` to your `.gitignore`:
+
+```json filename="package.json"
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "npx serve@latest ./build"
+  }
+}
+```
+
+```txt filename=".gitignore"
+# ...
+.next
+next-env.d.ts
+```
+
+Now you can run:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). You should see your application now running on Next.js (in SPA mode).
+
+### Step 11: Clean Up
+
+You can now remove artifacts that are specific to Create React App:
+
+- `public/index.html`
+- `src/index.tsx`
+- `src/react-app-env.d.ts`
+- The `reportWebVitals` setup
+- The `react-scripts` dependency (uninstall it from `package.json`)
+
+## Additional Considerations
+
+### Using a Custom `homepage` in CRA
+
+If you used the `homepage` field in your CRA `package.json` to serve the app under a specific subpath, you can replicate that in Next.js using the [`basePath` configuration](../../api-reference/config/next-config-js/basePath.mdx) in `next.config.ts`:
+
+```ts filename="next.config.ts"
+import { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  basePath: '/my-subpath',
+  // ...
+}
+
+export default nextConfig
+```
+
+### Handling a Custom `Service Worker`
+
+If you used CRA’s service worker (e.g., `serviceWorker.js` from `create-react-app`), you can learn how to create [Progressive Web Applications (PWAs)](../progressive-web-apps.mdx) with Next.js.
+
+### Proxying API Requests
+
+If your CRA app used the `proxy` field in `package.json` to forward requests to a backend server, you can replicate this with [Next.js rewrites](../../api-reference/config/next-config-js/rewrites.mdx) in `next.config.ts`:
+
+```ts filename="next.config.ts"
+import { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://your-backend.com/:path*',
+      },
+    ]
+  },
+}
+```
+
+### Custom Webpack
+
+If you had a custom webpack or Babel configuration in CRA, you can extend Next.js’s config in `next.config.ts`:
+
+```ts filename="next.config.ts"
+import { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  webpack: (config, { isServer }) => {
+    // Modify the webpack config here
+    return config
+  },
+}
+
+export default nextConfig
+```
+
+> **Note**: This will require using Webpack by adding `--webpack` to your `dev` script.
+
+### TypeScript Setup
+
+Next.js automatically sets up TypeScript if you have a `tsconfig.json`. Make sure `next-env.d.ts` is listed in your `tsconfig.json` `include` array:
+
+```json
+{
+  "include": ["next-env.d.ts", "app/**/*", "src/**/*"]
+}
+```
+
+## Bundler Compatibility
+
+Create React App uses webpack for bundling. Next.js now defaults to [Turbopack](../../api-reference/config/next-config-js/turbopack.mdx) for faster local development:
+
+```bash
+next dev  # Uses Turbopack by default
+```
+
+To use Webpack instead (similar to CRA):
+
+```bash
+next dev --webpack
+```
+
+You can still provide a [custom webpack configuration](../../api-reference/config/next-config-js/webpack.mdx) if you need to migrate advanced webpack settings from CRA.
+
+## Next Steps
+
+If everything worked, you now have a functioning Next.js application running as a single-page application. You aren’t yet leveraging Next.js features like server-side rendering or file-based routing, but you can now do so incrementally:
+
+- **Migrate from React Router** to the [Next.js App Router](../../index.mdx) for:
+  - Automatic code splitting
+  - [Streaming server rendering](../../api-reference/file-conventions/loading.mdx)
+  - [React Server Components](../../getting-started/server-and-client-components.mdx)
+- **Optimize images** with the [`<Image>` component](../../api-reference/components/image.mdx)
+- **Optimize fonts** with [`next/font`](../../api-reference/components/font.mdx)
+- **Optimize third-party scripts** with the [`<Script>` component](../scripts.mdx)
+- **Enable ESLint** with Next.js [recommended rules](../../api-reference/config/eslint.mdx#setup-eslint)
+
+> **Note**: Using a static export (`output: 'export'`) [does not currently support](https://github.com/vercel/next.js/issues/54393) the `useParams` hook or other server features. To use all Next.js features, remove `output: 'export'` from your `next.config.ts`.

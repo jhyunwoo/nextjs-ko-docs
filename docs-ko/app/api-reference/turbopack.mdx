@@ -1,0 +1,249 @@
+---
+title: 터보팩
+description: Turbopack은 JavaScript 및 TypeScript에 최적화되고 Rust로 작성되고 Next.js에 내장된 증분 번들러입니다.
+---
+
+Turbopack는 Rust로 작성되고 **Next.js**에 내장된 JavaScript 및 TypeScript에 최적화된 **증분 번들러**입니다. **훨씬 빠른** 로컬 개발 환경을 위해 페이지 및 앱 라우터 모두에서 Turbopack를 사용할 수 있습니다.
+
+## 왜 Turbopack인가요?
+
+우리는 다음을 포함하여 Next.js의 성능을 향상하기 위해 Turbopack를 구축했습니다.
+
+- **통합 그래프:** Next.js는 다양한 출력 환경(예: 클라이언트 및 서버)을 지원합니다. 여러 컴파일러를 관리하고 번들을 함께 연결하는 것은 지루할 수 있습니다. Turbopack는 모든 환경에 **단일 통합 그래프**를 사용합니다.
+- **번들링과 기본 ESM 비교:** 일부 도구는 개발 시 번들링을 건너뛰고 브라우저의 기본 ESM에 의존합니다. 이는 작은 앱에는 잘 작동하지만 과도한 네트워크 요청으로 인해 큰 앱의 속도가 느려질 수 있습니다. Turbopack **번들**은 개발 단계에 있지만 대규모 앱을 빠르게 유지하기 위해 최적화된 방식입니다.
+- **증분 계산:** Turbopack는 코어 전반에 걸쳐 작업을 병렬화하고 결과를 함수 수준까지 **캐시**합니다. 작업이 완료되면 Turbopack는 해당 작업을 반복하지 않습니다.
+- **지연 번들링:** Turbopack는 개발 서버에서 실제로 요청한 것만 번들링합니다. 이 게으른 접근 방식은 초기 컴파일 시간과 메모리 사용량을 줄일 수 있습니다.
+
+## 시작하기
+
+Turbopack는 이제 Next.js의 **기본 번들러**입니다. Turbopack를 사용하는 데는 구성이 필요하지 않습니다.
+
+```json filename="package.json" highlight={3}
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+### 대신 Webpack 사용
+
+Turbopack 대신 Webpack를 사용해야 하는 경우 `--webpack` 플래그를 사용하여 선택할 수 있습니다.
+
+```json filename="package.json"
+{
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start"
+  }
+}
+```
+
+## 지원되는 기능
+
+Next.js의 Turbopack에는 일반적인 사용 사례에 대한 **제로 구성**이 있습니다. 다음은 기본적으로 지원되는 기능에 대한 요약과 필요할 때 Turbopack를 추가로 구성할 수 있는 방법에 대한 몇 가지 참조입니다.
+
+### 언어 기능| 기능 | 상태 | 메모 |
+
+| -------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **JavaScript 및 TypeScript** | **지원됨** | 후드 아래에서 SWC를 사용합니다. 유형 확인은 Turbopack에 의해 수행되지 않습니다(`tsc --watch`을 실행하거나 유형 확인을 위해 IDE를 사용함).                                                                                                                                                                                                                                                                                                |**ECMAScript (ESNext)**     | **Supported** | Turbopack supports the latest ECMAScript features, matching SWC’s coverage.                                                                                                                                                                                                                                                                                                                                             |
+| **CommonJS**                | **Supported** | `require()` syntax is handled out of the box.                                                                                                                                                                                                                                                                                                                                                                           |
+| **ESM**                     | **Supported** | Static and dynamic `import` are fully supported.                                                                                                                                                                                                                                                                                                                                                                        |
+| **Babel**                   | **Supported** | Starting in Next.js 16, Turbopack uses Babel automatically if it detects [a configuration file][babel-config]. Unlike in webpack, SWC is always used for Next.js's internal transforms and downleveling to older ECMAScript revisions. Next.js with webpack disables SWC if a Babel configuration file is present. Files in `node_modules` are excluded, unless you [manually configure `babel-loader`][manual-loader]. |
+
+[babel-config]: https://babeljs.io/docs/config-files
+
+[manual-loader]: config/next-config-js/turbopack.mdx#configuring-webpack-loaders
+
+### 프레임워크 및 React 기능
+
+| 기능 | 상태 | 메모 |**JSX / TSX**                     | **Supported** | SWC handles JSX/TSX compilation.                                                                                       |
+| **Fast Refresh**                  | **Supported** | No configuration needed.                                                                                               |
+| **React Server Components (RSC)** | **Supported** | For the Next.js App Router. Turbopack ensures correct server/client bundling.                                          |
+| **Root layout creation**          | Unsupported   | Automatic creation of a root layout in App Router is not supported. Turbopack will instruct you to create it manually. |
+
+### CSS 및 스타일 지정| 기능 | 상태 | 메모 |
+
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **글로벌 CSS** | **지원됨** | `.css` 파일을 애플리케이션에서 직접 가져옵니다.                                                                                                                                                                                                                                                                                                                     |**CSS Modules**    | **Supported**           | `.module.css` files work natively (Lightning CSS).                                                                                                                                                                                                                                                                                                                    |
+| **CSS Nesting**    | **Supported**           | Lightning CSS supports [modern CSS nesting](https://lightningcss.dev/).                                                                                                                                                                                                                                                                                               |
+| **@import syntax** | **Supported**           | Combine multiple CSS files.                                                                                                                                                                                                                                                                                                                                           |
+| **PostCSS**        | **Supported**           | Automatically processes `postcss.config.js` in a Node.js worker pool. Useful for Tailwind, Autoprefixer, etc.                                                                                                                                                                                                                                                         |
+| **Sass / SCSS**    | **Supported** (Next.js) | For Next.js, Sass is supported out of the box. Custom Sass functions (`sassOptions.functions`) are not supported because Turbopack's Rust-based architecture cannot directly execute JavaScript functions, unlike webpack's Node.js environment. Use webpack if you need this feature. In the future, Turbopack standalone usage will likely require a loader config. |
+| **Less**           | Planned via plugins     | Not yet supported by default. Will likely require a loader config once custom loaders are stable.                                                                                                                                                                                                                                                                     |
+| **Lightning CSS**  | **In Use**              | Handles CSS transformations. Some low-usage CSS Modules features (like `:local/:global` as standalone pseudo-classes) are not yet supported. [See below for more details.](#unsupported-and-unplanned-features)                                                                                                                                                       |
+
+### 모듈 해상도
+
+| 기능 | 상태 | 메모 |**Static Assets** (images, fonts) | **Supported** | Importing `import img from './img.png'` works out of the box. In Next.js, returns an object for the `<Image />` component. |
+| **JSON Imports**                  | **Supported** | Named or default imports from `.json` are supported.                                                                       |
+
+### 성능 및 빠른 새로 고침
+
+| 기능 | 상태 | 메모 |**Path Aliases**      | **Supported**       | Reads `tsconfig.json`'s `paths` and `baseUrl`, matching Next.js behavior.                                                                                       |
+| **Manual Aliases**    | **Supported**       | [Configure `resolveAlias` in `next.config.js`](config/next-config-js/turbopack.mdx#resolving-aliases) (similar to `webpack.resolve.alias`). |
+| **Custom Extensions** | **Supported**       | [Configure `resolveExtensions` in `next.config.js`](config/next-config-js/turbopack.mdx#resolving-custom-extensions).                       |
+| **AMD**               | Partially Supported | Basic transforms work; advanced AMD usage is limited.                                                                                                           |
+
+### 파일 시스템 루트
+
+Turbopack는 루트 디렉터리를 사용하여 모듈을 확인합니다. 프로젝트 루트 외부의 파일은 확인되지 않습니다.예를 들어 프로젝트 루트 외부에 종속성을 연결하는 경우(**Fast Refresh**         | **Supported** | Updates JavaScript, TypeScript, and CSS without a full refresh.                          |
+| **Incremental Bundling** | **Supported** | Turbopack lazily builds only what’s requested by the dev server, speeding up large apps. |, ,  등을 통해) 연결된 파일은 기본적으로 확인되지 않습니다. 이러한 파일을 확인하려면 프로젝트와 연결된 종속성 모두의 상위 디렉터리에 대한 루트 옵션을 구성해야 합니다.
+
+## Known gaps with webpack
+
+There are a number of non-trivial behavior differences between webpack and Turbopack that are important to be aware of when migrating an application. Generally, these are less of a concern for new applications.의  옵션을 사용하여 파일 시스템 루트를 구성할 수 있습니다.
+
+### CSS 모듈 주문
+
+Turbopack는 JS 가져오기 순서에 따라 달리 주문되지 않는 을 주문합니다. 예를 들면:
+
+이 예에서 Turbopack는 가져오기 순서에 따라 생성된 CSS 청크에서 `npm link`가 `yarn link` 앞에 나타나도록 보장합니다.`pnpm link`, etc.), those linked files will not be resolved by default. To resolve these files, you must configure the root option to the parent directory of both the project and the linked dependencies.
+
+Webpack도 일반적으로 이 작업을 수행하지만 JS 추론 순서를 무시하는 경우가 있습니다. 예를 들어 JS 파일에 부작용이 없다고 추론하는 경우입니다.[turbopack.root](config/next-config-js/turbopack.mdx#root-directory) option in `next.config.js`.
+
+### Sass node\_modules 가져오기
+
+Turbopack는 기본적으로 [CSS modules](../getting-started/css.mdx#css-modules) which are not otherwise ordered. For example: Sass 파일 가져오기를 지원합니다. Webpack는 이에 대한 레거시 물결표  구문을 지원하지만 Turbopack에서는 지원되지 않습니다.
+
+```jsx filename="components/BlogPost.jsx"
+import utilStyles from './utils.module.css'
+import buttonStyles from './button.module.css'
+export default function BlogPost() {
+  return (
+    <div className={utilStyles.container}>
+      <button className={buttonStyles.primary}>Click me</button>
+    </div>
+  )
+}
+```
+
+받는 사람:`utils.module.css` will appear before `button.module.css` in the produced CSS chunk, following the import order
+
+가져오기를 업데이트할 수 없는 경우  구성을 추가하여  구문을 실제 경로에 매핑할 수 있습니다.
+
+Webpack는 `button.module.css` `@import utils.module.css` to force the ordering, or identify the conflicting rules and change them to not target the same properties.을 지원하여 빌드 성능을 향상시킵니다. Turbopack는 현재 베타 버전인 유사한 기능을 제공합니다. Next 16부터 다음 실험적 플래그를 설정하여 Turbopack의 파일 시스템 캐시를 활성화할 수 있습니다.
+
+### Webpack 플러그인
+
+Turbopack는 웹팩 플러그인을 지원하지 않습니다. 이는 통합을 위해 webpack의 플러그인 시스템을 사용하는 타사 도구에 영향을 미칩니다. 우리는 `node_modules` Sass files out of the box. Webpack supports a legacy tilde `~` syntax for this, which is not supported by Turbopack.를 지원합니다. 웹팩 플러그인에 의존하는 경우 Turbopack 호환 대안을 찾거나 동등한 기능을 사용할 수 있을 때까지 웹팩을 계속 사용해야 합니다.
+
+각 기능 플래그 및 해당 상태에 대한 전체 세부 분석은 를 참조하세요.
+
+```scss filename="styles/globals.scss"
+@import '~bootstrap/dist/css/bootstrap.min.css';
+```
+
+더 자세한 구성 예는 를 참조하세요.
+
+```scss filename="styles/globals.scss"
+@import 'bootstrap/dist/css/bootstrap.min.css';
+```
+
+그러면 `turbopack.resolveAlias` 파일이 생성됩니다. 조사에 도움이 되도록 `~` syntax to the actual path:에서 GitHub 문제를 생성할 때 해당 파일을 포함하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    resolveAlias: {
+      '~*': '*',
+    },
+  },
+}
+```
+
+### Build Caching
+
+기본적으로 개발 서버는 [isolationDevBuild](https://webpack.js.org/configuration/cache/#cache)에 대해 자세히 알아보세요.
+
+- [`experimental.turbopackFileSystemCacheForDev`](config/next-config-js/turbopackFileSystemCache.mdx) is enabled by default
+- [`experimental.turbopackFileSystemCacheForBuild`](config/next-config-js/turbopackFileSystemCache.mdx) is currently opt-in
+
+> **Good to know:** For this reason, when comparing webpack and Turbopack performance, make sure to delete the `.next` folder between builds to see a fair cold build comparison or enable the turbopack filesystem cache feature to compare warm builds.
+
+### Webpack plugins
+
+Turbopack는 특히 대규모 애플리케이션의 경우 로컬 개발 및 빌드 속도를 높이도록 설계된 [webpack loaders](config/next-config-js/turbopack.mdx#configuring-webpack-loaders). If you depend on webpack plugins, you'll need to find Turbopack-compatible alternatives or continue using webpack until equivalent functionality is available.,  번들러입니다. Next.js에 통합되어 제로 구성 CSS, React 및 TypeScript 지원을 제공합니다.
+
+## 버전 변경
+
+| 버전 | 변경사항 |
+
+- **Legacy CSS Modules features**
+  - Standalone `:local` and `:global` pseudo-classes (only the function variant `:global(...)` is supported).
+  - The `@value` rule (superseded by CSS variables).
+  - `:import` and `:export` ICSS rules.
+  - `composes` in `.module.css` composing a `.css` file. In webpack this would treat the `.css` file as a CSS Module, with Turbopack the `.css` file will always be global. This means that if you want to use `composes` in a CSS Module, you need to change the `.css` file to a `.module.css` file.
+  - `@import` in CSS Modules importing `.css` as a CSS Module. In webpack this would treat the `.css` file as a CSS Module, with Turbopack the `.css` file will always be global. This means that if you want to use `@import` in a CSS Module, you need to change the `.css` file to a `.module.css` file.
+- **`sassOptions.functions`**
+  Custom Sass functions defined in `sassOptions.functions` are not supported. This feature allows defining JavaScript functions that can be called from Sass code during compilation. Turbopack's Rust-based architecture cannot directly execute JavaScript functions passed through `sassOptions.functions`, unlike webpack's Node.js-based sass-loader which runs entirely in JavaScript. If you're using custom Sass functions, you'll need to use webpack instead of Turbopack.
+- **`webpack()` configuration** in `next.config.js`
+  Turbopack replaces webpack, so `webpack()` configs are not recognized. Use the [`turbopack` config](config/next-config-js/turbopack.mdx) instead.
+- **Yarn PnP**
+  Not planned for Turbopack support in Next.js.
+- **`experimental.urlImports`**
+  Not planned for Turbopack.
+- **`experimental.esmExternals`**
+  Not planned. Turbopack does not support the legacy `esmExternals` configuration in Next.js.
+- **Some Next.js Experimental Flags**
+  - `experimental.nextScriptWorkers`
+  - `experimental.sri.algorithm`
+  - `experimental.fallbackNodePolyfills`
+    We plan to implement these in the future.
+
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| [Turbopack API Reference](config/next-config-js/turbopack.mdx). | Turbopack는 Next.js의 기본 번들러가 됩니다. 구성 파일이 발견되면 Babel를 자동으로 지원합니다. |
+
+## Configuration
+
+| `next.config.js` | Turbopack `next.config.ts` 베타 지원 |
+| `turbopack` | 에 대한 실험적 지원 |
+
+- **`rules`**
+  Define additional [webpack loaders](config/next-config-js/turbopack.mdx#configuring-webpack-loaders) for file transformations.
+- **`resolveAlias`**
+  Create manual aliases (like `resolve.alias` in webpack).
+- **`resolveExtensions`**
+  Change or extend file extensions for module resolution.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    // Example: adding an alias and custom file extension
+    resolveAlias: {
+      underscore: 'lodash',
+    },
+    resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.json'],
+  },
+}
+```
+
+| [Turbopack config documentation](config/next-config-js/turbopack.mdx). |  안정용 Turbopack |
+
+## Generating trace files for performance debugging
+
+If you encounter performance or memory issues and want to help the Next.js team diagnose them, you can generate a trace file by appending `NEXT_TURBOPACK_TRACING=1` to your dev command:
+
+```bash
+NEXT_TURBOPACK_TRACING=1 next dev
+```
+
+This will produce a `.next/dev/trace-turbopack` file. Include that file when creating a GitHub issue on the [Next.js repo](https://github.com/vercel/next.js) to help us investigate.
+
+By default the development server outputs to `.next/dev`. Read more about [isolatedDevBuild](config/next-config-js/isolatedDevBuild.mdx).
+
+## Summary
+
+Turbopack is a **Rust-based**, **incremental** bundler designed to make local development and builds fast—especially for large applications. It is integrated into Next.js, offering zero-config CSS, React, and TypeScript support.
+
+## Version Changes
+
+| Version   | Changes                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------ |
+| `v16.0.0` | Turbopack becomes the default bundler for Next.js. Automatic support for Babel when a configuration file is found. |
+| `v15.5.0` | Turbopack support for `build` beta                                                                                 |
+| `v15.3.0` | Experimental support for `build`                                                                                   |
+| `v15.0.0` | Turbopack for `dev` stable                                                                                         |

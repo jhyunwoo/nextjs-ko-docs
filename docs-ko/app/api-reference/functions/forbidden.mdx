@@ -1,0 +1,170 @@
+---
+title: 금지된
+description: 금지된 기능에 대한 API 참조입니다.
+version: experimental
+related:
+  links:
+    - app/api-reference/file-conventions/forbidden
+---
+
+The `forbidden` 함수는 Next.js 403 오류 페이지를 렌더링하는 오류를 발생시킵니다. 이는 애플리케이션에서 인증 오류를 처리하는 데 유용합니다. [`forbidden.js` 파일](../file-conventions/forbidden.mdx)을 사용하여 UI를 맞춤설정할 수 있습니다.
+
+To start using `forbidden` 사용을 시작하려면 [`authInterrupts`](../config/next-config-js/authInterrupts.mdx) 구성 옵션을 활성화하세요.`next.config.js` file:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    authInterrupts: true,
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  experimental: {
+    authInterrupts: true,
+  },
+}
+```
+
+`forbidden`은 [서버 구성 요소](../../getting-started/server-and-client-components.mdx), [서버 기능](../../getting-started/updating-data.mdx) 및 [경로 처리기](../file-conventions/route.mdx)에서 호출할 수 있습니다.
+
+```tsx filename="app/auth/page.tsx" switcher
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+
+export default async function AdminPage() {
+  const session = await verifySession()
+
+  // Check if the user has the 'admin' role
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Render the admin page for authorized users
+  return <></>
+}
+```
+
+```jsx filename="app/auth/page.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+
+export default async function AdminPage() {
+  const session = await verifySession()
+
+  // Check if the user has the 'admin' role
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Render the admin page for authorized users
+  return <></>
+}
+```
+
+## 알아두면 좋은 점
+
+- The `forbidden` 함수는 [루트 레이아웃](../file-conventions/layout.mdx#root-layout)에서는 호출할 수 없습니다.
+
+## 예
+
+### 역할 기반 경로 보호
+
+You can use `forbidden`을 사용하여 사용자 역할에 따라 특정 경로에 대한 액세스를 제한할 수 있습니다. 이렇게 하면 인증되었지만 필수 권한이 ​​없는 사용자는 경로에 액세스할 수 없습니다.
+
+```tsx filename="app/admin/page.tsx" switcher
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+
+export default async function AdminPage() {
+  const session = await verifySession()
+
+  // Check if the user has the 'admin' role
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Render the admin page for authorized users
+  return (
+    <main>
+      <h1>Admin Dashboard</h1>
+      <p>Welcome, {session.user.name}!</p>
+    </main>
+  )
+}
+```
+
+```jsx filename="app/admin/page.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+
+export default async function AdminPage() {
+  const session = await verifySession()
+
+  // Check if the user has the 'admin' role
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Render the admin page for authorized users
+  return (
+    <main>
+      <h1>Admin Dashboard</h1>
+      <p>Welcome, {session.user.name}!</p>
+    </main>
+  )
+}
+```
+
+### 서버 작업을 통한 변형
+
+서버 작업에서 변형을 구현할 때 `forbidden`을 사용하면 특정 역할을 가진 사용자만 중요한 데이터를 업데이트하도록 허용할 수 있습니다.
+
+```ts filename="app/actions/update-role.ts" switcher
+'use server'
+
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+import db from '@/app/lib/db'
+
+export async function updateRole(formData: FormData) {
+  const session = await verifySession()
+
+  // Ensure only admins can update roles
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Perform the role update for authorized users
+  // ...
+}
+```
+
+```js filename="app/actions/update-role.js" switcher
+'use server'
+
+import { verifySession } from '@/app/lib/dal'
+import { forbidden } from 'next/navigation'
+import db from '@/app/lib/db'
+
+export async function updateRole(formData) {
+  const session = await verifySession()
+
+  // Ensure only admins can update roles
+  if (session.role !== 'admin') {
+    forbidden()
+  }
+
+  // Perform the role update for authorized users
+  // ...
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.1.0` | `forbidden` introduced. |

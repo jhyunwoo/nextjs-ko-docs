@@ -1,0 +1,659 @@
+---
+title: Route.js
+description: Route.js 특수 파일에 대한 API 참조입니다.
+---
+
+경로 핸들러를 사용하면 웹 [요청](https://developer.mozilla.org/docs/Web/API/Request) 및 [응답](https://developer.mozilla.org/docs/Web/API/Response) API를 사용하여 지정된 경로에 대한 사용자 정의 요청 핸들러를 생성할 수 있습니다.
+
+```ts filename="route.ts" switcher
+export async function GET() {
+  return Response.json({ message: 'Hello World' })
+}
+```
+
+```js filename="route.js" switcher
+export async function GET() {
+  return Response.json({ message: 'Hello World' })
+}
+```
+
+## 참조
+
+### HTTP 메소드
+
+A **경로** 파일을 사용하면 특정 경로에 대한 사용자 정의 요청 처리기를 생성할 수 있습니다. 다음 [HTTP 메서드](https://developer.mozilla.org/docs/Web/HTTP/Methods)가 지원됩니다: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` 및 `OPTIONS`.
+
+```ts filename="route.ts" switcher
+export async function GET(request: Request) {}
+
+export async function HEAD(request: Request) {}
+
+export async function POST(request: Request) {}
+
+export async function PUT(request: Request) {}
+
+export async function DELETE(request: Request) {}
+
+export async function PATCH(request: Request) {}
+
+// If `OPTIONS` is not defined, Next.js will automatically implement `OPTIONS` and set the appropriate Response `Allow` header depending on the other methods defined in the Route Handler.
+export async function OPTIONS(request: Request) {}
+```
+
+```js filename="route.js" switcher
+export async function GET(request) {}
+
+export async function HEAD(request) {}
+
+export async function POST(request) {}
+
+export async function PUT(request) {}
+
+export async function DELETE(request) {}
+
+export async function PATCH(request) {}
+
+// If `OPTIONS` is not defined, Next.js will automatically implement `OPTIONS` and set the appropriate Response `Allow` header depending on the other methods defined in the Route Handler.
+export async function OPTIONS(request) {}
+```
+
+### 매개변수
+
+#### `request`(선택사항)
+
+The `request` 개체는 웹 [요청](../functions/next-request.mdx) API의 확장인 [NextRequest](https://developer.mozilla.org/docs/Web/API/Request) 개체입니다. `NextRequest`를 사용하면 `cookies` 및 확장되고 구문 분석된 URL 개체 `nextUrl`에 쉽게 액세스하는 등 수신 요청에 대한 추가 제어가 가능합니다.
+
+```ts filename="route.ts" switcher
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const url = request.nextUrl
+}
+```
+
+```js filename="route.js" switcher
+export async function GET(request) {
+  const url = request.nextUrl
+}
+```
+
+#### `context`(선택 사항)
+
+- **`params`**: 현재 경로에 대한 [동적 경로 매개변수](dynamic-routes.mdx)를 포함하는 객체로 확인되는 약속입니다.
+
+```ts filename="app/dashboard/[team]/route.ts" switcher
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ team: string }> }
+) {
+  const { team } = await params
+}
+```
+
+```js filename="app/dashboard/[team]/route.js" switcher
+export async function GET(request, { params }) {
+  const { team } = await params
+}
+```
+
+| 예 | URL | `params` |`app/dashboard/[team]/route.js`  | `/dashboard/1` | `Promise<{ team: '1' }>`           |`app/shop/[tag]/[item]/route.js` | `/shop/1/2`    | `Promise<{ tag: '1', item: '2' }>` |`app/blog/[...slug]/route.js`    | `/blog/1/2`    | `Promise<{ slug: ['1', '2'] }>`    |
+
+### 경로 컨텍스트 도우미
+
+You can type the Route Handler context using `RouteContext`를 사용하여 경로 처리기 컨텍스트를 입력하면 경로 리터럴에서 강력한 유형의 `params`을 얻을 수 있습니다. `RouteContext`은 전역적으로 사용 가능한 도우미입니다.
+
+```ts filename="app/users/[id]/route.ts"
+import type { NextRequest } from 'next/server'
+
+export async function GET(_req: NextRequest, ctx: RouteContext<'/users/[id]'>) {
+  const { id } = await ctx.params
+  return Response.json({ id })
+}
+```
+
+> **알면 좋은 점**
+>
+> - 유형은 `next dev`, `next build` 또는 `next typegen` 중에 생성됩니다.
+> - 유형 생성 후 `RouteContext` 도우미를 전역적으로 사용할 수 있습니다. 수입할 필요는 없습니다.
+
+## 예
+
+### 쿠키
+
+You can read or set cookies with [`cookies`](../functions/cookies.mdx)을 사용하여 쿠키를 읽거나 설정할 수 있습니다.`next/headers`.
+
+```ts filename="route.ts" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies()
+
+  const a = cookieStore.get('a')
+  const b = cookieStore.set('b', '1')
+  const c = cookieStore.delete('c')
+}
+```
+
+```js filename="route.js" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request) {
+  const cookieStore = await cookies()
+
+  const a = cookieStore.get('a')
+  const b = cookieStore.set('b', '1')
+  const c = cookieStore.delete('c')
+}
+```
+
+또는 `Response`을 반환할 수 있습니다.[`Set-Cookie`](https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie) header.
+
+```ts filename="app/api/route.ts" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request: Request) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { 'Set-Cookie': `token=${token.value}` },
+  })
+}
+```
+
+```js filename="app/api/route.js" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { 'Set-Cookie': `token=${token.value}` },
+  })
+}
+```
+
+기본 웹 API를 사용하여 요청([`NextRequest`](../functions/next-request.mdx))에서 쿠키를 읽을 수도 있습니다.
+
+```ts filename="app/api/route.ts" switcher
+import { type NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get('token')
+}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {
+  const token = request.cookies.get('token')
+}
+```
+
+### 헤더
+
+You can read headers with [`headers`](../functions/headers.mdx)을 사용하여 헤더를 읽을 수 있습니다.`next/headers`.
+
+```ts filename="route.ts" switcher
+import { headers } from 'next/headers'
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+}
+```
+
+```js filename="route.js" switcher
+import { headers } from 'next/headers'
+
+export async function GET(request) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+}
+```
+
+이 `headers` 인스턴스는 읽기 전용입니다. 헤더를 설정하려면 새 `Response`를 사용하여 새 `headers`을 반환해야 합니다.
+
+```ts filename="app/api/route.ts" switcher
+import { headers } from 'next/headers'
+
+export async function GET(request: Request) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { referer: referer },
+  })
+}
+```
+
+```js filename="app/api/route.js" switcher
+import { headers } from 'next/headers'
+
+export async function GET(request) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { referer: referer },
+  })
+}
+```
+
+기본 웹 API를 사용하여 요청([`NextRequest`](../functions/next-request.mdx))에서 헤더를 읽을 수도 있습니다.
+
+```ts filename="app/api/route.ts" switcher
+import { type NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers)
+}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {
+  const requestHeaders = new Headers(request.headers)
+}
+```
+
+### 캐시된 데이터 재검증 중
+
+You can [캐시된 데이터를 재검증](../../guides/incremental-static-regeneration.mdx)할 수 있습니다.`revalidate` route segment config option.
+
+```ts filename="app/posts/route.ts" switcher
+export const revalidate = 60
+
+export async function GET() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+
+  return Response.json(posts)
+}
+```
+
+```js filename="app/posts/route.js" switcher
+export const revalidate = 60
+
+export async function GET() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+
+  return Response.json(posts)
+}
+```
+
+### 리디렉션
+
+```ts filename="app/api/route.ts" switcher
+import { redirect } from 'next/navigation'
+
+export async function GET(request: Request) {
+  redirect('https://nextjs.org/')
+}
+```
+
+```js filename="app/api/route.js" switcher
+import { redirect } from 'next/navigation'
+
+export async function GET(request) {
+  redirect('https://nextjs.org/')
+}
+```
+
+### 동적 경로 세그먼트
+
+경로 처리기는 [동적 세그먼트](dynamic-routes.mdx)를 사용하여 동적 데이터에서 요청 처리기를 생성할 수 있습니다.
+
+```ts filename="app/items/[slug]/route.ts" switcher
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params // 'a', 'b', or 'c'
+}
+```
+
+```js filename="app/items/[slug]/route.js" switcher
+export async function GET(request, { params }) {
+  const { slug } = await params // 'a', 'b', or 'c'
+}
+```
+
+| 경로 | 예 URL | `params` |`app/items/[slug]/route.js` | `/items/a`  | `Promise<{ slug: 'a' }>` |`app/items/[slug]/route.js` | `/items/b`  | `Promise<{ slug: 'b' }>` |`app/items/[slug]/route.js` | `/items/c`  | `Promise<{ slug: 'c' }>` |
+
+#### Static Generation with `generateStaticParams`
+
+동적 경로 핸들러와 함께 [`generateStaticParams`](../functions/generate-static-params.mdx)를 사용하면 지정된 매개변수에 대해 빌드 시 응답을 정적으로 생성하는 동시에 요청 시 다른 매개변수를 동적으로 처리할 수 있습니다.
+
+When using [캐시 구성 요소](../../getting-started/cache-components.mdx)를 사용할 때 `generateStaticParams`을 `use cache`과 결합하여 사전 렌더링된 매개변수와 런타임 매개변수 모두에 대한 데이터 캐싱을 활성화할 수 있습니다.
+
+예시와 세부정보는 [경로 핸들러를 사용하여 StaticParams 생성](../functions/generate-static-params.mdx#with-route-handlers) 문서를 참조하세요.
+
+### URL 쿼리 매개변수
+
+경로 핸들러에 전달된 요청 객체는 `NextRequest` 인스턴스이며, 여기에는 쿼리 매개변수를 보다 쉽게 처리하기 위한 방법과 같은 [일부 추가 편의 메서드](../functions/next-request.mdx#nexturl)가 포함되어 있습니다.
+
+```ts filename="app/api/search/route.ts" switcher
+import { type NextRequest } from 'next/server'
+
+export function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query')
+  // query is "hello" for /api/search?query=hello
+}
+```
+
+```js filename="app/api/search/route.js" switcher
+export function GET(request) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query')
+  // query is "hello" for /api/search?query=hello
+}
+```
+
+### 스트리밍
+
+스트리밍은 AI 생성 콘텐츠를 위해 OpenAI와 같은 LLM(대형 언어 모델)과 함께 일반적으로 사용됩니다. [AI SDK](https://sdk.vercel.ai/docs/introduction)에 대해 자세히 알아보세요.
+
+```ts filename="app/api/chat/route.ts" switcher
+import { openai } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText } from 'ai'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+  })
+
+  return new StreamingTextResponse(result.toAIStream())
+}
+```
+
+```js filename="app/api/chat/route.js" switcher
+import { openai } from '@ai-sdk/openai'
+import { StreamingTextResponse, streamText } from 'ai'
+
+export async function POST(req) {
+  const { messages } = await req.json()
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+  })
+
+  return new StreamingTextResponse(result.toAIStream())
+}
+```
+
+이러한 추상화는 웹 API를 사용하여 스트림을 생성합니다. 기본 웹 API를 직접 사용할 수도 있습니다.
+
+```ts filename="app/api/route.ts" switcher
+// https://developer.mozilla.org/docs/Web/API/ReadableStream#convert_async_iterator_to_stream
+function iteratorToStream(iterator: any) {
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await iterator.next()
+
+      if (done) {
+        controller.close()
+      } else {
+        controller.enqueue(value)
+      }
+    },
+  })
+}
+
+function sleep(time: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, time)
+  })
+}
+
+const encoder = new TextEncoder()
+
+async function* makeIterator() {
+  yield encoder.encode('<p>One</p>')
+  await sleep(200)
+  yield encoder.encode('<p>Two</p>')
+  await sleep(200)
+  yield encoder.encode('<p>Three</p>')
+}
+
+export async function GET() {
+  const iterator = makeIterator()
+  const stream = iteratorToStream(iterator)
+
+  return new Response(stream)
+}
+```
+
+```js filename="app/api/route.js" switcher
+// https://developer.mozilla.org/docs/Web/API/ReadableStream#convert_async_iterator_to_stream
+function iteratorToStream(iterator) {
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await iterator.next()
+
+      if (done) {
+        controller.close()
+      } else {
+        controller.enqueue(value)
+      }
+    },
+  })
+}
+
+function sleep(time) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, time)
+  })
+}
+
+const encoder = new TextEncoder()
+
+async function* makeIterator() {
+  yield encoder.encode('<p>One</p>')
+  await sleep(200)
+  yield encoder.encode('<p>Two</p>')
+  await sleep(200)
+  yield encoder.encode('<p>Three</p>')
+}
+
+export async function GET() {
+  const iterator = makeIterator()
+  const stream = iteratorToStream(iterator)
+
+  return new Response(stream)
+}
+```
+
+### 요청 본문
+
+표준 웹 API 메서드를 사용하여 `Request` 본문을 읽을 수 있습니다.
+
+```ts filename="app/items/route.ts" switcher
+export async function POST(request: Request) {
+  const res = await request.json()
+  return Response.json({ res })
+}
+```
+
+```js filename="app/items/route.js" switcher
+export async function POST(request) {
+  const res = await request.json()
+  return Response.json({ res })
+}
+```
+
+### 본문 양식 데이터 요청
+
+You can read the `FormData` 함수를 사용하여 `request.formData()`을 읽을 수 있습니다.
+
+```ts filename="app/items/route.ts" switcher
+export async function POST(request: Request) {
+  const formData = await request.formData()
+  const name = formData.get('name')
+  const email = formData.get('email')
+  return Response.json({ name, email })
+}
+```
+
+```js filename="app/items/route.js" switcher
+export async function POST(request) {
+  const formData = await request.formData()
+  const name = formData.get('name')
+  const email = formData.get('email')
+  return Response.json({ name, email })
+}
+```
+
+Since `formData` 데이터는 모두 문자열이므로 [`zod-form-data`](https://www.npmjs.com/zod-form-data)을 사용하여 요청을 검증하고 원하는 형식(예: `number`)으로 데이터를 검색할 수 있습니다.### 코르스
+
+### 웹훅
+
+경로 핸들러를 사용하여 타사 서비스로부터 웹후크를 수신할 수 있습니다.
+
+```ts filename="app/api/route.ts" switcher
+export async function GET(request: Request) {
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+```
+
+> **Good to know**:
+>
+> - To add CORS headers to multiple Route Handlers, you can use [Proxy](proxy.mdx#cors) or the [`next.config.js` file](../config/next-config-js/headers.mdx#cors).
+
+### 비 UI 응답
+
+경로 처리기를 사용하여 UI가 아닌 콘텐츠를 반환할 수 있습니다. , ,  및 는 모두 기본적으로 지원됩니다.
+
+```ts filename="app/api/route.ts" switcher
+export async function POST(request: Request) {
+  try {
+    const text = await request.text()
+    // Process the webhook payload
+  } catch (error) {
+    return new Response(`Webhook error: ${error.message}`, {
+      status: 400,
+    })
+  }
+
+  return new Response('Success!', {
+    status: 200,
+  })
+}
+```
+
+```js filename="app/api/route.js" switcher
+export async function POST(request) {
+  try {
+    const text = await request.text()
+    // Process the webhook payload
+  } catch (error) {
+    return new Response(`Webhook error: ${error.message}`, {
+      status: 400,
+    })
+  }
+
+  return new Response('Success!', {
+    status: 200,
+  })
+}
+```
+
+경로 핸들러는 페이지 및 레이아웃과 동일한 `bodyParser` to use any additional configuration.을 사용합니다.
+
+### Non-UI Responses
+
+자세한 내용은 [`sitemap.xml`](metadata/sitemap.mdx#generating-a-sitemap-using-code-js-ts)를 확인하세요.[`robots.txt`](metadata/robots.mdx#generate-a-robots-file), [`app icons`](metadata/app-icons.mdx#generate-icons-using-code-js-ts-tsx), and [open graph images](metadata/opengraph-image.mdx) all have built-in support.
+
+```ts filename="app/rss.xml/route.ts" switcher
+export async function GET() {
+  return new Response(
+    `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+
+<channel>
+  <title>Next.js Documentation</title>
+  <link>https://nextjs.org/docs</link>
+  <description>The React Framework for the Web</description>
+</channel>
+
+</rss>`,
+    {
+      headers: {
+        'Content-Type': 'text/xml',
+      },
+    }
+  )
+}
+```
+
+```js filename="app/rss.xml/route.js" switcher
+export async function GET() {
+  return new Response(`<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+
+<channel>
+  <title>Next.js Documentation</title>
+  <link>https://nextjs.org/docs</link>
+  <description>The React Framework for the Web</description>
+</channel>
+
+</rss>`)
+}
+```
+
+### Segment Config Options
+
+| 버전 | 변경사항 |[route segment configuration](route-segment-config.mdx) as pages and layouts.
+
+```ts filename="app/items/route.ts" switcher
+export const dynamic = 'auto'
+export const dynamicParams = true
+export const revalidate = false
+export const fetchCache = 'auto'
+export const runtime = 'nodejs'
+export const preferredRegion = 'auto'
+```
+
+```js filename="app/items/route.js" switcher
+export const dynamic = 'auto'
+export const dynamicParams = true
+export const revalidate = false
+export const fetchCache = 'auto'
+export const runtime = 'nodejs'
+export const preferredRegion = 'auto'
+```
+
+| ------------ | -------------------------------------------------------------------------- |[API reference](route-segment-config.mdx) for more details.
+
+## Version History
+
+| `v15.0.0-RC` | `context.params` 처리기의 기본 캐싱이 정적에서 동적으로 변경되었습니다. |[codemod](../../guides/upgrading/codemods.mdx#150) is available |`v15.0.0-RC` | The default caching for `GET` handlers was changed from static to dynamic                            |
+| `v13.2.0`    | Route Handlers are introduced.                                                                       |

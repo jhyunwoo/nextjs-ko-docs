@@ -1,0 +1,195 @@
+---
+title: 경로 재검증
+description: revalidatePath 함수에 대한 API 참조입니다.
+---
+
+`revalidatePath`을 사용하면 특정 경로에 대해 필요에 따라 [캐시된 데이터](../../guides/caching.mdx)를 무효화할 수 있습니다.
+
+## 사용법
+
+`revalidatePath`은 서버 기능 및 경로 처리기에서 호출할 수 있습니다.
+
+`revalidatePath`은 서버 환경에서만 작동하므로 클라이언트 구성 요소 또는 프록시에서 호출할 수 없습니다.
+
+> **알면 좋은 점**:
+>
+> - **서버 기능**: UI를 즉시 업데이트합니다(영향을 받은 경로를 보는 경우). 현재는 다시 탐색할 때 이전에 방문한 모든 페이지가 새로 고쳐지도록 합니다. 이 동작은 일시적이며 향후 특정 경로에만 적용되도록 업데이트될 예정입니다.
+> - **경로 처리기**: 재검증을 위한 경로를 표시합니다. 다음에 지정된 경로를 방문할 때 유효성 재검사가 수행됩니다. 이는 동적 경로 세그먼트를 사용하여 `revalidatePath`을 호출해도 한 번에 많은 재검증이 즉시 트리거되지 않음을 의미합니다. 무효화는 다음에 경로를 방문할 때만 발생합니다.
+
+## 매개변수
+
+```tsx
+revalidatePath(path: string, type?: 'page' | 'layout'): void;
+```
+
+- `path`: 재검증하려는 데이터에 해당하는 경로 패턴(예: `/product/[slug]`) 또는 특정 URL, `/product/123`. `/page` 또는 `/layout`를 추가하지 말고 대신 `type` 매개변수를 사용하세요. 1,024자를 초과할 수 없습니다. 이 값은 대소문자를 구분합니다.
+- `type`: (선택 사항) 재검증할 경로 유형을 변경하는 `'page'` 또는 `'layout'` 문자열입니다. `path`에 동적 세그먼트(예: `/product/[slug]`)가 포함된 경우 이 매개변수가 필요합니다. `path`이 특정 URL, `/product/1`인 경우 `type`을 생략하세요.
+
+Use a specific URL when you want to refresh a [단일 페이지](#revalidating-a-specific-url)를 새로 고치려면 특정 URL를 사용하세요. `type`을 사용하세요.[multiple URLs](#revalidating-a-page-path).
+
+## 반품
+
+`revalidatePath`은 값을 반환하지 않습니다.
+
+## 무효화할 수 있는 것
+
+path 매개변수는 페이지, 레이아웃 또는 경로 핸들러를 가리킬 수 있습니다.
+
+- **페이지**: 특정 페이지를 무효화합니다.
+- **레이아웃**: 레이아웃(해당 세그먼트의 `layout.tsx`), 그 아래에 중첩된 모든 레이아웃 및 그 아래의 모든 페이지를 무효화합니다.
+- **경로 처리기**: 경로 처리기 내에서 액세스된 데이터 캐시 항목을 무효화합니다. 예를 들어 `revalidatePath("/api/data")`는 이 GET 핸들러를 무효화합니다.
+
+```ts filename="app/api/data/route.ts"
+export async function GET() {
+  const data = await fetch('https://api.vercel.app/blog', {
+    cache: 'force-cache',
+  })
+
+  return Response.json(await data.json())
+}
+```
+
+## Relationship with `revalidateTag` 및 `updateTag`
+
+`revalidatePath`, [`revalidateTag`](revalidateTag.mdx) 및 [`updateTag`](updateTag.mdx)은 다양한 용도로 사용됩니다.
+
+- **`revalidatePath`**: 특정 페이지 또는 레이아웃 경로를 무효화합니다.
+- **`revalidateTag`**: 특정 태그가 있는 데이터를 **오래된** 것으로 표시합니다. 해당 태그를 사용하는 모든 페이지에 적용됩니다.
+- **`updateTag`**: 특정 태그가 포함된 데이터가 만료됩니다. 해당 태그를 사용하는 모든 페이지에 적용됩니다.을 호출하면 다음 방문 시 지정된 경로만 최신 데이터를 가져옵니다. 동일한 데이터 태그를 사용하는 다른 페이지는 해당 특정 태그도 재검증될 때까지 계속해서 캐시된 데이터를 제공합니다.
+
+When you call `revalidatePath`를 호출한 후:
+
+```tsx
+// Page A: /blog
+const posts = await fetch('https://api.vercel.app/blog', {
+  next: { tags: ['posts'] },
+})
+
+// Page B: /dashboard
+const recentPosts = await fetch('https://api.vercel.app/blog?limit=5', {
+  next: { tags: ['posts'] },
+})
+```
+
+이 패턴을 사용하면 특정 페이지와 동일한 데이터를 사용하는 다른 페이지 모두 일관성을 유지할 수 있습니다.`revalidatePath('/blog')`:
+
+- **Page A (/blog)**: Shows fresh data (page re-rendered)
+- **Page B (/dashboard)**: Still shows stale data (cache tag 'posts' not invalidated)
+
+그러면 다음 페이지 방문 시 재검증을 위해 하나의 특정 URL가 무효화됩니다.[`revalidateTag` and `updateTag`](updateTag.mdx#differences-from-revalidatetag).
+
+### 페이지 경로 재검증
+
+`revalidatePath` 파일과 일치하는 모든 URL가 무효화됩니다. 이는 특정 페이지 아래의 페이지를 무효화하지 `updateTag`은 을 무효화하지 않습니다.
+
+```ts
+'use server'
+
+import { revalidatePath, updateTag } from 'next/cache'
+
+export async function updatePost() {
+  await updatePostInDatabase()
+
+  revalidatePath('/blog') // Refresh the blog page
+  updateTag('posts') // Refresh all pages using 'posts' tag
+}
+```
+
+이렇게 하면 다음 페이지 방문 시 재검증을 위해 제공된  파일과 일치하는 모든 URL가 무효화됩니다. 이로 인해 다음 방문 시 동일한 레이아웃이 있는 아래 페이지가 무효화되고 재검증됩니다. 예를 들어 위의 경우 도 무효화되고 다음 방문 시 재검증됩니다.
+
+## Examples
+
+### 모든 데이터를 재검증하는 중
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/post-1')
+```
+
+이렇게 하면 클라이언트 측 라우터 캐시가 제거되고 다음 페이지 방문 시 재검증을 위해 데이터 캐시가 무효화됩니다.
+
+### 서버 기능
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/[slug]', 'page')
+// or with route groups
+revalidatePath('/(main)/blog/[slug]', 'page')
+```
+
+This will invalidate any URL that matches the provided `page` file for revalidation on the next page visit. This will *not* invalidate pages beneath the specific page. For example, `/blog/[slug]` won't invalidate `/blog/[slug]/[author]`.
+
+### 경로 처리기
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/[slug]', 'layout')
+// or with route groups
+revalidatePath('/(main)/post/[slug]', 'layout')
+```
+
+This will invalidate any URL that matches the provided `layout` file for revalidation on the next page visit. This will cause pages beneath with the same layout to be invalidated and revalidated on the next visit. For example, in the above case, `/blog/[slug]/[another]` would also be invalidated and revalidated on the next visit.
+
+### Revalidating all data
+
+```ts
+import { revalidatePath } from 'next/cache'
+
+revalidatePath('/', 'layout')
+```
+
+This will purge the Client-side Router Cache, and invalidate the Data Cache for revalidation on the next page visit.
+
+### Server Function
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+export default async function submit() {
+  await submitForm()
+  revalidatePath('/')
+}
+```
+
+### Route Handler
+
+```ts filename="app/api/revalidate/route.ts" switcher
+import { revalidatePath } from 'next/cache'
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const path = request.nextUrl.searchParams.get('path')
+
+  if (path) {
+    revalidatePath(path)
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing path to revalidate',
+  })
+}
+```
+
+```js filename="app/api/revalidate/route.js" switcher
+import { revalidatePath } from 'next/cache'
+
+export async function GET(request) {
+  const path = request.nextUrl.searchParams.get('path')
+
+  if (path) {
+    revalidatePath(path)
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing path to revalidate',
+  })
+}
+```

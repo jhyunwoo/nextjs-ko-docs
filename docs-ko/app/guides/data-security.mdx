@@ -1,0 +1,472 @@
+---
+title: Next.js의 데이터 보안에 대해 생각하는 방법
+nav_title: 데이터 보안
+description: Next.js에 내장된 데이터 보안 기능을 알아보고 애플리케이션 데이터를 보호하기 위한 모범 사례를 알아보세요.
+related:
+  title: 다음 단계
+  description: 이 가이드에 언급된 주제에 대해 자세히 알아보세요.
+  links:
+    - app/guides/authentication
+    - app/guides/content-security-policy
+    - app/guides/forms
+---
+
+[React 서버 구성 요소](https://react.dev/reference/rsc/server-components)는 성능을 개선하고 데이터 가져오기를 단순화할 뿐만 아니라 데이터에 액세스하는 위치와 방법을 변경하여 프런트엔드 앱에서 데이터를 처리하기 위한 기존 보안 가정 중 일부를 변경합니다.
+
+이 가이드는 Next.js의 데이터 보안에 대해 생각하는 방법과 모범 사례를 구현하는 방법을 이해하는 데 도움이 됩니다.
+
+## 데이터 가져오기 접근 방식
+
+프로젝트의 규모와 기간에 따라 Next.js에서 데이터를 가져오는 데 권장되는 세 가지 주요 접근 방식이 있습니다.
+
+- [HTTP API](#external-http-apis): 기존 대규모 애플리케이션 및 조직용.
+- [데이터 액세스 계층](#data-access-layer): 새 프로젝트용.
+- [구성요소 수준 데이터 액세스](#component-level-data-access): 프로토타입 및 학습용.
+
+하나의 데이터 가져오기 접근 방식을 선택하고 혼합을 피하는 것이 좋습니다. 이를 통해 코드 베이스에서 작업하는 개발자와 보안 감사자 모두에게 무엇을 기대할 수 있는지 명확해집니다.
+
+### 외부 HTTP API
+
+기존 프로젝트에 서버 구성 요소를 채택할 때는 **제로 트러스트** 모델을 따라야 합니다. 클라이언트 구성 요소에서와 마찬가지로 [`fetch`](../api-reference/functions/fetch.mdx)을 사용하여 서버 구성 요소에서 REST 또는 GraphQL와 같은 기존 API 엔드포인트를 계속 호출할 수 있습니다.
+
+```tsx filename="app/page.tsx"
+import { cookies } from 'next/headers'
+
+export default async function Page() {
+  const cookieStore = cookies()
+  const token = cookieStore.get('AUTH_TOKEN')?.value
+
+  const res = await fetch('https://api.example.com/profile', {
+    headers: {
+      Cookie: `AUTH_TOKEN=${token}`,
+      // Other headers
+    },
+  })
+
+  // ....
+}
+```
+
+이 접근 방식은 다음과 같은 경우에 효과적입니다.
+
+- 이미 보안 관행을 갖추고 있습니다.
+- 별도의 백엔드 팀이 다른 언어를 사용하거나 독립적으로 API를 관리합니다.
+
+### 데이터 액세스 계층
+
+새 프로젝트의 경우 전용 \*\*DAL(데이터 액세스 계층)\*\*을 만드는 것이 좋습니다. 이는 데이터를 가져오는 방법과 시기, 렌더링 컨텍스트에 전달되는 항목을 제어하는 ​​내부 라이브러리입니다.**Data Access Layer (DAL)**. This is a internal library that controls how and when data is fetched, and what gets passed to your render context.
+
+데이터 액세스 계층은 다음을 수행해야 합니다.
+
+- 서버에서만 실행됩니다.
+- 승인 확인을 수행합니다.
+- 안전하고 최소한의 \*\*DTO(데이터 전송 개체)\*\*를 반환합니다.**Data Transfer Objects (DTOs)**.
+
+이 접근 방식은 모든 데이터 액세스 논리를 중앙 집중화하여 일관된 데이터 액세스를 보다 쉽게 ​​적용하고 승인 버그의 위험을 줄입니다. 또한 요청의 여러 부분에서 메모리 내 캐시를 공유하는 이점도 있습니다.
+
+```ts filename="data/auth.ts"
+import { cache } from 'react'
+import { cookies } from 'next/headers'
+
+// Cached helper methods makes it easy to get the same value in many places
+// without manually passing it around. This discourages passing it from Server
+// Component to Server Component which minimizes risk of passing it to a Client
+// Component.
+export const getCurrentUser = cache(async () => {
+  const token = cookies().get('AUTH_TOKEN')
+  const decodedToken = await decryptAndValidate(token)
+  // Don't include secret tokens or private information as public fields.
+  // Use classes to avoid accidentally passing the whole object to the client.
+  return new User(decodedToken.id)
+})
+```
+
+```tsx filename="data/user-dto.tsx"
+import 'server-only'
+import { getCurrentUser } from './auth'
+
+function canSeeUsername(viewer: User) {
+  // Public info for now, but can change
+  return true
+}
+
+function canSeePhoneNumber(viewer: User, team: string) {
+  // Privacy rules
+  return viewer.isAdmin || team === viewer.team
+}
+
+export async function getProfileDTO(slug: string) {
+  // Don't pass values, read back cached values, also solves context and easier to make it lazy
+
+  // use a database API that supports safe templating of queries
+  const [rows] = await sql`SELECT * FROM user WHERE slug = ${slug}`
+  const userData = rows[0]
+
+  const currentUser = await getCurrentUser()
+
+  // only return the data relevant for this query and not everything
+  // <https://www.w3.org/2001/tag/doc/APIMinimization>
+  return {
+    username: canSeeUsername(currentUser) ? userData.username : null,
+    phonenumber: canSeePhoneNumber(currentUser, userData.team)
+      ? userData.phonenumber
+      : null,
+  }
+}
+```
+
+```tsx filename="app/page.tsx"
+import { getProfile } from '../../data/user'
+
+export async function Page({ params: { slug } }) {
+  // This page can now safely pass around this profile knowing
+  // that it shouldn't contain anything sensitive.
+  const profile = await getProfile(slug);
+  ...
+}
+```
+
+> **알아두면 좋은 점:** 비밀 키는 환경 변수에 저장되어야 하지만 데이터 액세스 레이어만 `process.env`에 액세스해야 합니다. 이렇게 하면 비밀이 애플리케이션의 다른 부분에 노출되는 것을 방지할 수 있습니다.
+
+### 구성요소 수준 데이터 액세스
+
+빠른 프로토타입 및 반복을 위해 데이터베이스 쿼리를 서버 구성 요소에 직접 배치할 수 있습니다.
+
+그러나 이 접근 방식을 사용하면 개인 데이터를 실수로 클라이언트에 노출하는 것이 더 쉬워집니다. 예를 들면 다음과 같습니다.
+
+```tsx filename="app/page.tsx"
+import Profile from './components/profile.tsx'
+
+export async function Page({ params: { slug } }) {
+  const [rows] = await sql`SELECT * FROM user WHERE slug = ${slug}`
+  const userData = rows[0]
+  // EXPOSED: This exposes all the fields in userData to the client because
+  // we are passing the data from the Server Component to the Client.
+  return <Profile user={userData} />
+}
+```
+
+```tsx filename="app/ui/profile.tsx"
+'use client'
+
+// BAD: This is a bad props interface because it accepts way more data than the
+// Client Component needs and it encourages server components to pass all that
+// data down. A better solution would be to accept a limited object with just
+// the fields necessary for rendering the profile.
+export default async function Profile({ user }: { user: User }) {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      ...
+    </div>
+  )
+}
+```
+
+클라이언트 구성 요소에 데이터를 전달하기 전에 데이터를 삭제해야 합니다.
+
+```ts filename="data/user.ts"
+import { sql } from './db'
+
+export async function getUser(slug: string) {
+  const [rows] = await sql`SELECT * FROM user WHERE slug = ${slug}`
+  const user = rows[0]
+
+  // Return only the public fields
+  return {
+    name: user.name,
+  }
+}
+```
+
+```tsx filename="app/page.tsx"
+import { getUser } from '../data/user'
+import Profile from './ui/profile'
+
+export default async function Page({
+  params: { slug },
+}: {
+  params: { slug: string }
+}) {
+  const publicProfile = await getUser(slug)
+  return <Profile user={publicProfile} />
+}
+```
+
+## 데이터 읽기
+
+### 서버에서 클라이언트로 데이터 전달
+
+초기 로드 시 서버 및 클라이언트 구성 요소 모두 서버에서 실행되어 HTML를 생성합니다. 그러나 격리된 모듈 시스템에서 실행됩니다. 이렇게 하면 서버 구성 요소는 개인 데이터 및 API에 액세스할 수 있지만 클라이언트 구성 요소는 액세스할 수 없습니다.
+
+**서버 구성요소:**
+
+- 환경 변수, 비밀, 데이터베이스, 내부 API에 안전하게 접근할 수 있습니다.
+- Can safely access environment variables, secrets, databases, and internal APIs.
+
+**클라이언트 구성요소:**
+
+- 사전 렌더링 중에 서버에서 실행되지만 브라우저에서 실행되는 코드와 동일한 보안 가정을 따라야 합니다.
+- 권한 있는 데이터 또는 서버 전용 모듈에 액세스해서는 안 됩니다.
+
+이렇게 하면 기본적으로 앱이 안전하지만 데이터를 가져오거나 구성 요소에 전달하는 방식을 통해 실수로 개인 데이터가 노출될 수 있습니다.
+
+### 오염
+
+개인 데이터가 실수로 클라이언트에 노출되는 것을 방지하려면 React Taint API를 사용할 수 있습니다.
+
+- [`experimental_taintObjectReference`](https://react.dev/reference/react/experimental_taintObjectReference).
+- [`experimental_taintUniqueValue`](https://react.dev/reference/react/experimental_taintUniqueValue).
+
+You can enable usage in your Next.js app with the [`experimental.taint`](../api-reference/config/next-config-js/taint.mdx) 옵션을 사용하여 Next.js 앱에서 사용을 활성화할 수 있습니다.`next.config.js`:
+
+```js filename="next.config.js"
+module.exports = {
+  experimental: {
+    taint: true,
+  },
+}
+```
+
+이렇게 하면 오염된 개체나 값이 클라이언트에 전달되는 것을 방지할 수 있습니다. 그러나 이는 추가 보호 계층이므로 [DAL](#data-access-layer)의 데이터를 React의 렌더링 컨텍스트에 전달하기 전에 필터링하고 삭제해야 합니다.
+
+> **알아두면 좋은 점:**
+>
+> - 기본적으로 환경 변수는 서버에서만 사용할 수 있습니다. Next.js는 `NEXT_PUBLIC_` 접두사가 붙은 모든 환경 변수를 클라이언트에 노출합니다. [자세히 알아보기](environment-variables.mdx).
+> - 함수와 클래스는 기본적으로 클라이언트 구성 요소에 전달되지 않도록 이미 차단되어 있습니다.
+
+### 서버 전용 코드의 클라이언트 측 실행 방지
+
+서버 전용 코드가 클라이언트에서 실행되는 것을 방지하려면 [`server-only`](https://www.npmjs.com/package/server-only) 패키지로 모듈을 표시할 수 있습니다.
+
+```bash package="npm"
+npm install server-only
+```
+
+```bash package="yarn"
+yarn add server-only
+```
+
+```bash package="pnpm"
+pnpm add server-only
+```
+
+```bash package="bun"
+bun add server-only
+```
+
+```ts filename="lib/data.ts"
+import 'server-only'
+
+//...
+```
+
+이렇게 하면 클라이언트 환경에서 모듈을 가져오는 경우 빌드 오류가 발생하여 독점 코드 또는 내부 비즈니스 논리가 서버에 유지됩니다.
+
+## 데이터 변형
+
+Next.js는 [서버 작업](https://react.dev/reference/rsc/server-functions)을 사용하여 변형을 처리합니다.
+
+### 내장된 서버 작업 보안 기능
+
+기본적으로 서버 작업을 생성하고 내보낼 때 공용 HTTP 엔드포인트가 생성되며 동일한 보안 가정 및 인증 확인으로 처리되어야 합니다. 즉, 서버 작업이나 유틸리티 기능을 코드의 다른 곳으로 가져오지 않더라도 여전히 공개적으로 액세스할 수 있습니다.
+
+보안을 강화하기 위해 Next.js에는 다음과 같은 내장 기능이 있습니다.
+
+- **보안 작업 ID:** Next.js는 클라이언트가 서버 작업을 참조하고 호출할 수 있도록 암호화된 비결정적 ID를 생성합니다. 이러한 ID는 보안 강화를 위해 빌드 간에 주기적으로 다시 계산됩니다.
+- **데드 코드 제거:** 공개 액세스를 방지하기 위해 사용되지 않는 서버 작업(ID로 참조됨)이 클라이언트 번들에서 제거됩니다.> :
+
+> **Good to know**:
+>
+> The IDs are created during compilation and are cached for a maximum of 14 days. They will be regenerated when a new build is initiated or when the build cache is invalidated.
+> This security improvement reduces the risk in cases where an authentication layer is missing. However, you should still treat Server Actions like public HTTP endpoints.
+
+```jsx
+// app/actions.js
+'use server'
+
+// If this action **is** used in our application, Next.js
+// will create a secure ID to allow the client to reference
+// and call the Server Action.
+export async function updateUserAction(formData) {}
+
+// If this action **is not** used in our application, Next.js
+// will automatically remove this code during `next build`
+// and will not create a public endpoint.
+export async function deleteUserAction(formData) {}
+```
+
+### 클라이언트 입력 유효성 검사 중
+
+클라이언트의 입력은 쉽게 수정될 수 있으므로 항상 클라이언트의 입력을 검증해야 합니다. 예를 들어 양식 데이터, URL 매개변수, 헤더 및 searchParams는 다음과 같습니다.
+
+```tsx filename="app/page.tsx"
+// BAD: Trusting searchParams directly
+export default async function Page({ searchParams }) {
+  const isAdmin = searchParams.get('isAdmin')
+  if (isAdmin === 'true') {
+    // Vulnerable: relies on untrusted client data
+    return <AdminPanel />
+  }
+}
+
+// GOOD: Re-verify every time
+import { cookies } from 'next/headers'
+import { verifyAdmin } from './auth'
+
+export default async function Page() {
+  const token = cookies().get('AUTH_TOKEN')
+  const isAdmin = await verifyAdmin(token)
+
+  if (isAdmin) {
+    return <AdminPanel />
+  }
+}
+```
+
+### 인증 및 승인
+
+사용자에게 작업을 수행할 수 있는 권한이 있는지 항상 확인해야 합니다. 예를 들면:
+
+```tsx filename="app/actions.ts"
+'use server'
+
+import { auth } from './lib'
+
+export function addItem() {
+  const { user } = auth()
+  if (!user) {
+    throw new Error('You must be signed in to perform this action')
+  }
+
+  // ...
+}
+```
+
+Next.js에서 [인증](authentication.mdx)에 대해 자세히 알아보세요.
+
+### 폐쇄 및 암호화
+
+구성 요소 내부에 서버 작업을 정의하면 작업이 외부 함수 범위에 액세스할 수 있는 [클로저](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures)가 생성됩니다. 예를 들어, `publish` 작업은 `publishVersion` 변수에 액세스할 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+export default async function Page() {
+  const publishVersion = await getLatestVersion();
+
+  async function publish() {
+    "use server";
+    if (publishVersion !== await getLatestVersion()) {
+      throw new Error('The version has changed since pressing publish');
+    }
+    ...
+  }
+
+  return (
+    <form>
+      <button formAction={publish}>Publish</button>
+    </form>
+  );
+}
+```
+
+```jsx filename="app/page.js" switcher
+export default async function Page() {
+  const publishVersion = await getLatestVersion();
+
+  async function publish() {
+    "use server";
+    if (publishVersion !== await getLatestVersion()) {
+      throw new Error('The version has changed since pressing publish');
+    }
+    ...
+  }
+
+  return (
+    <form>
+      <button formAction={publish}>Publish</button>
+    </form>
+  );
+}
+```
+
+클로저는 나중에 작업이 호출될 때 사용할 수 있도록 렌더링 시 데이터의 *스냅샷*(예: `publishVersion`)을 캡처해야 할 때 유용합니다.
+
+그러나 이를 위해서는 작업이 호출될 때 캡처된 변수가 클라이언트로 전송되었다가 다시 서버로 전송됩니다. 민감한 데이터가 클라이언트에 노출되는 것을 방지하기 위해 Next.js는 닫힌 변수를 자동으로 암호화합니다. Next.js 애플리케이션이 구축될 때마다 각 작업에 대해 새로운 개인 키가 생성됩니다. 이는 특정 빌드에 대해서만 작업을 호출할 수 있음을 의미합니다.
+
+> **알아두면 좋은 점:** 민감한 값이 클라이언트에 노출되는 것을 방지하기 위해 암호화에만 의존하는 것은 권장하지 않습니다.
+
+### 암호화 키 덮어쓰기(고급)
+
+여러 서버에 걸쳐 Next.js 애플리케이션을 **자체 호스팅**하는 경우 각 서버 인스턴스는 서로 다른 암호화 키로 종료되어 잠재적인 불일치가 발생할 수 있습니다.
+
+이를 완화하려면 `process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` 환경 변수를 사용하여 암호화 키를 덮어쓸 수 있습니다. 이 변수를 지정하면 암호화 키가 빌드 전반에 걸쳐 지속되고 모든 서버 인스턴스가 동일한 키를 사용하게 됩니다. 이 변수는 **반드시** AES-GCM 암호화되어야 합니다.
+
+이는 여러 배포에서 일관된 암호화 동작이 애플리케이션에 중요한 고급 사용 사례입니다. 키 순환 및 서명과 같은 표준 보안 관행을 고려해야 합니다.
+
+### 허용되는 출처(고급)
+
+서버 작업은 `<form>` 요소에서 호출될 수 있으므로 [CSRF 공격](https://developer.mozilla.org/en-US/docs/Glossary/CSRF)에 노출됩니다.
+
+배후에서 서버 작업은 `POST` 메서드를 사용하며 이 HTTP 메서드만 이를 호출할 수 있습니다. 이는 특히 [SameSite 쿠키](https://web.dev/articles/samesite-cookies-explained)가 기본값인 최신 브라우저에서 대부분의 CSRF 취약성을 방지합니다.추가 보호로서 Next.js의 서버 작업은 를 (또는 )와 비교합니다. 일치하지 않으면 요청이 중단됩니다. 즉, 서버 작업은 이를 호스팅하는 페이지와 동일한 호스트에서만 호출될 수 있습니다.
+
+역방향 프록시 또는 다중 계층 백엔드 아키텍처(서버 API가 프로덕션 도메인과 다름)를 사용하는 대규모 애플리케이션의 경우 구성 옵션 [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin) 옵션을 사용하여 안전한 원본 목록을 지정하는 것이 좋습니다. 이 옵션은 문자열 배열을 허용합니다.[Host header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Host) (or `X-Forwarded-Host`). If these don't match, the request will be aborted. In other words, Server Actions can only be invoked on the same host as the page that hosts it.
+
+For large applications that use reverse proxies or multi-layered backend architectures (where the server API differs from the production domain), it's recommended to use the configuration option [`serverActions.allowedOrigins`](../api-reference/config/next-config-js/serverActions.mdx)에 대해 자세히 알아보세요.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+module.exports = {
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['my-proxy.com', '*.my-proxy.com'],
+    },
+  },
+}
+```
+
+대신 서버 작업을 사용하여 변형을 처리해야 합니다.[Security and Server Actions](https://nextjs.org/blog/security-nextjs-server-components-actions).
+
+### Avoiding side-effects during rendering
+
+Next.js 프로젝트에 대한 감사를 수행하는 경우 추가로 살펴보는 것이 좋습니다.
+
+```tsx filename="app/page.tsx"
+// BAD: Triggering a mutation during rendering
+export default async function Page({ searchParams }) {
+  if (searchParams.get('logout')) {
+    cookies().delete('AUTH_TOKEN')
+  }
+
+  return <UserProfile />
+}
+```
+
+Instead, you should use Server Actions to handle mutations.
+
+```tsx filename="app/page.tsx"
+// GOOD: Using Server Actions to handle mutations
+import { logout } from './actions'
+
+export default function Page() {
+  return (
+    <>
+      <UserProfile />
+      <form action={logout}>
+        <button type="submit">Logout</button>
+      </form>
+    </>
+  )
+}
+```
+
+> **Good to know:** Next.js uses `POST` requests to handle mutations. This prevents accidental side-effects from GET requests, reducing Cross-Site Request Forgery (CSRF) risks.
+
+## Auditing
+
+If you're doing an audit of a Next.js project, here are a few things we recommend looking extra at:
+
+- **데이터 액세스 계층:** 격리된 데이터 액세스 계층에 대한 확립된 관행이 있습니까? 데이터베이스 패키지와 환경 변수를 데이터 액세스 계층 외부로 가져오지 않았는지 확인하세요.
+- **`"use client"` 파일:** 구성 요소 소품에 개인 데이터가 필요합니까? 유형 서명이 지나치게 광범위합니까?
+- **`"use server"` 파일:** 작업 인수가 작업 또는 데이터 액세스 레이어 내부에서 검증됩니까? 사용자가 작업 내에서 다시 인증을 받았나요?
+- **`/[param]/.`** 대괄호가 있는 폴더는 사용자 입력입니다. 매개변수가 검증되었나요?
+- **`proxy.ts` 및 `route.ts`:** 많은 힘을 가지고 있습니다. 전통적인 기술을 사용하여 이를 감사하는 데 추가 시간을 할애하십시오. 정기적으로 또는 팀의 소프트웨어 개발 수명주기에 맞춰 침투 테스트 또는 취약점 검색을 수행합니다.

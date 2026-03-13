@@ -1,0 +1,48 @@
+---
+title: Turbopack 파일 시스템 캐싱
+nav_title: 터보팩파일시스템캐시
+description: Turbopack 빌드에 대해 파일 시스템 캐싱을 활성화하는 방법 알아보기
+---
+
+## 사용법
+
+Turbopack 파일 시스템 캐시는 Turbopack를 활성화하여 `next dev` 또는 `next build` 명령에 대한 작업을 줄입니다. 활성화되면 Turbopack는 빌드 간에 데이터를 `.next` 폴더에 저장하고 복원하므로 후속 빌드 및 개발 세션 속도가 크게 향상될 수 있습니다.
+
+> **알아두면 좋은 점:** FileSystem Cache 기능은 개발용으로 안정적이고 프로덕션 빌드용으로 실험적인 것으로 간주됩니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    // Enable filesystem caching for `next dev`
+    turbopackFileSystemCacheForDev: true,
+    // Enable filesystem caching for `next build`
+    turbopackFileSystemCacheForBuild: true,
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    // Enable filesystem caching for `next dev`
+    turbopackFileSystemCacheForDev: true,
+    // Enable filesystem caching for `next build`
+    turbopackFileSystemCacheForBuild: true,
+  },
+}
+
+module.exports = nextConfig
+```
+
+## 버전 변경
+
+| 버전 | 변경사항 |
+| --------- | ------------------------------------ |
+| `v16.1.0` | FileSystem 캐싱은 개발을 위해 기본적으로 활성화됩니다. |
+| `v16.0.0` | 빌드 및 개발을 위한 별도의 플래그가 포함된 베타 릴리스 |
+| `v15.5.0` | Canary 릴리스에서 실험적으로 출시된 영구 캐싱 |

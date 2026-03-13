@@ -1,0 +1,596 @@
+---
+title: "캐시 사용: 원격"
+description: 원격 캐시 핸들러를 사용하여 지속적인 공유 캐싱을 위해 "usecache:remote" 지시어를 사용하는 방법을 알아보세요.
+related:
+  title: 관련된
+  description: 관련 API 참조를 확인하세요.
+  links:
+    - app/api-reference/directives/use-cache
+    - app/api-reference/directives/use-cache-private
+    - app/api-reference/config/next-config-js/cacheComponents
+    - app/api-reference/config/next-config-js/cacheHandlers
+    - app/api-reference/functions/cacheLife
+    - app/api-reference/functions/cacheTag
+    - app/api-reference/functions/connection
+---
+
+While the `use cache` 지시어는 대부분의 애플리케이션 요구 사항에 충분하지만 캐시된 작업이 예상보다 더 자주 다시 실행되거나 업스트림 서비스(CMS, 데이터베이스, 외부 API)가 예상보다 더 많은 적중을 받는 경우가 종종 있습니다. 이는 메모리 내 캐싱에 고유한 제한이 있기 때문에 발생할 수 있습니다.
+
+- 새로운 항목을 위한 공간을 확보하기 위해 캐시 항목이 제거됩니다.
+- 배포 환경의 메모리 제약
+- 요청이나 서버 재시작 시 캐시가 지속되지 않음
+
+Note that `use cache`는 여전히 서버 측 캐싱 이상의 가치를 제공합니다. 이는 프리페치할 수 있는 항목을 Next.js에 알리고 클라이언트 측 탐색에 대한 오래된 시간을 정의합니다.
+
+The `'use cache: remote'` 지시문을 사용하면 캐시된 출력이 메모리 내 대신 **원격 캐시**에 저장되어야 함을 선언적으로 지정할 수 있습니다. 이는 특정 작업에 대해 보다 내구성 있는 캐싱을 제공하지만 인프라 비용과 캐시 조회 중 네트워크 대기 시간이라는 절충안이 따릅니다.
+
+## 사용법
+
+To use `'use cache: remote'`을 사용하려면 [`cacheComponents`](../config/next-config-js/cacheComponents.mdx) 플래그를 활성화하세요.`next.config.ts` file:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+그런 다음 원격 캐싱이 정당하다고 판단한 기능이나 구성 요소에 `'use cache: remote'`을 추가하세요. 핸들러 구현은 [`cacheHandlers`](../config/next-config-js/cacheHandlers.mdx)을 통해 구성되지만 호스팅 공급자는 일반적으로 이를 자동으로 제공해야 합니다. 자체 호스팅인 경우 `cacheHandlers` 구성 참조를 확인하여 캐시 저장소를 설정하세요.
+
+### 원격 캐싱을 피해야 하는 경우
+
+- 데이터 계층을 래핑하는 서버 측 캐시 키-값 저장소가 이미 있는 경우 `use cache`이면 다른 캐싱 계층을 추가하지 않고도 정적 셸에 데이터를 포함하는 데 충분할 수 있습니다.
+- 근접성 또는 로컬 액세스로 인해 작업이 이미 빠른 경우(\< 50ms) 원격 캐시 조회로 성능이 향상되지 않을 수 있습니다.
+- 캐시 키가 요청당 대부분 고유한 값(검색 필터, 가격 범위, 사용자별 매개변수)을 갖는 경우 캐시 활용도는 거의 0에 가깝습니다.
+- 데이터가 자주(몇 초에서 몇 분) 변경되면 캐시 적중이 빠르게 무효화되어 잦은 누락이 발생하고 업스트림 재검증을 기다리게 됩니다.
+
+### 원격 캐싱이 적합한 경우
+
+원격 캐싱은 콘텐츠가 요청 시간(정적 셸 외부)으로 연기될 때 가장 큰 가치를 제공합니다. 이는 일반적으로 구성 요소가 [`cookies()`](../functions/cookies.mdx), [`headers()`](../functions/headers.mdx) 또는 [`searchParams`](../file-conventions/page.mdx#searchparams-optional)과 같은 요청 값에 액세스하여 이를 Suspense 경계 내에 배치할 때 발생합니다. 이 맥락에서:
+
+- 각 요청은 구성 요소를 실행하고 캐시를 조회합니다.
+- 서버리스 환경에서 각 인스턴스는 캐시 적중률이 낮은 자체 임시 메모리를 갖습니다.
+- 원격 캐싱은 모든 인스턴스에 공유 캐시를 제공하여 적중률을 높이고 백엔드 부하를 줄입니다.
+
+Compelling scenarios for `'use cache: remote'`에 대한 매력적인 시나리오:- : 업스트림 서비스에는 도달할 위험이 있는 비율 제한 또는 요청 할당량이 있습니다.
+
+- **느린 백엔드 보호**: 트래픽이 많으면 데이터베이스 또는 API에 병목 현상이 발생합니다.
+- **비용이 많이 드는 작업**: 반복적으로 실행하는 데 비용이 많이 드는 데이터베이스 쿼리 또는 계산
+- **불안정하거나 신뢰할 수 없는 서비스**: 가끔 실패하거나 가용성 문제가 있는 외부 서비스
+- **Flaky or unreliable services**: External services that occasionally fail or have availability issues
+
+이러한 경우 원격 캐싱의 비용과 대기 시간은 더 나쁜 결과(비율 제한 오류, 백엔드 과부하, 높은 컴퓨팅 청구서 또는 저하된 사용자 경험)를 방지함으로써 정당화됩니다.
+
+정적 셸 콘텐츠의 경우 일반적으로 `use cache`이면 충분합니다. 그러나 정적 페이지가 동시 재검증 요청(예: 속도 제한 CMS)을 처리할 수 없는 업스트림의 데이터를 공유하는 경우 `use cache: remote`은 해당 업스트림 앞에서 공유 캐시 레이어 역할을 합니다. 이는 데이터베이스 앞에 키-값 저장소를 배치하는 것과 동일한 패턴이지만 인프라에서 구성되지 않고 코드에서 선언됩니다.
+
+### How `use cache: remote`이 `use cache` 및 `use cache: private`
+
+Next.js는 각각 서로 다른 사용 사례에 맞게 설계된 세 가지 캐싱 지시문을 제공합니다.
+
+| 기능 | `use cache` | `'use cache: remote'` | `'use cache: private'` |**Server-side caching**                 | In-memory or cache handler      | Remote cache handler              | None                   |**Cache scope**                         | Shared across all users         | Shared across all users           | Per-client (browser)   |**Can access cookies/headers directly** | No (must pass as arguments)     | No (must pass as arguments)       | Yes                    |
+| **Server cache utilization**            | May be low outside static shell | High (shared across instances)    | N/A                    |
+| **Additional costs**                    | None                            | Infrastructure (storage, network) | None                   |
+| **Latency impact**                      | None                            | Cache handler lookup              | None                   |
+
+### 런타임 데이터로 캐싱
+
+Both `use cache` 및 `'use cache: remote'` 지시문은 쿠키나 검색 매개변수와 같은 런타임 데이터에 직접 액세스할 수 없습니다. 캐시를 계산할 때 이 데이터를 사용할 수 없기 때문입니다. 그러나 이러한 API에서 값을 추출하여 캐시된 함수에 인수로 전달할 수 있습니다. 이 패턴은 [런타임 데이터 포함](../../getting-started/cache-components.mdx#with-runtime-data)을 참조하세요.
+
+일반적으로 `'use cache: remote'`의 경우 가장 중요한 것은 캐시 키에 어떤 값을 포함할지 신중하게 생각하는 것입니다. 각 고유 값은 별도의 캐시 항목을 생성하여 캐시 활용도를 줄입니다. 검색 필터를 사용하여 다음 예를 고려해보세요.
+
+```tsx filename="app/products/[category]/page.tsx"
+import { Suspense } from 'react'
+
+export default async function ProductsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ category: string }>
+  searchParams: Promise<{ minPrice?: string }>
+}) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductList params={params} searchParams={searchParams} />
+    </Suspense>
+  )
+}
+
+async function ProductList({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ category: string }>
+  searchParams: Promise<{ minPrice?: string }>
+}) {
+  const { category } = await params
+
+  const { minPrice } = await searchParams
+
+  // Cache only on category (few unique values)
+  // Don't include price filter (many unique values)
+  const products = await getProductsByCategory(category)
+
+  // Filter price in memory instead of creating cache entries
+  // for every price value
+  const filtered = minPrice
+    ? products.filter((p) => p.price >= parseFloat(minPrice))
+    : products
+
+  return <div>{/* render filtered products */}</div>
+}
+
+async function getProductsByCategory(category: string) {
+  'use cache: remote'
+  // Only category is part of the cache key
+  // Much better utilization than caching every price filter value
+  return db.products.findByCategory(category)
+}
+```
+
+이 예에서 원격 핸들러는 더 나은 캐시 적중률을 달성하기 위해 캐시 항목(카테고리의 모든 제품)당 더 많은 데이터를 저장합니다. 캐시 누락(백엔드에 도달)으로 인한 비용이 더 큰 항목의 저장 비용보다 클 때 이는 가치가 있습니다.
+
+사용자별 데이터에도 동일한 원칙이 적용됩니다. 사용자별 데이터를 직접 캐싱하는 대신 사용자 기본 설정을 사용하여 캐시할 공유 데이터를 결정하세요.
+
+예를 들어 사용자가 세션에서 언어 기본 설정을 갖고 있는 경우 해당 기본 설정을 추출하여 공유 콘텐츠를 캐시하는 데 사용합니다.
+
+- 사용자당 하나의 항목을 생성하는 원격 캐싱 `getUserProfile(sessionID)` 대신
+- 언어당 하나의 항목을 생성하는 원격 캐시 `getCMSContent(language)` to create one entry per language
+
+```tsx filename="app/components/welcome-message.tsx"
+import { cookies } from 'next/headers'
+import { cacheLife } from 'next/cache'
+
+export async function WelcomeMessage() {
+  // Extract the language preference (not unique per user)
+  const language = (await cookies()).get('language')?.value || 'en'
+
+  // Cache based on language (few unique values: en, es, fr, de, etc.)
+  // All users who prefer 'en' share the same cache entry
+  const content = await getCMSContent(language)
+
+  return <div>{content.welcomeMessage}</div>
+}
+
+async function getCMSContent(language: string) {
+  'use cache: remote'
+  cacheLife({ expire: 3600 })
+  // Creates ~10-50 cache entries (one per language)
+  // instead of thousands (one per user)
+  return cms.getHomeContent(language)
+}
+```
+
+이렇게 하면 동일한 언어를 선호하는 모든 사용자가 캐시 항목을 공유하므로 캐시 활용도가 향상되고 CMS의 로드가 줄어듭니다.
+
+패턴은 두 예 모두 동일합니다. 즉, 고유 값이 더 적은 차원(카테고리 대 가격, 언어 대 사용자 ID)을 찾고, 해당 차원을 캐시하고, 메모리에서 나머지를 필터링하거나 선택합니다.
+
+If the service used by `getUserProfile`에서 사용하는 서비스가 프런트엔드 로드에 따라 확장할 수 없는 경우에도 메모리 내 캐싱을 위해 짧은 `use cache`과 함께 `cacheLife` 지시어를 사용할 수 있습니다. 그러나 대부분의 사용자 데이터의 경우 소스(위 지침에서 언급한 대로 키/값 저장소에 이미 래핑되어 있을 수 있음)에서 직접 가져오기를 원할 수 있습니다.
+
+규정 준수 요구 사항이 있거나 런타임 데이터를 인수로 전달하도록 리팩터링할 수 없는 경우에만 [`'use cache: private'`](use-cache-private.mdx)을 사용하세요.
+
+### 중첩 규칙
+
+원격 캐시에는 특정 중첩 규칙이 있습니다.
+
+- 원격 캐시는 다른 원격 캐시 내에 중첩될 수 **있습니다**(`'use cache: remote'`)
+- 원격 캐시는 일반 캐시 내에 중첩될 수 **있습니다**(`'use cache'`)
+- 원격 캐시는 개인 캐시 내에 중첩될 수 **없습니다**(`'use cache: private'`)
+- 개인 캐시는 원격 캐시 안에 중첩될 수 **없습니다** be nested inside remote caches
+
+```tsx
+// VALID: Remote inside remote
+async function outerRemote() {
+  'use cache: remote'
+  const result = await innerRemote()
+  return result
+}
+
+async function innerRemote() {
+  'use cache: remote'
+  return getData()
+}
+
+// VALID: Remote inside regular cache
+async function outerCache() {
+  'use cache'
+  // The inner remote cache will work when deferred to request time
+  const result = await innerRemote()
+  return result
+}
+
+async function innerRemote() {
+  'use cache: remote'
+  return getData()
+}
+
+// INVALID: Remote inside private
+async function outerPrivate() {
+  'use cache: private'
+  const result = await innerRemote() // Error!
+  return result
+}
+
+async function innerRemote() {
+  'use cache: remote'
+  return getData()
+}
+
+// INVALID: Private inside remote
+async function outerRemote() {
+  'use cache: remote'
+  const result = await innerPrivate() // Error!
+  return result
+}
+
+async function innerPrivate() {
+  'use cache: private'
+  return getData()
+}
+```
+
+## 예
+
+다음 예에서는 `'use cache: remote'` 사용에 대한 일반적인 패턴을 보여줍니다. `cacheLife` 매개변수(`stale`, `revalidate`, `expire`)에 대한 자세한 내용은 [`cacheLife` API 참조](../functions/cacheLife.mdx)를 확인하세요.
+
+### 사용자 기본 설정 포함
+
+사용자의 통화 기본 설정에 따라 제품 가격을 캐시합니다. 통화는 쿠키에 저장되므로 이 구성 요소는 요청 시 렌더링됩니다. 동일한 통화를 사용하는 모든 사용자가 캐시된 가격을 공유하고 서버리스 환경에서는 모든 인스턴스가 동일한 원격 캐시를 공유하기 때문에 원격 캐싱은 여기서 중요합니다.
+
+```tsx filename="app/product/[id]/page.tsx" switcher
+import { Suspense } from 'react'
+import { cookies } from 'next/headers'
+import { cacheTag, cacheLife } from 'next/cache'
+
+export async function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }]
+}
+
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  return (
+    <div>
+      <ProductDetails id={id} />
+      <Suspense fallback={<div>Loading price...</div>}>
+        <ProductPrice productId={id} />
+      </Suspense>
+    </div>
+  )
+}
+
+function ProductDetails({ id }: { id: string }) {
+  return <div>Product: {id}</div>
+}
+
+async function ProductPrice({ productId }: { productId: string }) {
+  // Reading cookies defers this component to request time
+  const currency = (await cookies()).get('currency')?.value ?? 'USD'
+
+  // Cache the price per product and currency combination
+  // All users with the same currency share this cache entry
+  const price = await getProductPrice(productId, currency)
+
+  return (
+    <div>
+      Price: {price} {currency}
+    </div>
+  )
+}
+
+async function getProductPrice(productId: string, currency: string) {
+  'use cache: remote'
+  cacheTag(`product-price-${productId}`)
+  cacheLife({ expire: 3600 }) // 1 hour
+
+  // Cached per (productId, currency) - few currencies means high cache utilization
+  return db.products.getPrice(productId, currency)
+}
+```
+
+```jsx filename="app/product/[id]/page.js" switcher
+import { Suspense } from 'react'
+import { cookies } from 'next/headers'
+import { cacheTag, cacheLife } from 'next/cache'
+
+export async function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }, { id: '3' }]
+}
+
+export default async function ProductPage({ params }) {
+  const { id } = await params
+
+  return (
+    <div>
+      <ProductDetails id={id} />
+      <Suspense fallback={<div>Loading price...</div>}>
+        <ProductPrice productId={id} />
+      </Suspense>
+    </div>
+  )
+}
+
+function ProductDetails({ id }) {
+  return <div>Product: {id}</div>
+}
+
+async function ProductPrice({ productId }) {
+  // Reading cookies defers this component to request time
+  const currency = (await cookies()).get('currency')?.value ?? 'USD'
+
+  // Cache the price per product and currency combination
+  // All users with the same currency share this cache entry
+  const price = await getProductPrice(productId, currency)
+
+  return (
+    <div>
+      Price: {price} {currency}
+    </div>
+  )
+}
+
+async function getProductPrice(productId, currency) {
+  'use cache: remote'
+  cacheTag(`product-price-${productId}`)
+  cacheLife({ expire: 3600 }) // 1 hour
+
+  // Cached per (productId, currency) - few currencies means high cache utilization
+  return db.products.getPrice(productId, currency)
+}
+```
+
+### 데이터베이스 부하 줄이기
+
+비용이 많이 드는 데이터베이스 쿼리를 캐시하여 데이터베이스의 부하를 줄입니다. 이 예에서는 `cookies()`, `headers()` 또는 `searchParams`에 액세스하지 않습니다. 정적 셸에 이러한 통계를 포함하지 않아야 하는 요구사항이 있는 경우 [`connection()`](../functions/connection.mdx)를 사용하여 명시적으로 요청 시간을 연기할 수 있습니다.
+
+```tsx filename="app/dashboard/page.tsx"
+import { Suspense } from 'react'
+import { connection } from 'next/server'
+import { cacheLife, cacheTag } from 'next/cache'
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading stats...</div>}>
+      <DashboardStats />
+    </Suspense>
+  )
+}
+
+async function DashboardStats() {
+  // Defer to request time
+  await connection()
+
+  const stats = await getGlobalStats()
+
+  return <StatsDisplay stats={stats} />
+}
+
+async function getGlobalStats() {
+  'use cache: remote'
+  cacheTag('global-stats')
+  cacheLife({ expire: 60 }) // 1 minute
+
+  // This expensive database query is cached and shared across all users,
+  // reducing load on your database
+  const stats = await db.analytics.aggregate({
+    total_users: 'count',
+    active_sessions: 'count',
+    revenue: 'sum',
+  })
+
+  return stats
+}
+```
+
+이 설정을 사용하면 대시보드를 방문하는 사용자 수에 관계없이 업스트림 데이터베이스는 분당 최대 하나의 요청을 볼 수 있습니다.
+
+### 스트리밍 컨텍스트의 API 응답
+
+스트리밍 중 또는 동적 작업 후에 가져온 API 응답을 캐시합니다.
+
+```tsx filename="app/feed/page.tsx"
+import { Suspense } from 'react'
+import { connection } from 'next/server'
+import { cacheLife, cacheTag } from 'next/cache'
+
+export default async function FeedPage() {
+  return (
+    <div>
+      <Suspense fallback={<Skeleton />}>
+        <FeedItems />
+      </Suspense>
+    </div>
+  )
+}
+
+async function FeedItems() {
+  // Defer to request time
+  await connection()
+
+  const items = await getFeedItems()
+
+  return items.map((item) => <FeedItem key={item.id} item={item} />)
+}
+
+async function getFeedItems() {
+  'use cache: remote'
+  cacheTag('feed-items')
+  cacheLife({ expire: 120 }) // 2 minutes
+
+  // This API call is cached, reducing requests to your external service
+  const response = await fetch('https://api.example.com/feed')
+  return response.json()
+}
+```
+
+### 동적 검사 후 계산된 데이터
+
+동적 보안 또는 기능 확인 후에 발생하는 비용이 많이 드는 계산을 캐시합니다.
+
+```tsx filename="app/reports/page.tsx"
+import { connection } from 'next/server'
+import { cacheLife } from 'next/cache'
+
+export default async function ReportsPage() {
+  // Defer to request time (for security check)
+  await connection()
+
+  const report = await generateReport()
+
+  return <ReportViewer report={report} />
+}
+
+async function generateReport() {
+  'use cache: remote'
+  cacheLife({ expire: 3600 }) // 1 hour
+
+  // This expensive computation is cached and shared across all authorized users,
+  // avoiding repeated calculations
+  const data = await db.transactions.findMany()
+
+  return {
+    totalRevenue: calculateRevenue(data),
+    topProducts: analyzeProducts(data),
+    trends: calculateTrends(data),
+  }
+}
+```
+
+### 혼합 캐싱 전략
+
+최적의 성능을 위해 정적, 원격 및 개인 캐싱을 결합합니다.
+
+```tsx filename="app/product/[id]/page.tsx"
+import { Suspense } from 'react'
+import { connection } from 'next/server'
+import { cookies } from 'next/headers'
+import { cacheLife, cacheTag } from 'next/cache'
+
+// Static product data - prerendered at build time
+async function getProduct(id: string) {
+  'use cache'
+  cacheTag(`product-${id}`)
+
+  // This is cached at build time and shared across all users
+  return db.products.find({ where: { id } })
+}
+
+// Shared pricing data - cached at runtime in remote handler
+async function getProductPrice(id: string) {
+  'use cache: remote'
+  cacheTag(`product-price-${id}`)
+  cacheLife({ expire: 300 }) // 5 minutes
+
+  // This is cached at runtime and shared across all users
+  return db.products.getPrice({ where: { id } })
+}
+
+// User-specific recommendations - private cache per user
+async function getRecommendations(productId: string) {
+  'use cache: private'
+  cacheLife({ expire: 60 }) // 1 minute
+
+  const sessionId = (await cookies()).get('session-id')?.value
+
+  // This is cached per-user and never shared
+  return db.recommendations.findMany({
+    where: { productId, sessionId },
+  })
+}
+
+export default async function ProductPage({ params }) {
+  const { id } = await params
+
+  // Static product data
+  const product = await getProduct(id)
+
+  return (
+    <div>
+      <ProductDetails product={product} />
+
+      {/* Dynamic shared price */}
+      <Suspense fallback={<PriceSkeleton />}>
+        <ProductPriceComponent productId={id} />
+      </Suspense>
+
+      {/* Dynamic personalized recommendations */}
+      <Suspense fallback={<RecommendationsSkeleton />}>
+        <ProductRecommendations productId={id} />
+      </Suspense>
+    </div>
+  )
+}
+
+function ProductDetails({ product }) {
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <p>{product.description}</p>
+    </div>
+  )
+}
+
+async function ProductPriceComponent({ productId }) {
+  // Defer to request time
+  await connection()
+
+  const price = await getProductPrice(productId)
+  return <div>Price: ${price}</div>
+}
+
+async function ProductRecommendations({ productId }) {
+  const recommendations = await getRecommendations(productId)
+  return <RecommendationsList items={recommendations} />
+}
+
+function PriceSkeleton() {
+  return <div>Loading price...</div>
+}
+
+function RecommendationsSkeleton() {
+  return <div>Loading recommendations...</div>
+}
+
+function RecommendationsList({ items }) {
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+> **알면 좋은 점**:
+>
+> - 원격 캐시는 서버측 캐시 핸들러에 저장되며 모든 사용자에게 공유됩니다.
+> - `'use cache: remote'`는 [`use cache`](use-cache.mdx)이 서버측 캐시 적중을 제공할 수 없는 정적 셸 외부에서 작동합니다.
+> - 필요에 따라 원격 캐시를 무효화하려면 [`cacheTag()`](../functions/cacheTag.mdx) 및 [`revalidateTag()`](../functions/revalidateTag.mdx)을 사용하세요.
+> - Use [`cacheLife()`](../functions/cacheLife.mdx)을 사용하여 캐시 만료 구성
+> - 사용자별 데이터의 경우 [`'use cache: private'`](use-cache-private.mdx)을 사용하세요.`'use cache: remote'`
+> - 원격 캐시는 계산되거나 가져온 데이터를 서버측에 저장하여 원본 로드를 줄입니다.
+
+## 플랫폼 지원
+
+| 배포 옵션 | 지원됨 |[Node.js server](../../getting-started/deploying.mdx#nodejs-server) | Yes       |[Docker container](../../getting-started/deploying.mdx#docker)      | Yes       |[Static export](../../getting-started/deploying.mdx#static-export)  | No        |
+| [Adapters](../../getting-started/deploying.mdx#adapters)            | Yes       |
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v16.0.0` | `"use cache: remote"` is enabled with the Cache Components feature. |

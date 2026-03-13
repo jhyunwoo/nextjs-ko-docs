@@ -1,0 +1,112 @@
+---
+title: 무단.js
+description: 무단.js 특수 파일에 대한 API 참조입니다.
+related:
+  links:
+    - app/api-reference/functions/unauthorized
+version: experimental
+---
+
+The **인증되지 않은** 파일은 인증 중에 [`unauthorized`](../functions/unauthorized.mdx) 함수가 호출될 때 UI를 렌더링하는 데 사용됩니다. UI를 사용자 정의할 수 있는 것과 함께 Next.js는 `401` 상태 코드를 반환합니다.
+
+```tsx filename="app/unauthorized.tsx" switcher
+import Login from '@/app/components/Login'
+
+export default function Unauthorized() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+```jsx filename="app/unauthorized.js" switcher
+import Login from '@/app/components/Login'
+
+export default function Unauthorized() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+## 참조
+
+### 소품
+
+`unauthorized.js` 구성 요소는 소품을 허용하지 않습니다.
+
+## 예
+
+### 인증되지 않은 사용자에게 로그인 UI 표시
+
+You can use [`unauthorized`](../functions/unauthorized.mdx) 함수를 사용하여 로그인 UI로 `unauthorized.js` 파일을 렌더링할 수 있습니다.
+
+```tsx filename="app/dashboard/page.tsx" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  return <div>Dashboard</div>
+}
+```
+
+```jsx filename="app/dashboard/page.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  return <div>Dashboard</div>
+}
+```
+
+```tsx filename="app/unauthorized.tsx" switcher
+import Login from '@/app/components/Login'
+
+export default function UnauthorizedPage() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+```jsx filename="app/unauthorized.js" switcher
+import Login from '@/app/components/Login'
+
+export default function UnauthorizedPage() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.1.0` | `unauthorized.js` introduced. |

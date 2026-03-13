@@ -1,0 +1,451 @@
+---
+title: 타입스크립트
+description: Next.js는 React 애플리케이션 구축을 위한 TypeScript 우선 개발 환경을 제공합니다.
+---
+
+Next.js에는 TypeScript가 내장되어 있어 `create-next-app`를 사용하여 새 프로젝트를 생성할 때 필요한 패키지를 자동으로 설치하고 적절한 설정을 구성합니다.
+
+기존 프로젝트에 TypeScript를 추가하려면 파일 이름을 `.ts` / `.tsx`로 바꾸세요. `next dev` 및 `next build`을 실행하여 필요한 종속성을 자동으로 설치하고 권장 구성 옵션과 함께 `tsconfig.json` 파일을 추가합니다.
+
+> **알아두면 좋은 정보**: `jsconfig.json` 파일이 이미 있는 경우 이전 `paths`의 `jsconfig.json` 컴파일러 옵션을 새 `tsconfig.json` 파일에 복사하고 이전 `jsconfig.json` 파일을 삭제하세요.
+
+## IDE 플러그인
+
+Next.js에는 VSCode 및 기타 코드 편집기에서 고급 유형 검사 및 자동 완성에 사용할 수 있는 사용자 정의 TypeScript 플러그인 및 유형 검사기가 포함되어 있습니다.
+
+다음 방법으로 VS Code에서 플러그인을 활성화할 수 있습니다.
+
+1. 명령 팔레트 열기(`Ctrl/⌘` + `Shift` + `P`)
+1. "TypeScript: TypeScript 버전 선택" 검색
+1. "Workspace 버전 사용" 선택
+
+<Image alt="TypeScript 명령 팔레트" srcLight="/docs/light/typescript-command-palette.png" srcDark="/docs/dark/typescript-command-palette.png" width="1600" height="637" />
+
+이제 파일을 편집할 때 사용자 정의 플러그인이 활성화됩니다. `next build`을 실행할 때 사용자 정의 유형 검사기가 사용됩니다.
+
+TypeScript 플러그인은 다음 작업에 도움이 될 수 있습니다.
+
+- Warning if invalid values for [세그먼트 구성 옵션](../file-conventions/route-segment-config.mdx)에 잘못된 값이 전달되면 경고합니다.
+- 사용 가능한 옵션 및 상황에 맞는 문서를 표시합니다.
+- Ensuring the `'use client'` 지시문이 올바르게 사용되었는지 확인합니다.
+- 클라이언트 후크(예: `useState`)가 클라이언트 구성 요소에서만 사용되는지 확인합니다.
+
+> **🎥 시청:** 내장된 TypeScript 플러그인에 대해 알아보기 → [YouTube(3분)](https://www.youtube.com/watch?v=pqMqn9fKEf8)
+
+## End-to-End형 안전성
+
+Next.js 앱 라우터에는 **향상된 유형 안전성**이 있습니다. 여기에는 다음이 포함됩니다.
+
+1. **가져오기 기능과 페이지 간 데이터 직렬화 없음**: 서버의 구성 요소, 레이아웃 및 페이지에서 직접 `fetch`을 수행할 수 있습니다. 이 데이터는 React에서 사용하기 위해 클라이언트측으로 전달하기 위해 직렬화(문자열로 변환)될 필요가 *필요하지 않습니다*. 대신 `app`은 기본적으로 서버 구성 요소를 사용하므로 추가 단계 없이 `Date`, `Map`, `Set` 등과 같은 값을 사용할 수 있습니다. 이전에는 Next.js 관련 유형을 사용하여 서버와 클라이언트 사이의 경계를 수동으로 입력해야 했습니다.
+1. **구성 요소 간 데이터 흐름 간소화**: 루트 레이아웃을 위해 `_app`을 제거함으로써 이제 구성 요소와 페이지 간의 데이터 흐름을 시각화하는 것이 더 쉬워졌습니다. 이전에는 개별 `pages`과 `_app` 사이에 흐르는 데이터가 입력하기 어려웠고 혼란스러운 버그가 발생할 수 있었습니다. 앱 라우터에서 [colocation된 데이터 가져오기](../../getting-started/fetching-data.mdx)를 사용하면 더 이상 문제가 되지 않습니다.는 이제 데이터베이스 또는 콘텐츠 제공자 선택에 대해 규정하지 않고도 최대한 종단 간 유형 안전성을 제공합니다.
+
+[Data Fetching in Next.js](../../getting-started/fetching-data.mdx) now provides as close to end-to-end type safety as possible without being prescriptive about your database or content provider selection.
+
+We're able to type the response data as you would expect with normal TypeScript. For example: 엔드투엔드 유형 안전을 위해서는 데이터베이스 또는 콘텐츠 제공업체가 TypeScript를 지원해야 합니다. 이는  또는 유형 안전 쿼리 빌더를 사용하여 수행할 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+async function getData() {
+  const res = await fetch('https://api.example.com/...')
+  // The return value is *not* serialized
+  // You can return Date, Map, Set, etc.
+  return res.json()
+}
+
+export default async function Page() {
+  const name = await getData()
+
+  return '...'
+}
+```
+
+Next.js는 앱 라우터 경로 유형에 대한 전역 도우미를 생성합니다. 이는 가져오기 없이 사용할 수 있으며 *complete* end-to-end type safety, this also requires your database or content provider to support TypeScript. This could be through using an [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping)을 통해 생성됩니다.
+
+## Route-Aware Type Helpers
+
+Next.js는 프로젝트 루트에 `next dev` 파일을 생성합니다. 이 파일은 Next.js 유형 정의를 참조하여 TypeScript가 비코드 가져오기(이미지, 스타일시트 등) 및 Next.js 특정 유형을 인식할 수 있도록 합니다.`next build`, or via [`next typegen`](../cli/next.mdx#next-typegen-options):
+
+- [`PageProps`](../file-conventions/page.mdx#page-props-helper)
+- [`LayoutProps`](../file-conventions/layout.mdx#layout-props-helper)
+- [`RouteContext`](../file-conventions/route.mdx#route-context-helper)
+
+## `next-env.d.ts`
+
+Next.js generates a `next-env.d.ts`을 사용하여 Next.js 구성에서 TypeScript 및 가져오기 유형을 사용할 수 있습니다.
+
+Running `next dev`의 모듈 해상도는 현재 CommonJS로 제한됩니다. 그러나 Node.js v22.10.0 이상에 대해 `next build`, or [`next typegen`](../cli/next.mdx#next-typegen-options)할 때 ESM(ECMAScript 모듈) 구문을 사용할 수 있습니다.
+
+> **참고**: Node.js v22.10.0+에서 해당 기능이 활성화된 경우에만 사용할 수 있습니다. Next.js에서는 이를 활성화하지 않습니다.
+>
+> - We recommend adding `next-env.d.ts` to your `.gitignore` file.
+> - The file must be in your `tsconfig.json` `include` array (`create-next-app` does this automatically).
+
+## Examples
+
+### Type Checking Next.js Configuration Files
+
+Next.js는 `next.config.ts`이 있는 경우 최상위  및 동적 을 포함하여 기본 ESM를 사용할 수 있습니다. 이 메커니즘은 Node의 해석기 기능과 제한 사항을 상속합니다.Node.js 버전 \*\*v22.18.0+\*\*에서는 이 기본적으로 활성화됩니다.  ~  버전의 경우 를 사용하여 선택하세요.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  /* config options here */
+}
+
+export default nextConfig
+```
+
+Module resolution in `next.config.ts`은 CommonJS 프로젝트에서 기본 ESM 구문을 지원하지만 Node.js는 기본적으로 [using Node.js native TypeScript resolver](#using-nodejs-native-typescript-resolver-for-nextconfigts) for Node.js v22.10.0 and higher.이 CommonJS 파일이라고 가정하여 모듈 구문이 감지되면 Node.js가 파일을 ESM으로 다시 구문 분석하게 됩니다. 따라서 CommonJS 프로젝트에  파일을 사용하여 ESM 모듈임을 명시적으로 표시하는 것이 좋습니다.
+
+When using the `next.config.js`에서 이 로 설정된 경우 프로젝트는 ESM를 사용합니다. 에서 이 설정에 대해 자세히 알아보세요. 이 경우 ESM 구문을 사용하여 을 직접 작성할 수 있습니다.
+
+```js filename="next.config.js"
+// @ts-check
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+}
+
+module.exports = nextConfig
+```
+
+### Using Node.js Native TypeScript Resolver for `next.config.ts`
+
+> **알아두면 좋은 정보**:  없이 프로젝트를 설정하는 경우 의  배열에 을 추가하여 생성된 Next.js 유형이 포함되었는지 확인하세요.
+
+현재 지원에는 동적 세그먼트를 포함한 모든 문자열 리터럴이 포함됩니다. 리터럴이 아닌 문자열의 경우 [Node.js native TypeScript resolver](https://nodejs.org/api/typescript.html) via [`process.features.typescript`](https://nodejs.org/api/process.html#processfeaturestypescript), added in **v22.10.0**. When present, `next.config.ts`을 사용하여 수동으로 캐스팅해야 합니다. 아래 예에서는 `await` 및 `import()` 사용법을 모두 보여줍니다.
+
+프록시에 의해 정의된 경로를 리디렉션하는 경우에도 동일하게 적용됩니다.**v22.18.0+**, `process.features.typescript` is enabled by default. For versions between **v22.10.0** and **22.17.x**, opt in with `NODE_OPTIONS=--experimental-transform-types`:
+
+```bash filename="Terminal"
+NODE_OPTIONS=--experimental-transform-types next <command>
+```
+
+#### For CommonJS Projects (Default)
+
+간단한 데이터 구조를 입력하고 반복하여 링크를 렌더링할 수도 있습니다.`next.config.ts` supports native ESM syntax in CommonJS projects, Node.js will still assume `next.config.ts` is a CommonJS file by default, resulting in Node.js reparsing the file as ESM when module syntax is detected. Therefore, we recommend using the `next.config.mts` file for CommonJS projects to explicitly indicate it's an ESM module:
+
+```ts filename="next.config.mts"
+import type { NextConfig } from 'next'
+
+// Top-level await and dynamic import are supported
+const flags = await import('./flags.js').then((m) => m.default ?? m)
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  typedRoutes: Boolean(flags?.typedRoutes),
+}
+
+export default nextConfig
+```
+
+#### For ESM Projects
+
+그런 다음 `"type"`s를 렌더링할 항목을 매핑합니다.`"module"` in `package.json`, your project uses ESM. Learn more about this setting [in the Node.js docs](https://nodejs.org/api/packages.html#type). In this case, you can write `next.config.ts` directly with ESM syntax.
+
+> **어떻게 작동하나요?**: When using `"type": "module"` in your `package.json`, all `.js` and `.ts` files in your project are treated as ESM modules by default. You may need to rename files with CommonJS syntax to `.cjs` or `.cts` extensions if needed.
+
+### 환경 변수에 IntelliSense 입력
+
+개발 중에 Next.js는 편집기의 IntelliSense에 대해 로드된 환경 변수에 대한 정보가 포함된 `next/link`에  파일을 생성합니다. 동일한 환경변수 키가 여러 파일에 정의된 경우 에 따라 중복 제거됩니다.
+
+이 기능을 선택하려면 `href`을 활성화해야 하며 프로젝트는 TypeScript를 사용해야 합니다.`next/link`. In the App Router, it also types `next/navigation` methods like `push`, `replace`, and `prefetch`. It does not type `next/router` methods in Pages Router.
+
+TypeScript와 함께 `href` 서버 구성 요소를 사용하려면 TypeScript `href` 이상 및 `as Route`  이상을 사용하고 있는지 확인하세요.
+
+TypeScript의 이전 버전을 사용하는 경우 `typedRoutes` 유형 오류가 나타날 수 있습니다. TypeScript 및 의 최신 버전으로 업데이트하면 이 문제가 해결됩니다.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  typedRoutes: true,
+}
+
+export default nextConfig
+```
+
+예를 들어 프로덕션 빌드의 경우 다른 구성으로 전환합니다.`.next/types` that contains information about all existing routes in your application, which TypeScript can then use to provide feedback in your editor about invalid links.
+
+> **알면 좋은 점**:`create-next-app`, ensure the generated Next.js types are included by adding `.next/types/**/*.ts` to the `include` array in your `tsconfig.json`:
+
+{/* prettier-ignore-start */}
+
+```json filename="tsconfig.json" highlight={4}
+{
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
+```
+
+{/* prettier-ignore-end */}
+
+사용자 정의 유형을 선언해야 할 때 `as Route`을 수정하고 싶을 수도 있습니다. 그러나 이 파일은 자동으로 생성되므로 모든 변경 사항을 덮어쓰게 됩니다. 대신 새 파일을 생성하고 `next/link`라고 부르고 `next/navigation`에서 참조해야 합니다.
+
+```tsx filename="app/example-client.tsx"
+'use client'
+
+import type { Route } from 'next'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+export default function Example() {
+  const router = useRouter()
+  const slug = 'nextjs'
+
+  return (
+    <>
+      {/* Link: literal and dynamic */}
+      <Link href="/about" />
+      <Link href={`/blog/${slug}`} />
+      <Link href={('/blog/' + slug) as Route} />
+      {/* TypeScript error if href is not a valid route */}
+      <Link href="/aboot" />
+
+      {/* Router: literal and dynamic strings are validated */}
+      <button onClick={() => router.push('/about')}>Push About</button>
+      <button onClick={() => router.replace(`/blog/${slug}`)}>
+        Replace Blog
+      </button>
+      <button onClick={() => router.prefetch('/contact')}>
+        Prefetch Contact
+      </button>
+
+      {/* For non-literal strings, cast to Route */}
+      <button onClick={() => router.push(('/blog/' + slug) as Route)}>
+        Push Non-literal Blog
+      </button>
+    </>
+  )
+}
+```
+
+| --------- | ---------------------------------------------------------------------------------------------------------- |
+|  | TypeScript 프로젝트에 대한  지원이 추가되었습니다.                                 |
+
+```ts filename="proxy.ts"
+import { NextRequest, NextResponse } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === '/proxy-redirect') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  return NextResponse.next()
+}
+```
+
+```tsx filename="app/some/page.tsx"
+import type { Route } from 'next'
+
+export default function Page() {
+  return <Link href={'/proxy-redirect' as Route}>Link Text</Link>
+}
+```
+
+| `href` | 정적으로 유형이 지정된 링크는 베타 버전으로 제공됩니다.                                                                                        |
+| `next/link` | 는 이제 더 빠른 빌드를 위해 TypeScript 및 TSX를 컴파일하는 데 기본적으로 사용됩니다.                    |
+
+```tsx
+import type { Route } from 'next'
+import Link from 'next/link'
+
+function Card<T extends string>({ href }: { href: Route<T> | URL }) {
+  return (
+    <Link href={href}>
+      <div>My Card</div>
+    </Link>
+  )
+}
+```
+
+|  | 에서 활성화되면  지원이 추가되었습니다. |
+
+```ts filename="components/nav-items.ts"
+import type { Route } from 'next'
+
+type NavItem<T extends string = string> = {
+  href: T
+  label: string
+}
+
+export const navItems: NavItem<Route>[] = [
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+]
+```
+
+Then, map over the items to render `Link`s:
+
+```tsx filename="components/nav.tsx"
+import Link from 'next/link'
+import { navItems } from './nav-items'
+
+export function Nav() {
+  return (
+    <nav>
+      {navItems.map((item) => (
+        <Link key={item.href} href={item.href}>
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+```
+
+> **How does it work?**
+>
+> When running `next dev` or `next build`, Next.js generates a hidden `.d.ts` file inside `.next` that contains information about all existing routes in your application (all valid routes as the `href` type of `Link`). This `.d.ts` file is included in `tsconfig.json` and the TypeScript compiler will check that `.d.ts` and provide feedback in your editor about invalid links.
+
+### Type IntelliSense for Environment Variables
+
+During development, Next.js generates a `.d.ts` file in `.next/types` that contains information about the loaded environment variables for your editor's IntelliSense. If the same environment variable key is defined in multiple files, it is deduplicated according to the [Environment Variable Load Order](../../guides/environment-variables.mdx#environment-variable-load-order).
+
+To opt-into this feature, `experimental.typedEnv` needs to be enabled and the project needs to be using TypeScript.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    typedEnv: true,
+  },
+}
+
+export default nextConfig
+```
+
+> **Good to know**: Types are generated based on the environment variables loaded at development runtime, which excludes variables from `.env.production*` files by default. To include production-specific variables, run `next dev` with `NODE_ENV=production`.
+
+### With Async Server Components
+
+To use an `async` Server Component with TypeScript, ensure you are using TypeScript `5.1.3` or higher and `@types/react` `18.2.8` or higher.
+
+If you are using an older version of TypeScript, you may see a `'Promise<Element>' is not a valid JSX element` type error. Updating to the latest version of TypeScript and `@types/react` should resolve this issue.
+
+### Incremental type checking
+
+Since `v10.2.1` Next.js supports [incremental type checking](https://www.typescriptlang.org/tsconfig#incremental) when enabled in your `tsconfig.json`, this can help speed up type checking in larger applications.
+
+### Custom `tsconfig` path
+
+In some cases, you might want to use a different TypeScript configuration for builds or tooling. To do that, set `typescript.tsconfigPath` in `next.config.ts` to point Next.js to another `tsconfig` file.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  typescript: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
+}
+
+export default nextConfig
+```
+
+For example, switch to a different config for production builds:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const isProd = process.env.NODE_ENV === 'production'
+
+const nextConfig: NextConfig = {
+  typescript: {
+    tsconfigPath: isProd ? 'tsconfig.build.json' : 'tsconfig.json',
+  },
+}
+
+export default nextConfig
+```
+
+<details>
+  <summary>Why you might use a separate `tsconfig` for builds</summary>
+
+  You might need to relax checks in scenarios like monorepos, where the build also validates shared dependencies that don't match your project's standards, or when loosening checks in CI to continue delivering while migrating locally to stricter TypeScript settings (and still wanting your IDE to highlight misuse).
+
+  For example, if your project uses `useUnknownInCatchVariables` but some monorepo dependencies still assume `any`:
+
+  ```json filename="tsconfig.build.json"
+  {
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "useUnknownInCatchVariables": false
+    }
+  }
+  ```
+
+  This keeps your editor strict via `tsconfig.json` while allowing the production build to use relaxed settings.
+</details>
+
+> **Good to know**:
+>
+> - IDEs typically read `tsconfig.json` for diagnostics and IntelliSense, so you can still see IDE warnings while production builds use the alternate config. Mirror critical options if you want parity in the editor.
+> - In development, only `tsconfig.json` is watched for changes. If you edit a different file name via `typescript.tsconfigPath`, restart the dev server to apply changes.
+> - The configured file is used in `next dev`, `next build`, and `next typegen`.
+
+### Disabling TypeScript errors in production
+
+Next.js fails your **production build** (`next build`) when TypeScript errors are present in your project.
+
+If you'd like Next.js to dangerously produce production code even when your application has errors, you can disable the built-in type checking step.
+
+If disabled, be sure you are running type checks as part of your build or deploy process, otherwise this can be very dangerous.
+
+Open `next.config.ts` and enable the `ignoreBuildErrors` option in the [`typescript`](next-config-js/typescript.mdx) config:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
+}
+
+export default nextConfig
+```
+
+> **Good to know**: You can run `tsc --noEmit` to check for TypeScript errors yourself before building. This is useful for CI/CD pipelines where you'd like to check for TypeScript errors before deploying.
+
+### Custom type declarations
+
+When you need to declare custom types, you might be tempted to modify `next-env.d.ts`. However, this file is automatically generated, so any changes you make will be overwritten. Instead, you should create a new file, let's call it `new-types.d.ts`, and reference it in your `tsconfig.json`:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+    //...truncated...
+  },
+  "include": [
+    "new-types.d.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
+```
+
+## Version Changes
+
+| Version   | Changes                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `v15.0.0` | [`next.config.ts`](#type-checking-nextjs-configuration-files) support added for TypeScript projects.                                 |
+| `v13.2.0` | Statically typed links are available in beta.                                                                                        |
+| `v12.0.0` | [SWC](../../../architecture/nextjs-compiler.mdx) is now used by default to compile TypeScript and TSX for faster builds.                    |
+| `v10.2.1` | [Incremental type checking](https://www.typescriptlang.org/tsconfig#incremental) support added when enabled in your `tsconfig.json`. |

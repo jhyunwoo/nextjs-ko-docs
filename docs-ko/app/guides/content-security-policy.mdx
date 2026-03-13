@@ -1,0 +1,538 @@
+---
+title: Next.js 애플리케이션에 대한 콘텐츠 보안 정책(CSP)을 설정하는 방법
+nav_title: 콘텐츠 보안 정책
+description: Next.js 애플리케이션에 대한 콘텐츠 보안 정책(CSP)을 설정하는 방법을 알아보세요.
+related:
+  links:
+    - app/api-reference/file-conventions/proxy
+    - app/api-reference/functions/headers
+---
+
+[콘텐츠 보안 정책(CSP)](https://developer.mozilla.org/docs/Web/HTTP/CSP)은 XSS(교차 사이트 스크립팅), 클릭재킹 및 기타 코드 삽입 공격과 같은 다양한 보안 위협으로부터 Next.js 애플리케이션을 보호하는 데 중요합니다.
+
+CSP를 사용하여 개발자는 콘텐츠 소스, 스크립트, 스타일시트, 이미지, 글꼴, 개체, 미디어(오디오, 비디오), iframe 등에 허용되는 출처를 지정할 수 있습니다.
+
+<details>
+  <summary>예</summary>
+
+  - [엄격한 CSP](https://github.com/vercel/next.js/tree/canary/examples/with-strict-csp)
+</details>
+
+## 논스
+
+A [nonce](https://developer.mozilla.org/docs/Web/HTML/Global_attributes/nonce)는 일회용으로 생성된 고유하고 임의의 문자열입니다. 엄격한 CSP 지시어를 우회하여 특정 인라인 스크립트나 스타일을 선택적으로 실행할 수 있도록 CSP와 함께 사용됩니다.
+
+### 왜 nonce를 사용하나요?
+
+CSP는 공격을 방지하기 위해 인라인 및 외부 스크립트를 모두 차단할 수 있습니다. nonce를 사용하면 특정 스크립트가 일치하는 nonce 값을 포함하는 경우에만 안전하게 실행되도록 허용할 수 있습니다.
+
+공격자가 페이지에 스크립트를 로드하려면 nonce 값을 추측해야 합니다. 그렇기 때문에 Nonce는 모든 요청에 ​​대해 예측할 수 없고 고유해야 합니다.
+
+### 프록시로 nonce 추가
+
+[프록시](../api-reference/file-conventions/proxy.mdx)를 사용하면 페이지가 렌더링되기 전에 헤더를 추가하고 nonce를 생성할 수 있습니다.
+
+페이지를 볼 때마다 새로운 nonce가 생성되어야 합니다. 즉, 논스를 추가하려면 **must use [동적 렌더링](caching.mdx#dynamic-rendering)을 사용해야 합니다**.
+
+예를 들면:
+
+```ts filename="proxy.ts" switcher
+import { NextRequest, NextResponse } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'nonce-${nonce}';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+  // Replace newline characters and spaces
+  const contentSecurityPolicyHeaderValue = cspHeader
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+
+  requestHeaders.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+  response.headers.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
+
+  return response
+}
+```
+
+```js filename="proxy.js" switcher
+import { NextResponse } from 'next/server'
+
+export function proxy(request) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'nonce-${nonce}';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+  // Replace newline characters and spaces
+  const contentSecurityPolicyHeaderValue = cspHeader
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+  response.headers.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
+
+  return response
+}
+```
+
+기본적으로 프록시는 모든 요청에 대해 실행됩니다. [`matcher`](../api-reference/file-conventions/proxy.mdx#matcher)을 사용하여 특정 경로에서 실행되도록 프록시를 필터링할 수 있습니다.
+
+일치하는 프리패치(`next/link`에서)와 CSP 헤더가 필요하지 않은 정적 자산을 무시하는 것이 좋습니다.
+
+```ts filename="proxy.ts" switcher
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    {
+      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
+}
+```
+
+```js filename="proxy.js" switcher
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    {
+      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
+}
+```
+
+### Next.js에서 nonce가 작동하는 방식
+
+nonce를 사용하려면 페이지가 **동적으로 렌더링**되어야 합니다. 이는 Next.js가 요청에 있는 CSP 헤더를 기반으로 **서버 측 렌더링** 중에 nonce를 적용하기 때문입니다. 요청 또는 응답 헤더가 없는 빌드 시 정적 페이지가 생성되므로 Nonce를 삽입할 수 없습니다.
+
+동적으로 렌더링된 페이지에서 nonce 지원이 작동하는 방식은 다음과 같습니다.
+
+1. **프록시가 nonce를 생성합니다**: 프록시가 요청에 대한 고유한 nonce를 생성하여 `Content-Security-Policy` 헤더에 추가하고 사용자 정의 `x-nonce` 헤더에도 설정합니다.
+1. **Next.js는 nonce를 추출합니다**: 렌더링하는 동안 Next.js는 `Content-Security-Policy` 헤더를 구문 분석하고 `'nonce-{value}'` 패턴을 사용하여 nonce를 추출합니다.
+1. **Nonce는 자동으로 적용됩니다**: Next.js는 다음에 nonce를 연결합니다.
+   - 프레임워크 스크립트(React, Next.js 런타임)
+   - 페이지별 JavaScript 번들
+   - Next.js에 의해 생성된 인라인 스타일 및 스크립트
+   - Any `<Script>` 소품을 사용하는 모든 `nonce` 구성 요소
+
+이러한 자동 동작으로 인해 각 태그에 nonce를 수동으로 추가할 필요가 없습니다.
+
+### 동적 렌더링 강제nonce를 사용하는 경우 페이지를 동적 렌더링으로 명시적으로 선택해야 할 수도 있습니다.
+
+If you're using nonces, you may need to explicitly opt pages into dynamic rendering:를 사용하여 에서 nonce를 읽을 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+import { connection } from 'next/server'
+
+export default async function Page() {
+  // wait for an incoming request to render this page
+  await connection()
+  // Your page content
+}
+```
+
+```jsx filename="app/page.jsx" switcher
+import { connection } from 'next/server'
+
+export default async function Page() {
+  // wait for an incoming request to render this page
+  await connection()
+  // Your page content
+}
+```
+
+### 동적 렌더링 요구 사항
+
+CSP에서 nonce를 사용하면 [Server Component](../getting-started/server-and-client-components.mdx) using [`headers`](../api-reference/functions/headers.mdx):. 이는 다음을 의미합니다.
+
+```tsx filename="app/page.tsx" switcher
+import { headers } from 'next/headers'
+import Script from 'next/script'
+
+export default async function Page() {
+  const nonce = (await headers()).get('x-nonce')
+
+  return (
+    <Script
+      src="https://www.googletagmanager.com/gtag/js"
+      strategy="afterInteractive"
+      nonce={nonce}
+    />
+  )
+}
+```
+
+```jsx filename="app/page.jsx" switcher
+import { headers } from 'next/headers'
+import Script from 'next/script'
+
+export default async function Page() {
+  const nonce = (await headers()).get('x-nonce')
+
+  return (
+    <Script
+      src="https://www.googletagmanager.com/gtag/js"
+      strategy="afterInteractive"
+      nonce={nonce}
+    />
+  )
+}
+```
+
+## Nonce 없이
+
+nonce가 필요하지 않은 애플리케이션의 경우  파일에서 직접 CSP 헤더를 설정할 수 있습니다.
+
+### SRI 작동 방식
+
+nonce를 사용하는 대신 SRI는 빌드 시 JavaScript 파일의 암호화 해시를 생성합니다. 이러한 해시는 스크립트 태그에 **all pages must be dynamically rendered**. This means: 속성으로 추가되어 브라우저가 전송 중에 파일이 수정되지 않았는지 확인할 수 있습니다.
+
+- Pages will build successfully but may encounter runtime errors if not properly configured for dynamic rendering
+- Each request generates a fresh page with a new nonce
+- Static optimization and Incremental Static Regeneration (ISR) are disabled
+- Pages cannot be cached by CDNs without additional configuration
+- **Partial Prerendering (PPR) is incompatible** with nonce-based CSP since static shell scripts won't have access to the nonce
+
+### SRI 활성화
+
+The shift from static to dynamic rendering affects performance:에 실험적인 SRI 구성을 추가합니다.
+
+- **CDN 호환성**: 정적 페이지는 CDN 캐싱과 함께 작동합니다.
+- **더 나은 성능**: 각 요청에 대해 서버 측 렌더링이 필요하지 않습니다.
+- **빌드 타임 보안**: 해시가 빌드 타임에 생성되어 무결성을 보장합니다.
+- **Higher hosting costs**: More server resources needed for dynamic rendering
+
+### SRI의 한계
+
+CSP 구현은 개발 환경과 프로덕션 환경에서 다릅니다.
+
+- You have strict security requirements that prohibit `'unsafe-inline'`
+- Your application handles sensitive data: CSP가 Next.js 정적 자산을 허용하는지 확인하세요.
+- You need to allow specific inline scripts while blocking others: CSP 정책에 필요한 도메인을 추가합니다.
+- Compliance requirements mandate strict CSP
+
+## 문제 해결
+
+CSP와 함께 타사 스크립트를 사용하는 경우:[`next.config.js`](../api-reference/config/next-config-js/index.mdx) file:
+
+```js filename="next.config.js"
+const isDev = process.env.NODE_ENV === 'development'
+
+const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''};
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: cspHeader.replace(/\n/g, ''),
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |
+
+> **Good to know**: This feature is experimental and only available with webpack bundler in App Router applications.
+
+### How SRI works
+
+| ---------- | ------------------------------------------------ |`integrity` attributes to script tags, allowing browsers to verify that files haven't been modified during transit.
+
+### Enabling SRI
+
+| `next.config.js` | 적절한 nonce 처리 및 CSP 헤더 구문 분석에 권장됩니다. |
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    sri: {
+      algorithm: 'sha256', // or 'sha384' or 'sha512'
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+### CSP configuration with SRI
+
+When SRI is enabled, you can continue using your existing CSP policies. SRI works independently by adding `integrity` attributes to your assets:
+
+> **Good to know**: For dynamic rendering scenarios, you can still generate nonces with proxy if needed, combining both SRI integrity attributes and nonce-based CSP approaches.
+
+```js filename="next.config.js"
+const cspHeader = `
+    default-src 'self';
+    script-src 'self';
+    style-src 'self';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+
+module.exports = {
+  experimental: {
+    sri: {
+      algorithm: 'sha256',
+    },
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: cspHeader.replace(/\n/g, ''),
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+### Benefits of SRI over nonces
+
+- **Static generation**: Pages can be statically generated and cached
+- **CDN compatibility**: Static pages work with CDN caching
+- **Better performance**: No server-side rendering required for each request
+- **Build-time security**: Hashes are generated at build time, ensuring integrity
+
+### Limitations of SRI
+
+- **Experimental**: Feature may change or be removed
+- **Webpack only**: Not available with Turbopack
+- **App Router only**: Not supported in Pages Router
+- **Build-time only**: Cannot handle dynamically generated scripts
+
+## Development vs Production Considerations
+
+CSP implementation differs between development and production environments:
+
+### Development Environment
+
+In development, you will need to enable `'unsafe-eval'` to support APIs that provide additional debugging information:
+
+```ts filename="proxy.ts" switcher
+export function proxy(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const isDev = process.env.NODE_ENV === 'development'
+
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
+    style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`};
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+
+  // Rest of proxy implementation
+}
+```
+
+```js filename="proxy.js" switcher
+export function proxy(request) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const isDev = process.env.NODE_ENV === 'development'
+
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
+    style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`};
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`
+
+  // Rest of proxy implementation
+}
+```
+
+### Production Deployment
+
+Common issues in production:
+
+- **Nonce not applied**: Ensure your proxy runs on all necessary routes
+- **Static assets blocked**: Verify your CSP allows Next.js static assets
+- **Third-party scripts**: Add necessary domains to your CSP policy
+
+## Troubleshooting
+
+### Third-party Scripts
+
+When using third-party scripts with CSP:
+
+```tsx filename="app/layout.tsx" switcher
+import { GoogleTagManager } from '@next/third-parties/google'
+import { headers } from 'next/headers'
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const nonce = (await headers()).get('x-nonce')
+
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <GoogleTagManager gtmId="GTM-XYZ" nonce={nonce} />
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.jsx" switcher
+import { GoogleTagManager } from '@next/third-parties/google'
+import { headers } from 'next/headers'
+
+export default async function RootLayout({ children }) {
+  const nonce = (await headers()).get('x-nonce')
+
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <GoogleTagManager gtmId="GTM-XYZ" nonce={nonce} />
+      </body>
+    </html>
+  )
+}
+```
+
+Update your CSP to allow third-party domains:
+
+```ts filename="proxy.ts" switcher
+const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com;
+  connect-src 'self' https://www.google-analytics.com;
+  img-src 'self' data: https://www.google-analytics.com;
+`
+```
+
+```js filename="proxy.js" switcher
+const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com;
+  connect-src 'self' https://www.google-analytics.com;
+  img-src 'self' data: https://www.google-analytics.com;
+`
+```
+
+### Common CSP Violations
+
+1. **Inline styles**: Use CSS-in-JS libraries that support nonces or move styles to external files
+1. **Dynamic imports**: Ensure dynamic imports are allowed in your script-src policy
+1. **WebAssembly**: Add `'wasm-unsafe-eval'` if using WebAssembly
+1. **Service workers**: Add appropriate policies for service worker scripts
+
+## Version History
+
+| Version    | Changes                                                       |`v14.0.0`  | Experimental SRI support added for hash-based CSP             |
+| `v13.4.20` | Recommended for proper nonce handling and CSP header parsing. |

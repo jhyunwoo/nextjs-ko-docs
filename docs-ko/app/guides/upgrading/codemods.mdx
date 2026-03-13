@@ -1,0 +1,713 @@
+---
+title: 코드모드
+description: 새로운 기능이 출시되면 codemods를 사용하여 Next.js 코드베이스를 업그레이드하세요.
+---
+
+Codemod는 코드베이스에서 프로그래밍 방식으로 실행되는 변환입니다. 이를 통해 모든 파일을 수동으로 검토할 필요 없이 프로그래밍 방식으로 많은 변경 사항을 적용할 수 있습니다.
+
+Next.js는 API가 업데이트되거나 더 이상 사용되지 않을 때 Next.js 코드베이스를 업그레이드하는 데 도움이 되는 Codemod 변환을 제공합니다.
+
+## 사용법
+
+터미널에서 프로젝트 폴더로 (`cd`) 이동한 후 다음을 실행합니다.
+
+```bash filename="Terminal"
+npx @next/codemod <transform> <path>
+```
+
+Replacing `<transform>` 및 `<path>`을 적절한 값으로 바꿉니다.
+
+- `transform` - 변환 이름
+- `path` - 변환할 파일 또는 디렉터리
+- `--dry` 테스트 실행을 수행하면 코드가 편집되지 않습니다.
+- `--print` 비교를 위해 변경된 출력을 인쇄합니다.
+
+## 업그레이드
+
+Next.js 애플리케이션을 업그레이드하여 자동으로 codemod를 실행하고 Next.js, React 및 React DOM를 업데이트합니다.
+
+```bash filename="Terminal"
+npx @next/codemod upgrade [revision]
+```
+
+### 옵션
+
+- `revision`(선택 사항): 업그레이드 유형(`patch`, `minor`, `major`), NPM dist 태그(예: `latest`, `canary`, `rc`) 또는 정확한 버전(예: `15.0.0`). 안정적인 버전의 경우 기본값은 `minor`입니다.
+- `--verbose`: 업그레이드 프로세스 중에 더 자세한 출력을 표시합니다.
+
+예를 들면:
+
+```bash filename="Terminal"
+# Upgrade to the latest patch (e.g. 16.0.7 -> 16.0.8)
+npx @next/codemod upgrade patch
+
+# Upgrade to the latest minor (e.g. 15.3.7 -> 15.4.8). This is the default.
+npx @next/codemod upgrade minor
+
+# Upgrade to the latest major (e.g. 15.5.7 -> 16.0.7)
+npx @next/codemod upgrade major
+
+# Upgrade to a specific version
+npx @next/codemod upgrade 16
+
+# Upgrade to the canary release
+npx @next/codemod upgrade canary
+```
+
+> **알면 좋은 점**:
+>
+> - 대상 버전이 현재 버전과 같거나 낮은 경우 변경하지 않고 명령이 종료됩니다.
+> - 업그레이드 중에 React를 업그레이드하는 경우 적용할 Next.js 코드 모드를 선택하고 React 19 코드 모드를 실행하라는 메시지가 표시될 수 있습니다.
+
+## 코드모드
+
+### 16.0
+
+#### 앱 라우터 페이지 및 레이아웃에서 `experimental_ppr` 경로 세그먼트 구성 제거
+
+##### `remove-experimental-ppr`
+
+```bash filename="Terminal"
+npx @next/codemod@latest remove-experimental-ppr .
+```
+
+이 codemod는 앱 라우터 페이지 및 레이아웃에서 `experimental_ppr` 경로 세그먼트 구성을 제거합니다.
+
+```diff filename="app/page.tsx"
+- export const experimental_ppr = true;
+```
+
+#### 안정화된 API에서 `unstable_` 접두사를 제거합니다.
+
+##### `remove-unstable-prefix`
+
+```bash filename="Terminal"
+npx @next/codemod@latest remove-unstable-prefix .
+```
+
+이 codemod는 안정화된 API에서 `unstable_` 접두사를 제거합니다.
+
+예를 들면:
+
+```ts
+import { unstable_cacheTag as cacheTag } from 'next/cache'
+
+cacheTag()
+```
+
+다음으로 변환됩니다.
+
+```ts
+import { cacheTag } from 'next/cache'
+
+cacheTag()
+```
+
+#### 더 이상 사용되지 않는 `middleware` 규칙에서 `proxy`
+
+##### `middleware-to-proxy`
+
+```bash filename="Terminal"
+npx @next/codemod@latest middleware-to-proxy .
+```
+
+이 codemod는 프로젝트를 더 이상 사용되지 않는 `middleware` 규칙 사용에서 `proxy` 규칙 사용으로 마이그레이션합니다. 그것:- 의 이름을 로 변경합니다(예: 를 로).
+
+- 명명된 내보내기 `middleware.<extension>`의 이름을 `proxy.<extension>`로 바꿉니다.`middleware.ts` to `proxy.ts`)
+- Next.js 구성 속성 `middleware`의 이름을 `proxy`
+- Next.js 구성 속성 `experimental.middlewarePrefetch`의 이름을 `experimental.proxyPrefetch`
+- Next.js 구성 속성 `experimental.middlewareClientMaxBodySize`의 이름을 `experimental.proxyClientMaxBodySize`
+- Next.js 구성 속성 `experimental.externalMiddlewareRewritesResolve`의 이름을 `experimental.externalProxyRewritesResolve`
+- Renames Next.js config property `skipMiddlewareUrlNormalize` to `skipProxyUrlNormalize`
+
+예를 들면:
+
+```ts filename="middleware.ts"
+import { NextResponse } from 'next/server'
+
+export function middleware() {
+  return NextResponse.next()
+}
+```
+
+다음으로 변환됩니다.
+
+```ts filename="proxy.ts"
+import { NextResponse } from 'next/server'
+
+export function proxy() {
+  return NextResponse.next()
+}
+```
+
+#### Migrate from `next lint`에서 ESLint CLI로 마이그레이션
+
+##### `next-lint-to-eslint-cli`
+
+```bash filename="Terminal"
+npx @next/codemod@canary next-lint-to-eslint-cli .
+```
+
+이 codemod는 프로젝트를 `next lint` 사용에서 로컬 ESLint 구성과 함께 ESLint CLI 사용으로 마이그레이션합니다. 그것:
+
+- Next.js 권장 구성으로 `eslint.config.mjs` 파일을 생성합니다.
+- Updates `package.json` 대신 `eslint .`을 사용하도록 `next lint`
+- Adds necessary ESLint dependencies to `package.json`
+- 발견 시 기존 ESLint 구성을 유지합니다.
+
+예를 들면:
+
+```json filename="package.json"
+{
+  "scripts": {
+    "lint": "next lint"
+  }
+}
+```
+
+다음과 같이 됩니다:
+
+```json filename="package.json"
+{
+  "scripts": {
+    "lint": "eslint ."
+  }
+}
+```
+
+그리고 다음을 생성합니다.
+
+```js filename="eslint.config.mjs"
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
+import { FlatCompat } from '@eslint/eslintrc'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+})
+
+const eslintConfig = [
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  {
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
+    ],
+  },
+]
+
+export default eslintConfig
+```
+
+### 15.0
+
+#### 앱 라우터 경로 세그먼트 구성 `runtime` 값을 `experimental-edge`에서 `edge`
+
+##### `app-dir-runtime-config-experimental-edge`
+
+> **참고**: 이 코드모드는 앱 라우터에만 적용됩니다.
+
+```bash filename="Terminal"
+npx @next/codemod@latest app-dir-runtime-config-experimental-edge .
+```
+
+이 codemod는 [경로 세그먼트 구성 `runtime`](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#runtime) 값 `experimental-edge`을 `edge`로 변환합니다.
+
+예를 들면:
+
+```ts
+export const runtime = 'experimental-edge'
+```
+
+다음으로 변환됩니다.
+
+```ts
+export const runtime = 'edge'
+```
+
+#### 비동기 동적 API로 마이그레이션
+
+이전에 동기 액세스를 지원했던 동적 렌더링을 선택한 API는 이제 비동기식입니다. [업그레이드 가이드](version-15.mdx)에서 이 주요 변경 사항에 대해 자세히 알아볼 수 있습니다.
+
+##### `next-async-request-api`
+
+```bash filename="Terminal"
+npx @next/codemod@latest next-async-request-api .
+```
+
+이 codemod는 현재 비동기식인 동적 API(`cookies()`, `headers()` 및 `draftMode()`)를 적절하게 기다리거나 적용 가능한 경우 `next/headers`로 래핑하도록 변환합니다.
+자동 마이그레이션이 불가능할 경우 codemod는 typecast(TypeScript 파일인 경우)를 추가하거나 사용자에게 수동으로 검토 및 업데이트해야 함을 알리는 주석을 추가합니다.`React.use()` if applicable.
+When an automatic migration isn't possible, the codemod will either add a typecast (if a TypeScript file) or a comment to inform the user that it needs to be manually reviewed & updated.
+
+예를 들면:
+
+```tsx
+import { cookies, headers } from 'next/headers'
+const token = cookies().get('token')
+
+function useToken() {
+  const token = cookies().get('token')
+  return token
+}
+
+export default function Page() {
+  const name = cookies().get('name')
+}
+
+function getHeader() {
+  return headers().get('x-foo')
+}
+```
+
+다음으로 변환됩니다.
+
+```tsx
+import { use } from 'react'
+import {
+  cookies,
+  headers,
+  type UnsafeUnwrappedCookies,
+  type UnsafeUnwrappedHeaders,
+} from 'next/headers'
+const token = (cookies() as unknown as UnsafeUnwrappedCookies).get('token')
+
+function useToken() {
+  const token = use(cookies()).get('token')
+  return token
+}
+
+export default async function Page() {
+  const name = (await cookies()).get('name')
+}
+
+function getHeader() {
+  return (headers() as unknown as UnsafeUnwrappedHeaders).get('x-foo')
+}
+```
+
+페이지/경로 항목(`params`, `searchParams`, `page.js` 또는 `layout.js`) 또는 `route.js` / `default.js` API,
+호출 사이트를 동기화에서 비동기 함수로 변환하려고 시도하고 속성 액세스를 기다립니다. 비동기식으로 만들 수 없는 경우(예: 클라이언트 구성 요소 사용) `generateMetadata`를 사용하여 promise를 언래핑합니다.`generateViewport` APIs,
+it will attempt to transform the callsite from a sync to an async function, and await the property access. If it can't be made async (such as with a Client Component), it will use `React.use` to unwrap the promise .
+
+예를 들면:
+
+```tsx
+// page.tsx
+export default function Page({
+  params,
+  searchParams,
+}: {
+  params: { slug: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  const { value } = searchParams
+  if (value === 'foo') {
+    // ...
+  }
+}
+
+export function generateMetadata({ params }: { params: { slug: string } }) {
+  const { slug } = params
+  return {
+    title: `My Page - ${slug}`,
+  }
+}
+```
+
+다음으로 변환됩니다.
+
+```tsx
+// page.tsx
+export default async function Page(props: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const searchParams = await props.searchParams
+  const { value } = searchParams
+  if (value === 'foo') {
+    // ...
+  }
+}
+
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string }>
+}) {
+  const params = await props.params
+  const { slug } = params
+  return {
+    title: `My Page - ${slug}`,
+  }
+}
+```
+
+> **알아두면 좋은 점:** 이 codemod가 수동 개입이 필요할 수 있는 지점을 식별하지만 정확한 수정 사항을 결정할 수 없는 경우 코드에 주석이나 유형 변환을 추가하여 사용자에게 수동으로 업데이트해야 함을 알립니다. 이러한 주석에는 **@next/codemod** 접두사가 붙고, 유형 변환에는 `UnsafeUnwrapped` 접두사가 붙습니다.
+> 이러한 주석이 명시적으로 제거될 때까지 빌드에서 오류가 발생합니다. [자세히 알아보기](https://nextjs.org/docs/messages/sync-dynamic-apis).
+
+#### Replace `geo`의 `ip` 및 `NextRequest` 속성을 `@vercel/functions`
+
+##### `next-request-geo-ip`
+
+```bash filename="Terminal"
+npx @next/codemod@latest next-request-geo-ip .
+```
+
+이 codemod는 `@vercel/functions`를 설치하고 `geo`의 `ip` 및 `NextRequest` 속성을 해당 `@vercel/functions` 기능으로 변환합니다.
+
+예를 들면:
+
+```ts
+import type { NextRequest } from 'next/server'
+
+export function GET(req: NextRequest) {
+  const { geo, ip } = req
+}
+```
+
+다음으로 변환됩니다.
+
+```ts
+import type { NextRequest } from 'next/server'
+import { geolocation, ipAddress } from '@vercel/functions'
+
+export function GET(req: NextRequest) {
+  const geo = geolocation(req)
+  const ip = ipAddress(req)
+}
+```
+
+### 14.0
+
+#### Migrate `ImageResponse` 가져오기 마이그레이션
+
+##### `next-og-import`
+
+```bash filename="Terminal"
+npx @next/codemod@latest next-og-import .
+```
+
+이 codemod는 `next/server`에서 `next/og`로 이동합니다.[Dynamic OG Image Generation](../../getting-started/metadata-and-og-images.mdx#generated-open-graph-images).
+
+예를 들면:
+
+```js
+import { ImageResponse } from 'next/server'
+```
+
+다음으로 변환됩니다.
+
+```js
+import { ImageResponse } from 'next/og'
+```
+
+#### Use `viewport` 내보내기 사용
+
+##### `metadata-to-viewport-export`
+
+```bash filename="Terminal"
+npx @next/codemod@latest metadata-to-viewport-export .
+```
+
+이 codemod는 특정 뷰포트 메타데이터를 `viewport` 내보내기로 마이그레이션합니다.
+
+예를 들면:
+
+```js
+export const metadata = {
+  title: 'My App',
+  themeColor: 'dark',
+  viewport: {
+    width: 1,
+  },
+}
+```
+
+다음으로 변환됩니다.
+
+```js
+export const metadata = {
+  title: 'My App',
+}
+
+export const viewport = {
+  width: 1,
+  themeColor: 'dark',
+}
+```
+
+### 13.2
+
+#### 내장 글꼴 사용
+
+##### `built-in-next-font`
+
+```bash filename="Terminal"
+npx @next/codemod@latest built-in-next-font .
+```
+
+이 codemod는 `@next/font` 패키지를 제거하고 `@next/font` 가져오기를 내장된 `next/font`로 변환합니다.
+
+예를 들면:
+
+```js
+import { Inter } from '@next/font/google'
+```
+
+다음으로 변환됩니다.
+
+```js
+import { Inter } from 'next/font/google'
+```
+
+### 13.0
+
+#### 다음 이미지 가져오기 이름 바꾸기
+
+##### `next-image-to-legacy-image`
+
+```bash filename="Terminal"
+npx @next/codemod@latest next-image-to-legacy-image .
+```
+
+기존 Next.js 10, 11 또는 12 애플리케이션의 `next/image` 가져오기 이름을 Next.js 13의 `next/legacy/image`로 안전하게 변경합니다. 또한 `next/future/image`의 이름을 다음으로 변경합니다. `next/image`.
+
+예를 들면:
+
+```jsx filename="pages/index.js"
+import Image1 from 'next/image'
+import Image2 from 'next/future/image'
+
+export default function Home() {
+  return (
+    <div>
+      <Image1 src="/test.jpg" width="200" height="300" />
+      <Image2 src="/test.png" width="500" height="400" />
+    </div>
+  )
+}
+```
+
+다음으로 변환됩니다.
+
+```jsx filename="pages/index.js"
+// 'next/image' becomes 'next/legacy/image'
+import Image1 from 'next/legacy/image'
+// 'next/future/image' becomes 'next/image'
+import Image2 from 'next/image'
+
+export default function Home() {
+  return (
+    <div>
+      <Image1 src="/test.jpg" width="200" height="300" />
+      <Image2 src="/test.png" width="500" height="400" />
+    </div>
+  )
+}
+```
+
+#### 새 이미지 구성요소로 마이그레이션
+
+##### `next-image-experimental`
+
+```bash filename="Terminal"
+npx @next/codemod@latest next-image-experimental .
+```
+
+인라인 스타일을 추가하고 사용하지 않는 소품을 제거하여 `next/legacy/image`에서 새로운 `next/image`로 위험하게 마이그레이션합니다.
+
+- Removes `layout` 소품을 제거하고 `style`을 추가합니다.
+- Removes `objectFit` 소품을 제거하고 `style`을 추가합니다.
+- Removes `objectPosition` 소품을 제거하고 `style`을 추가합니다.
+- Removes `lazyBoundary` 소품을 제거합니다.
+- Removes `lazyRoot` 소품을 제거합니다.
+
+#### 링크 구성 요소에서 `<a>` 태그 제거
+
+##### `new-link`
+
+```bash filename="Terminal"
+npx @next/codemod@latest new-link .
+```
+
+Remove `<a>` 태그를 제거합니다.[Link Components](../../api-reference/components/link.mdx).
+
+예를 들면:
+
+```jsx
+<Link href="/about">
+  <a>About</a>
+</Link>
+// transforms into
+<Link href="/about">
+  About
+</Link>
+
+<Link href="/about">
+  <a onClick={() => console.log('clicked')}>About</a>
+</Link>
+// transforms into
+<Link href="/about" onClick={() => console.log('clicked')}>
+  About
+</Link>
+```
+
+### 11
+
+#### CRA에서 마이그레이션
+
+##### `cra-to-next`
+
+```bash filename="Terminal"
+npx @next/codemod cra-to-next
+```
+
+Create React 앱 프로젝트를 Next.js로 마이그레이션합니다. 동작을 일치시키기 위해 페이지 라우터 및 필요한 구성을 만듭니다. 클라이언트 측 전용 렌더링은 처음에는 SSR 중 `window` 사용으로 인한 호환성 중단을 방지하기 위해 활용되며 Next.js 특정 기능을 점진적으로 채택할 수 있도록 원활하게 활성화할 수 있습니다.
+
+Please share any feedback related to this transform [이 토론에서](https://github.com/vercel/next.js/discussions/25858) 이 변환과 관련된 피드백을 공유해 주세요.
+
+### 10
+
+#### React 가져오기 추가
+
+##### `add-missing-react-import`
+
+```bash filename="Terminal"
+npx @next/codemod add-missing-react-import
+```
+
+새로운 `React`을 가져오지 않는 파일을 변환합니다.[React JSX transform](https://reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html) to work.
+
+예를 들면:
+
+```jsx filename="my-component.js"
+export default class Home extends React.Component {
+  render() {
+    return <div>Hello World</div>
+  }
+}
+```
+
+다음으로 변환됩니다.
+
+```jsx filename="my-component.js"
+import React from 'react'
+export default class Home extends React.Component {
+  render() {
+    return <div>Hello World</div>
+  }
+}
+```
+
+### 9
+
+#### 익명 구성 요소를 명명된 구성 요소로 변환
+
+##### `name-default-component`
+
+```bash filename="Terminal"
+npx @next/codemod name-default-component
+```
+
+**버전 9 이상.**
+
+익명 구성 요소를 명명된 구성 요소로 변환하여 [빠른 새로 고침](https://nextjs.org/blog/next-9-4#fast-refresh)과 함께 작동하는지 확인합니다.
+
+예를 들면:
+
+```jsx filename="my-component.js"
+export default function () {
+  return <div>Hello World</div>
+}
+```
+
+다음으로 변환됩니다.
+
+```jsx filename="my-component.js"
+export default function MyComponent() {
+  return <div>Hello World</div>
+}
+```
+
+구성 요소는 파일 이름을 기반으로 낙타 표기 이름을 가지며 화살표 기능과도 작동합니다.
+
+### 8
+
+> **참고**: 내장 AMP 지원 및 이 코드 모드는 Next.js 16에서 제거되었습니다.
+
+#### AMP HOC를 페이지 구성으로 변환
+
+##### `withamp-to-config`
+
+```bash filename="Terminal"
+npx @next/codemod withamp-to-config
+```
+
+Transforms the `withAmp` HOC를 Next.js 9 페이지 구성으로 변환합니다.
+
+예를 들면:
+
+```js
+// Before
+import { withAmp } from 'next/amp'
+
+function Home() {
+  return <h1>My AMP Page</h1>
+}
+
+export default withAmp(Home)
+```
+
+```js
+// After
+export default function Home() {
+  return <h1>My AMP Page</h1>
+}
+
+export const config = {
+  amp: true,
+}
+```
+
+### 6
+
+#### Use `withRouter`
+
+##### `url-to-withrouter`
+
+```bash filename="Terminal"
+npx @next/codemod url-to-withrouter
+```
+
+최상위 페이지에서 더 이상 사용되지 않는 자동 삽입된 `url` 속성을 `withRouter` 및 삽입된 `router` 속성을 사용하도록 변환합니다. 여기에서 자세히 알아보세요: [https://nextjs.org/docs/messages/url-deprecated](https://nextjs.org/docs/messages/url-deprecated)
+
+예를 들면:
+
+```js filename="From"
+import React from 'react'
+export default class extends React.Component {
+  render() {
+    const { pathname } = this.props.url
+    return <div>Current pathname: {pathname}</div>
+  }
+}
+```
+
+```js filename="To"
+import React from 'react'
+import { withRouter } from 'next/router'
+export default withRouter(
+  class extends React.Component {
+    render() {
+      const { pathname } = this.props.router
+      return <div>Current pathname: {pathname}</div>
+    }
+  }
+)
+```
+
+이것은 하나의 사례입니다. 변환(및 테스트)된 모든 사례는 [`__testfixtures__` 디렉터리](https://github.com/vercel/next.js/tree/canary/packages/next-codemod/transforms/__testfixtures__/url-to-withrouter)에서 찾을 수 있습니다.

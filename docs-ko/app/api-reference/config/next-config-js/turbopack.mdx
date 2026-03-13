@@ -1,0 +1,307 @@
+---
+title: 터보팩
+description: Turbopack 관련 옵션으로 Next.js 구성
+---
+
+`turbopack` 옵션을 사용하면 [Turbopack](../../turbopack.mdx)을 사용자 정의하여 다양한 파일을 변환하고 모듈 확인 방법을 변경할 수 있습니다.
+
+> **알아두면 좋은 정보**: `turbopack` 옵션은 이전에 Next.js 버전 13.0.0~15.2.x에서 `experimental.turbo`로 명명되었습니다. `experimental.turbo` 옵션은 Next.js 16에서 제거됩니다.
+>
+> Next.js의 이전 버전을 사용하는 경우 `npx @next/codemod@latest next-experimental-turbo-to-turbopack .`을 실행하여 구성을 자동으로 마이그레이션하세요.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    // ...
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  turbopack: {
+    // ...
+  },
+}
+
+module.exports = nextConfig
+```
+
+> **알면 좋은 점**:
+>
+> - Next.js에 대한 Turbopack에는 내장 기능을 위한 로더 또는 로더 구성이 필요하지 않습니다. Turbopack에는 CSS 및 최신 JavaScript 컴파일에 대한 지원이 내장되어 있으므로 사용하는 경우 `css-loader`, `postcss-loader` 또는 `babel-loader`이 필요하지 않습니다 `@babel/preset-env`.
+
+## 참조
+
+### 옵션
+
+`turbopack` 구성에는 다음 옵션을 사용할 수 있습니다.
+
+| 옵션 | 설명 |
+| ------ | -------------------------------------------------------------------------------------------------------------- |
+| `root` | 애플리케이션 루트 디렉터리를 설정합니다. 절대 경로여야 합니다.                                                                         |
+| `rules` | Turbopack로 실행할 때 적용할 지원되는 웹팩 로더 목록입니다.                                                                  |
+| `resolveAlias` | 별칭이 지정된 가져오기를 모듈에 매핑하여 해당 위치에 로드합니다.                                                                                   |
+| `resolveExtensions` | 파일을 가져올 때 해결할 확장자 목록입니다.                                                                                      |
+| `debugIds` | JavaScript 번들 및 소스 맵에서 [디버그 ID](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md) 생성을 활성화합니다. |
+
+### 지원되는 로더
+
+다음 로더는 Turbopack의 웹팩 로더 구현과 함께 작동하도록 테스트되었지만 여기에 나열되지 않은 경우에도 다른 많은 웹팩 로더도 잘 작동합니다.
+
+- [`babel-loader`](https://www.npmjs.com/package/babel-loader) [*(Babel 구성 파일이 발견되면 자동으로 구성됨)*](../../turbopack.mdx#language-features)
+- [`@svgr/webpack`](https://www.npmjs.com/package/@svgr/webpack)
+- [`svg-inline-loader`](https://www.npmjs.com/package/svg-inline-loader)
+- [`yaml-loader`](https://www.npmjs.com/package/yaml-loader)
+- [`string-replace-loader`](https://www.npmjs.com/package/string-replace-loader)
+- [`raw-loader`](https://www.npmjs.com/package/raw-loader)
+- [`sass-loader`](https://www.npmjs.com/package/sass-loader) [*(자동으로 구성됨)*](../../turbopack.mdx#css-and-styling)
+- [`graphql-tag/loader`](https://www.npmjs.com/package/graphql-tag)#### Webpack 로더 기능 누락
+
+Turbopack는 [`loader-runner`](https://github.com/webpack/loader-runner) 라이브러리를 사용하여 대부분의 표준 로더 API를 제공하는 웹팩 로더를 실행합니다. 그러나 일부 기능은 지원되지 않습니다.
+
+**모듈 로딩:**
+
+- [`importModule`](https://webpack.js.org/api/loaders/#thisimportmodule) - 지원되지 않음
+- [`loadModule`](https://webpack.js.org/api/loaders/#thisloadmodule) - 지원되지 않음
+
+**파일 시스템 및 출력:**
+
+- [`fs`](https://webpack.js.org/api/loaders/#thisfs) - 부분 지원: 현재 `fs.readFile`만 구현됩니다.
+- [`emitFile`](https://webpack.js.org/api/loaders/#thisemitfile) - 지원되지 않음
+
+**컨텍스트 속성:**
+
+- [`version`](https://webpack.js.org/api/loaders/#thisversion) - 지원되지 않음
+- [`mode`](https://webpack.js.org/api/loaders/#thismode) - 지원되지 않음
+- [`target`](https://webpack.js.org/api/loaders/#thistarget) - 지원되지 않음
+
+**유틸리티:**
+
+- [`utils`](https://webpack.js.org/api/loaders/#thisutils) - 지원되지 않음
+- [`resolve`](https://webpack.js.org/api/loaders/#thisresolve) - 지원되지 않음(대신 [`getResolve`](https://webpack.js.org/api/loaders/#thisgetresolve) 사용)
+
+이러한 기능 중 하나에 크게 의존하는 로더가 있는 경우 문제를 제출하세요.
+
+## 예
+
+### 루트 디렉터리
+
+Turbopack는 루트 디렉터리를 사용하여 모듈을 확인합니다. 프로젝트 루트 외부의 파일은 확인되지 않습니다.
+
+프로젝트 루트 외부에서 파일이 확인되지 않는 이유는 캐시 유효성 검사를 개선하고, 파일 시스템 감시 오버헤드를 줄이고, 필요한 확인 단계 수를 줄이기 위한 것입니다.
+
+Next.js는 프로젝트의 루트 디렉터리를 자동으로 감지합니다. 다음 파일 중 하나를 찾아 검색합니다.
+
+- `pnpm-lock.yaml`
+- `package-lock.json`
+- `yarn.lock`
+- `bun.lock`
+- `bun.lockb`
+
+예를 들어 작업공간을 사용하지 않는 경우와 같이 다른 프로젝트 구조가 있는 경우 `root` 옵션을 수동으로 설정할 수 있습니다.
+
+```js filename="next.config.js"
+const path = require('path')
+module.exports = {
+  turbopack: {
+    root: path.join(__dirname, '..'),
+  },
+}
+```
+
+프로젝트 루트 외부의 연결된 종속성에서 파일을 확인하려면(`npm link`, `yarn link`, `pnpm link` 등을 통해) 프로젝트와 연결된 종속성의 상위 디렉터리에 `turbopack.root`를 구성해야 합니다.
+
+이는 파일 시스템 감시 범위를 확장하지만 일반적으로 연결된 패키지에서 적극적으로 작업하는 개발 중에만 필요합니다.
+
+### 웹팩 로더 구성
+
+내장된 것 이상의 로더 지원이 필요한 경우 많은 웹팩 로더가 이미 Turbopack와 함께 작동하고 있습니다. 현재 몇 가지 제한사항이 있습니다.- 웹팩 로더 API의 핵심 하위 집합만 구현됩니다. 현재 일부 인기 있는 로더에 대한 적용 범위는 충분하며 향후 API 지원을 확장할 예정입니다.
+
+- JavaScript 코드를 반환하는 로더만 지원됩니다. 스타일시트나 이미지와 같은 파일을 변환하는 로더는 현재 지원되지 않습니다.
+- 웹팩 로더에 전달되는 옵션은 일반 JavaScript 기본 요소, 개체 및 배열이어야 합니다. 예를 들어 `require()` 플러그인 모듈을 옵션 값으로 전달할 수 없습니다.
+
+로더를 구성하려면 설치한 로더의 이름과 `next.config.js`의 옵션을 추가하여 파일 확장자를 로더 목록에 매핑합니다. 규칙은 순서대로 평가됩니다.
+
+다음은 `@svgr/webpack` 파일을 가져와 React 구성 요소로 렌더링할 수 있는 [`.svg`](https://www.npmjs.com/package/@svgr/webpack) 로더를 사용하는 예입니다.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+}
+```
+
+> **알아두면 좋은 정보**: `rules` 개체에 사용되는 Glob는 파일 이름을 기준으로 일치합니다. 단, glob에 `/` 문자가 포함되어 있으면 전체 프로젝트 관련 파일 경로를 기준으로 일치하게 됩니다. Windows 파일 경로는 Unix 스타일 `/` 경로 구분 기호를 사용하도록 정규화되었습니다.
+>
+> Turbopack는 [Rust `globset` 라이브러리](https://docs.rs/globset/latest/globset/)의 수정된 버전을 사용합니다.
+
+구성 옵션이 필요한 로더의 경우 문자열 대신 객체 형식을 사용할 수 있습니다.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              icon: true,
+            },
+          },
+        ],
+        as: '*.js',
+      },
+    },
+  },
+}
+```
+
+> **알아두면 좋은 정보**: Next.js 버전 13.4.4 이전에는 `turbopack.rules`의 이름이 `turbo.loaders`였으며 `.mdx` 대신 `*.mdx`와 같은 파일 확장자만 허용되었습니다.
+
+### 고급 웹팩 로더 조건
+
+고급 `condition` 구문을 사용하여 로더가 실행되는 위치를 추가로 제한할 수 있습니다.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    rules: {
+      // '*' will match all file paths, but we restrict where our
+      // rule runs with a condition.
+      '*': {
+        condition: {
+          all: [
+            // 'foreign' is a built-in condition.
+            { not: 'foreign' },
+            // 'path' can be a RegExp or a glob string. A RegExp matches
+            // anywhere in the full project-relative file path.
+            { path: /^img\/[0-9]{3}\// },
+            {
+              any: [
+                { path: '*.svg' },
+                // 'content' is always a RegExp, and can match
+                // anywhere in the file.
+                { content: /\<svg\W/ },
+              ],
+            },
+          ],
+        },
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+}
+```
+
+- 지원되는 부울 연산자는 `{all: [...]}`, `{any: [...]}` 및 `{not: ...}`입니다.
+- 지원되는 사용자 정의 가능한 연산자는 `{path: string | RegExp}` 및 `{content: RegExp}`입니다. `path` 및 `content`이 동일한 객체에 지정되면 암시적 `and` 역할을 합니다.
+
+또한 다음과 같은 다양한 기본 제공 조건이 지원됩니다.
+
+- `browser`: 클라이언트에서 실행될 코드와 일치합니다. 서버 코드는 `{not: 'browser'}`을 사용하여 일치시킬 수 있습니다.
+- `foreign`: `node_modules`의 코드와 일부 Next.js 내부 코드와 일치합니다. 일반적으로 로더를 `{not: 'foreign'}`로 제한하려고 합니다. 이는 로더가 호출되는 파일 수를 줄여 성능을 향상시킬 수 있습니다.
+- `development`: `next dev`을 사용할 때 일치합니다.
+- `production`: `next build`을 사용할 때 일치합니다.
+- `node`: 기본 Node.js 런타임에서 실행될 코드와 일치합니다.
+- `edge-light`: [Edge 런타임](../../edge.mdx)에서 실행될 코드와 일치합니다.규칙은 객체일 수도 있고 객체 배열일 수도 있습니다. 배열은 분리된 조건을 모델링하는 데 유용한 경우가 많습니다.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    rules: {
+      '*.svg': [
+        {
+          condition: 'browser',
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+        {
+          condition: { not: 'browser' },
+          loaders: [require.resolve('./custom-svg-loader.js')],
+          as: '*.js',
+        },
+      ],
+    },
+  },
+}
+```
+
+> **알아두면 좋은 정보**: 일치하는 모든 규칙은 순서대로 실행됩니다.
+
+### 별칭 해결
+
+Turbopack는 webpack의 [`resolve.alias`](https://webpack.js.org/configuration/resolve/#resolvealias) 구성과 유사하게 별칭을 통해 모듈 확인을 수정하도록 구성할 수 있습니다.
+
+별칭 확인을 구성하려면 가져온 패턴을 `next.config.js`의 새 대상에 매핑하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    resolveAlias: {
+      underscore: 'lodash',
+      mocha: { browser: 'mocha/browser-entry.js' },
+    },
+  },
+}
+```
+
+이는 `underscore` 패키지를 `lodash` 패키지로 가져오는 별칭입니다. 즉, `import underscore from 'underscore'`은 `lodash` 대신 `underscore` 모듈을 로드합니다.
+
+Turbopack는 Node.js' [조건부 내보내기](https://nodejs.org/docs/latest-v18.x/api/packages.html#conditional-exports)와 유사하게 이 필드를 통한 조건부 별칭도 지원합니다. 현재는 `browser` 조건만 지원됩니다. 위의 경우 Turbopack가 브라우저 환경을 대상으로 할 때 `mocha` 모듈 가져오기는 `mocha/browser-entry.js`로 별칭이 지정됩니다.
+
+### 사용자 정의 확장 해결
+
+Turbopack는 webpack의 [`resolve.extensions`](https://webpack.js.org/configuration/resolve/#resolveextensions) 구성과 유사하게 사용자 정의 확장으로 모듈을 확인하도록 구성할 수 있습니다.
+
+확인 확장을 구성하려면 `resolveExtensions`의 `next.config.js` 필드를 사용하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
+  },
+}
+```
+
+그러면 제공된 목록으로 원래 확인 확장을 덮어씁니다. 기본 확장자를 포함했는지 확인하세요.
+
+웹팩에서 앱을 Turbopack로 마이그레이션하는 방법에 대한 자세한 내용과 지침은 [웹팩 호환성에 대한 Turbopack의 문서](https://turbo.build/pack/docs/migrating-from-webpack)를 참조하세요.
+
+### 디버그 ID
+
+Turbopack는 JavaScript 번들 및 소스 맵에서 [디버그 ID](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md)를 생성하도록 구성할 수 있습니다.
+
+디버그 ID를 구성하려면 `debugIds`의 `next.config.js` 필드를 사용하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  turbopack: {
+    debugIds: true,
+  },
+}
+```
+
+이 옵션은 호환성을 보장하기 위해 디버그 ID에 대한 폴리필을 JavaScript 번들에 자동으로 추가합니다. 디버그 ID는 `globalThis._debugIds` 전역 변수에서 사용할 수 있습니다.
+
+## 버전 기록
+
+| 버전 | 변경사항 |
+| -------- | ---------------------------------- |
+| `16.0.0` | `turbopack.debugIds`이 추가되었습니다.                 |
+| `16.0.0` | `turbopack.rules.*.condition`이 추가되었습니다.        |
+| `15.3.0` | `experimental.turbo`이 `turbopack`로 변경되었습니다. |
+| `13.0.0` | `experimental.turbo`이 도입되었습니다.                |

@@ -1,0 +1,77 @@
+---
+title: 사용자 에이전트
+description: userAgent 도우미는 요청에서 사용자 에이전트 개체와 상호 작용하기 위한 추가 속성 및 메서드를 사용하여 웹 요청 API를 확장합니다.
+---
+
+The `userAgent` 도우미는 요청의 사용자 에이전트 개체와 상호 작용하기 위한 추가 속성 및 메서드를 사용하여 [웹 요청 API](https://developer.mozilla.org/docs/Web/API/Request)을 확장합니다.
+
+```ts filename="proxy.ts" switcher
+import { NextRequest, NextResponse, userAgent } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const url = request.nextUrl
+  const { device } = userAgent(request)
+
+  // device.type can be: 'mobile', 'tablet', 'console', 'smarttv',
+  // 'wearable', 'embedded', or undefined (for desktop browsers)
+  const viewport = device.type || 'desktop'
+
+  url.searchParams.set('viewport', viewport)
+  return NextResponse.rewrite(url)
+}
+```
+
+```js filename="proxy.js" switcher
+import { NextResponse, userAgent } from 'next/server'
+
+export function proxy(request) {
+  const url = request.nextUrl
+  const { device } = userAgent(request)
+
+  // device.type can be: 'mobile', 'tablet', 'console', 'smarttv',
+  // 'wearable', 'embedded', or undefined (for desktop browsers)
+  const viewport = device.type || 'desktop'
+
+  url.searchParams.set('viewport', viewport)
+  return NextResponse.rewrite(url)
+}
+```
+
+## `isBot`
+
+요청이 알려진 봇에서 오는지 여부를 나타내는 부울입니다.
+
+## `browser`
+
+요청에 사용된 브라우저에 대한 정보가 포함된 개체입니다.
+
+- `name`: 브라우저 이름을 나타내는 문자열이거나 식별할 수 없는 경우 `undefined`입니다.
+- `version`: 브라우저 버전을 나타내는 문자열 또는 `undefined`.
+
+## `device`
+
+요청에 사용된 장치에 대한 정보가 포함된 개체입니다.
+
+- `model`: 장치 모델을 나타내는 문자열 또는 `undefined`입니다.
+- `type`: 장치의 유형을 나타내는 문자열입니다. 또는 `console`.`mobile`, `tablet`, `smarttv`, `wearable`, `embedded`, or `undefined`.
+- `vendor`: 장치 공급업체를 나타내는 문자열 또는 `undefined`입니다.
+
+## `engine`
+
+브라우저 엔진에 대한 정보가 포함된 개체입니다.
+
+- `name`: 엔진 이름을 나타내는 문자열입니다. 가능한 값은 다음과 같습니다: `Amaya`, `Blink`, `EdgeHTML`, `Flow`, `Gecko`, `Goanna`, `iCab`, `KHTML`, `Links`, `Lynx`, `NetFront`, `NetSurf`, `Presto`, `Tasman`, `Trident`, `w3m`, `WebKit` 또는 `undefined`.
+- `version`: 엔진 버전을 나타내는 문자열 또는 `undefined`.
+
+## `os`
+
+운영 체제에 대한 정보가 포함된 개체입니다.
+
+- `name`: OS 이름 또는 `undefined`을 나타내는 문자열입니다.
+- `version`: OS 버전 또는 `undefined`을 나타내는 문자열입니다.
+
+## `cpu`
+
+CPU 아키텍처에 대한 정보가 포함된 개체입니다.
+
+- `architecture`: CPU의 아키텍처를 나타내는 문자열입니다. 가능한 값은 다음과 같습니다: `68k`, `amd64`, `arm`, `arm64`, `armhf`, `avr`, `ia32`, `ia64`, `irix`, `irix64`, `mips`, `mips64`, `pa-risc`, `ppc`, `sparc`, `sparc64` 또는 `undefined`

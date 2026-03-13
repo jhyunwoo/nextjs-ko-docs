@@ -1,0 +1,67 @@
+---
+title: 인라인Css
+description: 인라인 CSS 지원을 활성화합니다.
+version: experimental
+---
+
+## 사용법
+
+Experimental support for inlining CSS in the `<head>`에서 CSS 인라인을 실험적으로 지원합니다. 이 플래그가 활성화되면 일반적으로 `<link>` 태그를 생성하는 모든 위치에 `<style>` 태그가 생성됩니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    inlineCss: true,
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    inlineCss: true,
+  },
+}
+
+module.exports = nextConfig
+```
+
+## 절충안
+
+### 인라인을 사용하는 경우 CSS
+
+CSS 인라인 처리는 여러 시나리오에서 유용할 수 있습니다.
+
+- **처음 방문자**: CSS 파일은 렌더링을 차단하는 리소스이므로 인라인 처리는 처음 방문자가 경험하는 초기 다운로드 지연을 제거하여 페이지 로드 성능을 향상시킵니다.
+
+- **성능 지표**: CSS 파일에 대한 추가 네트워크 요청을 제거함으로써 인라인은 FCP(First Contentful Paint) 및 LCP(Largest Contentful Paint)와 같은 주요 지표를 크게 향상시킬 수 있습니다.
+
+- **느린 연결**: 요청할 때마다 상당한 대기 시간이 추가되는 느린 네트워크 사용자의 경우 CSS를 인라인하면 네트워크 왕복 횟수를 줄여 눈에 띄는 성능 향상을 제공할 수 있습니다.
+
+- **Atomic CSS 번들(예: Tailwind)**: Tailwind CSS와 같은 유틸리티 우선 프레임워크를 사용하면 페이지에 필요한 스타일의 크기는 디자인의 복잡성에 비해 O(1)인 경우가 많습니다. 현재 페이지의 전체 스타일 세트가 가볍고 페이지 크기에 따라 커지지 않기 때문에 인라인을 선택하는 것이 좋습니다. Tailwind 스타일을 인라이닝하면 페이로드가 최소화되고 추가 네트워크 요청이 필요하지 않으므로 성능이 더욱 향상됩니다.
+
+### 인라인을 사용하지 말아야 할 경우 CSS
+
+인라인 CSS는 성능 면에서 상당한 이점을 제공하지만 최선의 선택이 아닐 수 있는 시나리오가 있습니다.
+
+- **대형 CSS 번들**: CSS 번들이 너무 큰 경우 인라인 처리하면 HTML의 크기가 크게 증가하여 TTFB(Time to First Byte)가 느려지고 연결이 느린 사용자의 경우 성능이 저하될 수 있습니다.
+
+- **동적 또는 페이지별 CSS**: 매우 동적인 스타일이 있는 애플리케이션이나 다양한 CSS 집합을 사용하는 페이지의 경우 모든 페이지에 대한 전체 CSS를 반복적으로 인라인해야 할 수 있으므로 인라인 처리로 인해 중복성과 부풀림이 발생할 수 있습니다.
+
+- **브라우저 캐싱**: 방문자가 사이트를 자주 다시 방문하는 경우 외부 CSS 파일을 사용하면 브라우저가 스타일을 효율적으로 캐시하여 후속 방문에 대한 데이터 전송을 줄일 수 있습니다. CSS를 인라인하면 이러한 이점이 사라집니다.
+
+사이트 요구 사항에 맞는 최상의 결과를 얻으려면 이러한 장단점을 신중하게 평가하고 중요한 CSS 추출 또는 하이브리드 접근 방식과 같은 다른 전략과 인라인을 결합하는 것을 고려하십시오.> :
+
+> **Good to know**:
+>
+> This feature is currently experimental and has some known limitations:
+>
+> - CSS 인라인은 전체적으로 적용되며 페이지별로 구성할 수 없습니다.
+> - 초기 페이지 로드 중에 스타일이 복제됩니다. 한 번은 SSR의 경우 `<style>` 태그 내에서, 한 번은 RSC 페이로드에서
+> - 정적으로 렌더링된 페이지로 이동할 때 스타일은 중복을 피하기 위해 인라인 CSS 대신 `<link>` 태그를 사용합니다.
+> - 이 기능은 개발 모드에서는 사용할 수 없으며 프로덕션 빌드에서만 작동합니다.

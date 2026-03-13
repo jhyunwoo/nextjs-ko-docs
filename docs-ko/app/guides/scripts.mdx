@@ -1,0 +1,258 @@
+---
+title: 스크립트를 로드하고 최적화하는 방법
+nav_title: 스크립트
+description: 내장된 스크립트 구성요소로 타사 스크립트를 최적화하세요.
+related:
+  title: API 참조
+  description: next/script API에 대해 자세히 알아보세요.
+  links:
+    - app/api-reference/components/script
+---
+
+### 레이아웃 스크립트
+
+여러 경로에 대한 타사 스크립트를 로드하려면 `next/script`을 가져오고 레이아웃 구성 요소에 직접 스크립트를 포함합니다.
+
+```tsx filename="app/dashboard/layout.tsx" switcher
+import Script from 'next/script'
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <>
+      <section>{children}</section>
+      <Script src="https://example.com/script.js" />
+    </>
+  )
+}
+```
+
+```jsx filename="app/dashboard/layout.js" switcher
+import Script from 'next/script'
+
+export default function DashboardLayout({ children }) {
+  return (
+    <>
+      <section>{children}</section>
+      <Script src="https://example.com/script.js" />
+    </>
+  )
+}
+```
+
+사용자가 폴더 경로(예: `dashboard/page.js`) 또는 중첩 경로(예: `dashboard/settings/page.js`)에 액세스하면 타사 스크립트를 가져옵니다. Next.js는 사용자가 동일한 레이아웃에서 여러 경로 사이를 탐색하는 경우에도 스크립트가 **한 번만 로드**되도록 보장합니다.
+
+### 애플리케이션 스크립트
+
+모든 경로에 대해 타사 스크립트를 로드하려면 `next/script`을 가져오고 루트 레이아웃에 직접 스크립트를 포함합니다.
+
+```tsx filename="app/layout.tsx" switcher
+import Script from 'next/script'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+      <Script src="https://example.com/script.js" />
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import Script from 'next/script'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+      <Script src="https://example.com/script.js" />
+    </html>
+  )
+}
+```
+
+이 스크립트는 애플리케이션의 *모든* 경로에 액세스할 때 로드되고 실행됩니다. Next.js는 사용자가 여러 페이지 사이를 이동하더라도 스크립트가 **한 번만 로드**되도록 보장합니다.
+
+> **권장 사항**: 성능에 불필요한 영향을 최소화하기 위해 특정 페이지나 레이아웃에는 타사 스크립트만 포함하는 것이 좋습니다.
+
+### 전략
+
+Although the default behavior of `next/script`의 기본 동작을 통해 모든 페이지나 레이아웃에서 타사 스크립트를 로드할 수 있지만 `strategy` 속성을 사용하여 로드 동작을 미세 조정할 수 있습니다.
+
+- `beforeInteractive`: Next.js 코드 전과 페이지 하이드레이션이 발생하기 전에 스크립트를 로드합니다.
+- `afterInteractive`: (**기본값**) 스크립트를 일찍 로드하되 페이지에 약간의 하이드레이션이 발생한 후에 로드합니다.
+- `lazyOnload`: 브라우저 유휴 시간 동안 나중에 스크립트를 로드합니다.
+- `worker`: (실험적) 웹 작업자에 스크립트를 로드합니다.
+
+각 전략과 사용 사례에 대해 자세히 알아보려면 [`next/script`](../api-reference/components/script.mdx#strategy) API 참조 문서를 참조하세요.
+
+### 웹 작업자에게 스크립트 오프로딩(실험적)
+
+> **경고:** `worker` 전략은 아직 안정적이지 않으며 앱 라우터에서 작동하지 않습니다. 주의해서 사용하세요.
+
+Scripts that use the `worker` 전략을 사용하는 스크립트는 [Partytown](https://partytown.qwik.dev/)이 있는 웹 작업자에서 오프로드되어 실행됩니다. 이렇게 하면 메인 스레드를 나머지 애플리케이션 코드 전용으로 지정하여 사이트 성능을 향상시킬 수 있습니다.
+
+이 전략은 아직 실험적이며 `nextScriptWorkers` 플래그가 `next.config.js`에서 활성화된 경우에만 사용할 수 있습니다.
+
+```js filename="next.config.js"
+module.exports = {
+  experimental: {
+    nextScriptWorkers: true,
+  },
+}
+```
+
+그런 다음 `next`(일반적으로 `npm run dev` 또는 `yarn dev`)를 실행하면 Next.js가 설정을 완료하는 데 필요한 패키지 설치 과정을 안내합니다.
+
+```bash filename="Terminal"
+npm run dev
+```
+
+다음과 같은 지침이 표시됩니다. `npm install @qwik.dev/partytown`
+
+설정이 완료되면 `strategy="worker"`을 정의하면 애플리케이션에서 Partytown가 자동으로 인스턴스화되고 스크립트가 웹 작업자에게 오프로드됩니다.
+
+```tsx filename="pages/home.tsx" switcher
+import Script from 'next/script'
+
+export default function Home() {
+  return (
+    <>
+      <Script src="https://example.com/script.js" strategy="worker" />
+    </>
+  )
+}
+```
+
+```jsx filename="pages/home.js" switcher
+import Script from 'next/script'
+
+export default function Home() {
+  return (
+    <>
+      <Script src="https://example.com/script.js" strategy="worker" />
+    </>
+  )
+}
+```
+
+웹 작업자에서 타사 스크립트를 로드할 때 고려해야 할 여러 가지 장단점이 있습니다. 자세한 내용은 Partytown의 [tradeoffs](https://partytown.qwik.dev/trade-offs) 문서를 참조하세요.
+
+### 인라인 스크립트
+
+인라인 스크립트 또는 외부 파일에서 로드되지 않은 스크립트도 스크립트 구성 요소에서 지원됩니다. 중괄호 안에 JavaScript를 배치하여 작성할 수 있습니다.
+
+```jsx
+<Script id="show-banner">
+  {`document.getElementById('banner').classList.remove('hidden')`}
+</Script>
+```
+
+또는 `dangerouslySetInnerHTML` 속성을 사용하여:
+
+```jsx
+<Script
+  id="show-banner"
+  dangerouslySetInnerHTML={{
+    __html: `document.getElementById('banner').classList.remove('hidden')`,
+  }}
+/>
+```
+
+> **경고**: Next.js가 스크립트를 추적하고 최적화하려면 인라인 스크립트에 `id` 속성을 할당해야 합니다.
+
+### 추가 코드 실행 중
+
+이벤트 핸들러를 스크립트 구성 요소와 함께 사용하면 특정 이벤트가 발생한 후 추가 코드를 실행할 수 있습니다.
+
+- `onLoad`: 스크립트 로드가 완료된 후 코드를 실행합니다.
+- `onReady`: 스크립트 로드가 완료된 후 및 구성 요소가 마운트될 때마다 코드를 실행합니다.
+- `onError`: 스크립트 로드에 실패하면 코드를 실행합니다.
+
+이러한 핸들러는 `next/script`을 가져와서 [클라이언트 구성 요소](../getting-started/server-and-client-components.mdx) 내에서 사용하는 경우에만 작동합니다. 여기서 `"use client"`은 코드의 첫 번째 줄로 정의됩니다.
+
+```tsx filename="app/page.tsx" switcher
+'use client'
+
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      <Script
+        src="https://example.com/script.js"
+        onLoad={() => {
+          console.log('Script has loaded')
+        }}
+      />
+    </>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+'use client'
+
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      <Script
+        src="https://example.com/script.js"
+        onLoad={() => {
+          console.log('Script has loaded')
+        }}
+      />
+    </>
+  )
+}
+```
+
+각 이벤트 핸들러에 대해 자세히 알아보고 예제를 보려면 [`next/script`](../api-reference/components/script.mdx#onload) API 참조를 참조하세요.
+
+### 추가 속성
+
+There are many DOM attributes that can be assigned to a `<script>` 요소에 할당할 수 있는 DOM 속성이 많이 있습니다. 추가 속성을 포함하면 HTML에 포함된 최적화된 최종 [`nonce`](https://developer.mozilla.org/docs/Web/HTML/Global_attributes/nonce) or [custom data attributes](https://developer.mozilla.org/docs/Web/HTML/Global_attributes/data-*). Including any additional attributes will automatically forward it to the final, optimized `<script>` 요소로 자동으로 전달됩니다.
+
+```tsx filename="app/page.tsx" switcher
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      <Script
+        src="https://example.com/script.js"
+        id="example-script"
+        nonce="XUENAJFW"
+        data-test="script"
+      />
+    </>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      <Script
+        src="https://example.com/script.js"
+        id="example-script"
+        nonce="XUENAJFW"
+        data-test="script"
+      />
+    </>
+  )
+}
+```

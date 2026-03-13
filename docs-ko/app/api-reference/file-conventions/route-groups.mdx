@@ -1,0 +1,26 @@
+---
+title: 경로 그룹
+description: 경로 그룹을 사용하여 Next.js 애플리케이션을 여러 섹션으로 분할할 수 있습니다.
+---
+
+경로 그룹은 범주나 팀별로 경로를 구성할 수 있는 폴더 규칙입니다.
+
+## 컨벤션
+
+경로 그룹은 폴더 이름을 괄호(`(folderName)`)로 묶어 생성할 수 있습니다.
+
+이 규칙은 폴더가 정리 목적으로 사용되며 경로의 URL 경로에 **포함되어서는 안 됨**을 나타냅니다.
+
+<Image alt="경로 그룹을 사용하는 폴더 구조의 예" srcLight="/docs/light/project-organization-route-groups.png" srcDark="/docs/dark/project-organization-route-groups.png" width="1600" height="849" />
+
+## 사용 사례
+
+- 팀, 관심사 또는 기능별로 경로를 구성합니다.
+- 여러 [루트 레이아웃](layout.mdx#root-layout) 정의.
+- 특정 경로 구간을 레이아웃 공유로 선택하고 다른 구간은 제외합니다.
+
+## 주의사항
+
+- **전체 페이지 로드**: 서로 다른 루트 레이아웃을 사용하는 경로 사이를 탐색하는 경우 전체 페이지 다시 로드가 트리거됩니다. 예를 들어 `/cart`을 사용하는 `app/(shop)/layout.js`에서 `/blog`을 사용하는 `app/(marketing)/layout.js`로 이동합니다. 이는 **만** 다중 루트 레이아웃에만 적용됩니다.
+- **경로 충돌**: 서로 다른 그룹의 경로는 동일한 URL 경로로 해석되어서는 안 됩니다. 예를 들어 `(marketing)/about/page.js` 및 `(shop)/about/page.js`은 둘 다 `/about`로 확인되어 오류를 발생시킵니다.
+- **최상위 루트 레이아웃**: 최상위 `layout.js` 파일 없이 여러 루트 레이아웃을 사용하는 경우 홈 경로(/)가 경로 그룹 중 하나 내에 정의되어 있는지 확인하세요. app/(마케팅)/page.js.

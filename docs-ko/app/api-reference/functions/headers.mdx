@@ -1,0 +1,70 @@
+---
+title: 헤더
+description: 헤더 함수에 대한 API 참조입니다.
+---
+
+`headers`은 **읽을** 수 있게 해주는 **비동기** 함수입니다.[Server Component](../../getting-started/server-and-client-components.mdx).
+
+```tsx filename="app/page.tsx" switcher
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+}
+```
+
+## 참조
+
+### 매개변수
+
+`headers`은 매개변수를 사용하지 않습니다.
+
+### 반품
+
+`headers`는 **읽기 전용** [웹 헤더](https://developer.mozilla.org/docs/Web/API/Headers) 개체를 반환합니다.
+
+- [`Headers.entries()`](https://developer.mozilla.org/docs/Web/API/Headers/entries): 이 개체에 포함된 모든 키/값 쌍을 통과할 수 있는 [`iterator`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Iteration_protocols)을 반환합니다.
+- [`Headers.forEach()`](https://developer.mozilla.org/docs/Web/API/Headers/forEach): 이 `Headers` 개체의 각 키/값 쌍에 대해 제공된 함수를 한 번씩 실행합니다.
+- [`Headers.get()`](https://developer.mozilla.org/docs/Web/API/Headers/get): 지정된 이름을 가진 [`String`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) 시퀀스를 반환합니다.`Headers` object with a given name.
+- [`Headers.has()`](https://developer.mozilla.org/docs/Web/API/Headers/has): `Headers` 개체에 특정 헤더가 포함되어 있는지 여부를 나타내는 부울을 반환합니다.
+- [`Headers.keys()`](https://developer.mozilla.org/docs/Web/API/Headers/keys): [`iterator`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Iteration_protocols)을 반환하므로 이 객체에 포함된 키/값 쌍의 모든 키를 살펴볼 수 있습니다.
+- [`Headers.values()`](https://developer.mozilla.org/docs/Web/API/Headers/values): 이 개체에 포함된 키/값 쌍의 모든 값을 살펴볼 수 있도록 [`iterator`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Iteration_protocols)을 반환합니다.
+
+## 알아두면 좋은 점
+
+- `headers`는 약속을 반환하는 **비동기** 함수입니다. `async/await` 또는 React의 [`use`](https://react.dev/reference/react/use) 기능을 사용해야 합니다.
+  - 버전 14 이하에서는 `headers`가 동기 함수였습니다. 이전 버전과의 호환성을 돕기 위해 Next.js 15에서 동기적으로 계속 액세스할 수 있지만 이 동작은 향후 더 이상 사용되지 않습니다.
+- Since `headers`은 읽기 전용이므로 나가는 요청 헤더를 `set` 또는 `delete`할 수 없습니다.
+- `headers`은(는) 반환된 값을 미리 알 수 없는 [동적 API](../../guides/caching.mdx#dynamic-rendering)입니다. 이를 사용하면 \*\***[dynamic rendering](../../guides/caching.mdx#dynamic-rendering)**.\*\*으로의 경로가 선택됩니다.
+
+## 예
+
+### Authorization 헤더 사용하기
+
+```jsx filename="app/page.js"
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  const authorization = (await headers()).get('authorization')
+  const res = await fetch('...', {
+    headers: { authorization }, // Forward the authorization header
+  })
+  const user = await res.json()
+
+  return <h1>{user.name}</h1>
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.0.0-RC` | `headers` is now an async function. A [codemod](../../guides/upgrading/codemods.mdx#150) is available. |`v13.0.0`    | `headers` introduced.                                                                                  |

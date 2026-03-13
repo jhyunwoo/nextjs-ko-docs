@@ -1,0 +1,389 @@
+---
+title: ESLint 플러그인
+nav_title: ESLint
+description: Next.js 애플리케이션에서 일반적인 문제를 포착하기 위해 ESLint 플러그인을 사용하고 구성하는 방법을 알아보세요.
+---
+
+Next.js는 ESLint 구성 패키지인 [`eslint-config-next`](https://www.npmjs.com/package/eslint-config-next)를 제공합니다. 이를 통해 애플리케이션의 일반적인 문제를 쉽게 파악할 수 있습니다. 여기에는 [`@next/eslint-plugin-next`](https://www.npmjs.com/package/@next/eslint-plugin-next) 및 [`eslint-plugin-react`](https://www.npmjs.com/package/eslint-plugin-react)의 권장 규칙 세트와 함께 [`eslint-plugin-react-hooks`](https://www.npmjs.com/package/eslint-plugin-react-hooks) 플러그인이 포함되어 있습니다.
+
+패키지는 두 가지 주요 구성을 제공합니다.
+
+- **`eslint-config-next`**: Next.js, React 및 React 후크 규칙을 사용한 기본 구성입니다. JavaScript 및 TypeScript 파일을 모두 지원합니다.
+- **`eslint-config-next/core-web-vitals`**: 기본 구성의 모든 내용과 경고부터 오류까지 [핵심 웹 바이탈](https://web.dev/vitals/)에 영향을 미치는 업그레이드 규칙이 포함됩니다. 대부분의 프로젝트에 권장됩니다.
+
+또한 TypeScript 프로젝트의 경우:
+
+- **`eslint-config-next/typescript`**: [`typescript-eslint`](https://typescript-eslint.io/)에서 TypeScript 관련 린팅 규칙을 추가합니다. 이를 기본 또는 core-web-vitals 구성과 함께 사용하세요.
+
+## 설정 ESLint
+
+ESLint CLI(플랫 구성)를 사용하여 린팅 작업을 빠르게 수행하세요.
+
+1. ESLint 및 Next.js 구성을 설치합니다.
+
+   ```bash package="pnpm"
+   pnpm add -D eslint eslint-config-next
+   ```
+
+   ```bash package="npm"
+   npm i -D eslint eslint-config-next
+   ```
+
+   ```bash package="yarn"
+   yarn add --dev eslint eslint-config-next
+   ```
+
+   ```bash package="bun"
+   bun add -d eslint eslint-config-next
+   ```
+
+1. Create `eslint.config.mjs` with the Next.js config:
+
+   ```js filename="eslint.config.mjs"
+   import { defineConfig, globalIgnores } from 'eslint/config'
+   import nextVitals from 'eslint-config-next/core-web-vitals'
+
+   const eslintConfig = defineConfig([
+     ...nextVitals,
+     // Override default ignores of eslint-config-next.
+     globalIgnores([
+       // Default ignores of eslint-config-next:
+       '.next/**',
+       'out/**',
+       'build/**',
+       'next-env.d.ts',
+     ]),
+   ])
+
+   export default eslintConfig
+   ```
+
+1. Run ESLint:
+
+   ```bash package="pnpm"
+   pnpm exec eslint .
+   ```
+
+   ```bash package="npm"
+   npx eslint .
+   ```
+
+   ```bash package="yarn"
+   yarn eslint .
+   ```
+
+   ```bash package="bun"
+   bunx eslint .
+   ```
+
+## Reference
+
+The `eslint-config-next` package includes the `recommended` rule-sets from the following ESLint plugins:
+
+- [`eslint-plugin-react`](https://www.npmjs.com/package/eslint-plugin-react)
+- [`eslint-plugin-react-hooks`](https://www.npmjs.com/package/eslint-plugin-react-hooks)
+- [`@next/eslint-plugin-next`](https://www.npmjs.com/package/@next/eslint-plugin-next)
+
+### Rules
+
+The `@next/eslint-plugin-next` rules included are:
+
+| Enabled in recommended config | Rule                                                                                                                     | Description                                                                                                      |
+| :---------------------------: | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+|      <Check size={18} />      | [@next/next/google-font-display](https://nextjs.org/docs/messages/google-font-display)                                                     | Enforce font-display behavior with Google Fonts.                                                                 |
+|      <Check size={18} />      | [@next/next/google-font-preconnect](https://nextjs.org/docs/messages/google-font-preconnect)                                               | Ensure `preconnect` is used with Google Fonts.                                                                   |
+|      <Check size={18} />      | [@next/next/inline-script-id](https://nextjs.org/docs/messages/inline-script-id)                                                           | Enforce `id` attribute on `next/script` components with inline content.                                          |
+|      <Check size={18} />      | [@next/next/next-script-for-ga](https://nextjs.org/docs/messages/next-script-for-ga)                                                       | Prefer `next/script` component when using the inline script for Google Analytics.                                |
+|      <Check size={18} />      | [@next/next/no-assign-module-variable](https://nextjs.org/docs/messages/no-assign-module-variable)                                         | Prevent assignment to the `module` variable.                                                                     |
+|      <Check size={18} />      | [@next/next/no-async-client-component](https://nextjs.org/docs/messages/no-async-client-component)                                         | Prevent Client Components from being async functions.                                                            |
+|      <Check size={18} />      | [@next/next/no-before-interactive-script-outside-document](https://nextjs.org/docs/messages/no-before-interactive-script-outside-document) | Prevent usage of `next/script`'s `beforeInteractive` strategy outside of `pages/_document.js`.                   |
+|      <Check size={18} />      | [@next/next/no-css-tags](https://nextjs.org/docs/messages/no-css-tags)                                                                     | Prevent manual stylesheet tags.                                                                                  |
+|      <Check size={18} />      | [@next/next/no-document-import-in-page](https://nextjs.org/docs/messages/no-document-import-in-page)                                       | Prevent importing `next/document` outside of `pages/_document.js`.                                               |
+|      <Check size={18} />      | [@next/next/no-duplicate-head](https://nextjs.org/docs/messages/no-duplicate-head)                                                         | Prevent duplicate usage of `<Head>` in `pages/_document.js`.                                                     |
+|      <Check size={18} />      | [@next/next/no-head-element](https://nextjs.org/docs/messages/no-head-element)                                                             | Prevent usage of `<head>` element.                                                                               |
+|      <Check size={18} />      | [@next/next/no-head-import-in-document](https://nextjs.org/docs/messages/no-head-import-in-document)                                       | Prevent usage of `next/head` in `pages/_document.js`.                                                            |
+|      <Check size={18} />      | [@next/next/no-html-link-for-pages](https://nextjs.org/docs/messages/no-html-link-for-pages)                                               | Prevent usage of `<a>` elements to navigate to internal Next.js pages.                                           |
+|      <Check size={18} />      | [@next/next/no-img-element](https://nextjs.org/docs/messages/no-img-element)                                                               | Prevent usage of `<img>` element due to slower LCP and higher bandwidth.                                         |
+|      <Check size={18} />      | [@next/next/no-page-custom-font](https://nextjs.org/docs/messages/no-page-custom-font)                                                     | Prevent page-only custom fonts.                                                                                  |
+|      <Check size={18} />      | [@next/next/no-script-component-in-head](https://nextjs.org/docs/messages/no-script-component-in-head)                                     | Prevent usage of `next/script` in `next/head` component.                                                         |
+|      <Check size={18} />      | [@next/next/no-styled-jsx-in-document](https://nextjs.org/docs/messages/no-styled-jsx-in-document)                                         | Prevent usage of `styled-jsx` in `pages/_document.js`.                                                           |
+|      <Check size={18} />      | [@next/next/no-sync-scripts](https://nextjs.org/docs/messages/no-sync-scripts)                                                             | Prevent synchronous scripts.                                                                                     |
+|      <Check size={18} />      | [@next/next/no-title-in-document-head](https://nextjs.org/docs/messages/no-title-in-document-head)                                         | Prevent usage of `<title>` with `Head` component from `next/document`.                                           |
+|      <Check size={18} />      | @next/next/no-typos                                                                                                      | Prevent common typos in [Next.js's data fetching functions](https://nextjs.org/docs/pages/building-your-application/data-fetching) |
+|      <Check size={18} />      | [@next/next/no-unwanted-polyfillio](https://nextjs.org/docs/messages/no-unwanted-polyfillio)                                               | Prevent duplicate polyfills from Polyfill.io.                                                                    |
+
+We recommend using an appropriate [integration](https://eslint.org/docs/user-guide/integrations#editors) to view warnings and errors directly in your code editor during development.
+
+<details>
+  <summary>`next lint` removal</summary>
+
+  Starting with Next.js 16, `next lint` is removed.
+
+  As part of the removal, the `eslint` option in your Next config file is no longer needed and can be safely removed.
+</details>
+
+## Examples
+
+### Specifying a root directory within a monorepo
+
+If you're using `@next/eslint-plugin-next` in a project where Next.js isn't installed in your root directory (such as a monorepo), you can tell `@next/eslint-plugin-next` where to find your Next.js application using the `settings` property in your `eslint.config.mjs`:
+
+```js filename="eslint.config.mjs"
+import { defineConfig } from 'eslint/config'
+import eslintNextPlugin from '@next/eslint-plugin-next'
+
+const eslintConfig = defineConfig([
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      next: eslintNextPlugin,
+    },
+    settings: {
+      next: {
+        rootDir: 'packages/my-app/',
+      },
+    },
+  },
+])
+
+export default eslintConfig
+```
+
+`rootDir` can be a path (relative or absolute), a glob (i.e. `"packages/*/"`), or an array of paths and/or globs.
+
+### Disabling rules
+
+If you would like to modify or disable any rules provided by the supported plugins (`react`, `react-hooks`, `next`), you can directly change them using the `rules` property in your `eslint.config.mjs`:
+
+```js filename="eslint.config.mjs"
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  {
+    rules: {
+      'react/no-unescaped-entities': 'off',
+      '@next/next/no-page-custom-font': 'off',
+    },
+  },
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
+])
+
+export default eslintConfig
+```
+
+### With Core Web Vitals
+
+Enable the `eslint-config-next/core-web-vitals` configuration in your ESLint config.
+
+```js filename="eslint.config.mjs"
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
+])
+
+export default eslintConfig
+```
+
+`eslint-config-next/core-web-vitals` upgrades certain lint rules in `@next/eslint-plugin-next` from warnings to errors to help improve your [Core Web Vitals](https://web.dev/vitals/) metrics.
+
+> The `eslint-config-next/core-web-vitals` configuration is automatically included for new applications built with [Create Next App](../cli/create-next-app.mdx).
+
+### With TypeScript
+
+In addition to the Next.js ESLint rules, `create-next-app --typescript` will also add TypeScript-specific lint rules with `eslint-config-next/typescript` to your config:
+
+```js filename="eslint.config.mjs"
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import nextTs from 'eslint-config-next/typescript'
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
+])
+
+export default eslintConfig
+```
+
+Those rules are based on [`plugin:@typescript-eslint/recommended`](https://typescript-eslint.io/linting/configs#recommended).
+See [typescript-eslint > Configs](https://typescript-eslint.io/linting/configs) for more details.
+
+### With Prettier
+
+ESLint also contains code formatting rules, which can conflict with your existing [Prettier](https://prettier.io/) setup. We recommend including [eslint-config-prettier](https://github.com/prettier/eslint-config-prettier) in your ESLint config to make ESLint and Prettier work together.
+
+First, install the dependency:
+
+```bash package="pnpm"
+pnpm add -D eslint-config-prettier
+```
+
+```bash package="npm"
+npm i -D eslint-config-prettier
+```
+
+```bash package="yarn"
+yarn add --dev eslint-config-prettier
+```
+
+```bash package="bun"
+bun add -d eslint-config-prettier
+```
+
+Then, add `prettier` 패키지에는 다음 ESLint 플러그인의  규칙 세트가 포함되어 있습니다.
+
+```js filename="eslint.config.mjs"
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import prettier from 'eslint-config-prettier/flat'
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  prettier,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
+])
+
+export default eslintConfig
+```
+
+### 규칙
+
+포함된 [lint-staged](https://github.com/okonet/lint-staged) to run the linter on staged git files, add the following to the `.lintstagedrc.js` 규칙은 다음과 같습니다.| 권장 구성에서 활성화됨 | 규칙 | 설명 |
+
+```js filename=".lintstagedrc.js"
+const path = require('path')
+
+const buildEslintCommand = (filenames) =>
+  `eslint --fix ${filenames
+    .map((f) => `"${path.relative(process.cwd(), f)}"`)
+    .join(' ')}`
+
+module.exports = {
+  '*.{js,jsx,ts,tsx}': [buildEslintCommand],
+}
+```
+
+## Migrating existing config
+
+| :---------------: | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+|       |  | Google Fonts를 사용하여 글꼴 표시 동작을 적용하세요.                                                                 |
+
+#### Using the plugin directly
+
+|      `@next/eslint-plugin-next`이 Google Fonts와 함께 사용되는지 확인하세요.                                                                   |
+|       |  | 인라인 콘텐츠가 있는  구성 요소에  속성을 적용합니다.                                          |
+
+- Conflicting plugins installed separately or through another config (such as `airbnb` or `react-app`):
+  - `react`
+  - `react-hooks`
+  - `jsx-a11y`
+  - `import`
+- Custom `parserOptions` different from Next.js defaults (only if you have [customized your Babel configuration](https://nextjs.org/docs/pages/guides/babel))
+- `eslint-plugin-import` with custom Node.js and/or TypeScript [resolvers](https://github.com/benmosher/eslint-plugin-import#resolvers)
+
+|      `@next/eslint-plugin-next` 구성요소를 선호하세요.                                |
+|       |  |  변수에 대한 할당을 방지합니다.                                                                     |
+
+|       |  | 클라이언트 구성 요소가 비동기 기능이 되는 것을 방지합니다.                                                            |
+|       |  |  외부에서 의  전략 사용을 방지합니다.                   |
+
+```bash package="pnpm"
+pnpm add -D @next/eslint-plugin-next
+```
+
+```bash package="npm"
+npm i -D @next/eslint-plugin-next
+```
+
+```bash package="yarn"
+yarn add --dev @next/eslint-plugin-next
+```
+
+```bash package="bun"
+bun add -d @next/eslint-plugin-next
+```
+
+|       |  | 수동 스타일시트 태그를 방지합니다.                                                                                  |
+|       |  |  외부에서  가져오기를 방지합니다.                                               |
+
+```js filename="eslint.config.mjs"
+import { defineConfig } from 'eslint/config'
+import nextPlugin from '@next/eslint-plugin-next'
+
+const eslintConfig = defineConfig([
+  // Your other configurations...
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      '@next/next': nextPlugin,
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+    },
+  },
+])
+
+export default eslintConfig
+```
+
+|       |  | 에서 의 중복 사용을 방지합니다.                                                     |
+|       |  |  요소의 사용을 방지합니다.                                                                               |
+
+#### Adding to existing config
+
+|       |  | 에서  사용을 방지합니다.                                                            |
+|       |  | 내부 Next.js 페이지로 이동하기 위해  요소의 사용을 방지합니다.                                           |
+
+```js filename="eslint.config.mjs"
+import nextConfig from 'eslint-config-next/core-web-vitals'
+// Your other config imports...
+
+const eslintConfig = [
+  // Your other configurations...
+  ...nextConfig,
+]
+
+export default eslintConfig
+```
+
+|      `...nextConfig` 요소의 사용을 방지합니다.                                         |
+|       |  | 페이지 전용 사용자 정의 글꼴을 방지합니다.                                                                                  |
+
+> **Good to know:** This approach works well for straightforward setups. If you have a complex existing config with specific file patterns or plugin configurations that conflict, consider using the plugin directly (as shown above) for more granular control.
+
+|      `v16.0.0` 구성 요소에서 `next lint` 사용을 방지합니다.                                                         |
+|      `eslint`에서 [codemod](../../guides/upgrading/codemods.mdx#migrate-from-next-lint-to-eslint-cli) is available to help you migrate. | 사용을 방지합니다.                                                           |

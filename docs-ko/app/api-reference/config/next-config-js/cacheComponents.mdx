@@ -1,0 +1,38 @@
+---
+title: 캐시 구성 요소
+description: Next.js에서 캐시구성요소 플래그를 활성화하는 방법을 알아보세요.
+---
+
+The `cacheComponents` 플래그는 앱 라우터의 데이터 가져오기 작업이 명시적으로 캐시되지 않는 한 사전 렌더링에서 제외되도록 하는 Next.js의 기능입니다. 이는 서버 구성 요소에서 동적 데이터 가져오기 성능을 최적화하는 데 유용할 수 있습니다.
+
+애플리케이션이 사전 렌더링된 캐시에서 제공하는 대신 런타임 중에 새로운 데이터를 가져와야 하는 경우 유용합니다.
+
+페이지, 함수 또는 구성 요소 수준에서 [`use cache`](../../directives/use-cache.mdx)과 함께 사용될 것으로 예상됩니다.`use cache` at the page, function, or component level.
+
+## 사용법
+
+To enable the `cacheComponents` 플래그를 활성화하려면 `true` 파일에서 `next.config.ts`로 설정하세요.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+When `cacheComponents`이 활성화되면 다음 캐시 기능 및 구성을 사용할 수 있습니다.
+
+- The [`use cache` 지시어](../../directives/use-cache.mdx)
+- The [`cacheLife` 함수](cacheLife.mdx) with `use cache`
+- The [`cacheTag` 함수](../../functions/cacheTag.mdx)
+
+## 메모
+
+- While `cacheComponents`는 런타임 중에 새로운 데이터를 가져오도록 보장하여 성능을 최적화할 수 있지만 사전 렌더링된 콘텐츠를 제공하는 것에 비해 추가 대기 시간이 발생할 수도 있습니다.
+
+## 버전 기록
+
+| 버전 | 변경 |`cacheComponents` introduced. This flag controls the `ppr`, `useCache`, and `dynamicIO` flags as a single, unified configuration. |

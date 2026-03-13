@@ -1,0 +1,232 @@
+---
+title: 허가받지 않은
+description: 승인되지 않은 기능에 대한 API 참조입니다.
+version: experimental
+related:
+  links:
+    - app/api-reference/file-conventions/unauthorized
+---
+
+The `unauthorized` 함수는 Next.js 401 오류 페이지를 렌더링하는 오류를 발생시킵니다. 이는 애플리케이션에서 인증 오류를 처리하는 데 유용합니다. [`unauthorized.js` 파일](../file-conventions/unauthorized.mdx)을 사용하여 UI를 맞춤설정할 수 있습니다.
+
+To start using `unauthorized` 사용을 시작하려면 [`authInterrupts`](../config/next-config-js/authInterrupts.mdx) 구성 옵션을 활성화하세요.`next.config.js` file:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    authInterrupts: true,
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  experimental: {
+    authInterrupts: true,
+  },
+}
+```
+
+`unauthorized`은 [서버 구성 요소](../../getting-started/server-and-client-components.mdx), [서버 기능](../../getting-started/updating-data.mdx) 및 [경로 처리기](../file-conventions/route.mdx)에서 호출할 수 있습니다.
+
+```tsx filename="app/dashboard/page.tsx" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  // Render the dashboard for authenticated users
+  return (
+    <main>
+      <h1>Welcome to the Dashboard</h1>
+      <p>Hi, {session.user.name}.</p>
+    </main>
+  )
+}
+```
+
+```jsx filename="app/dashboard/page.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  // Render the dashboard for authenticated users
+  return (
+    <main>
+      <h1>Welcome to the Dashboard</h1>
+      <p>Hi, {session.user.name}.</p>
+    </main>
+  )
+}
+```
+
+## 알아두면 좋은 점
+
+- The `unauthorized` 함수는 [루트 레이아웃](../file-conventions/layout.mdx#root-layout)에서는 호출할 수 없습니다.
+
+## 예
+
+### 인증되지 않은 사용자에게 로그인 UI 표시
+
+You can use `unauthorized` 함수를 사용하여 로그인 UI로 `unauthorized.js` 파일을 표시할 수 있습니다.
+
+```tsx filename="app/dashboard/page.tsx" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  return <div>Dashboard</div>
+}
+```
+
+```jsx filename="app/dashboard/page.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const session = await verifySession()
+
+  if (!session) {
+    unauthorized()
+  }
+
+  return <div>Dashboard</div>
+}
+```
+
+```tsx filename="app/unauthorized.tsx" switcher
+import Login from '@/app/components/Login'
+
+export default function UnauthorizedPage() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+```jsx filename="app/unauthorized.js" switcher
+import Login from '@/app/components/Login'
+
+export default function UnauthorizedPage() {
+  return (
+    <main>
+      <h1>401 - Unauthorized</h1>
+      <p>Please log in to access this page.</p>
+      <Login />
+    </main>
+  )
+}
+```
+
+### 서버 작업을 통한 변형
+
+인증된 사용자만 특정 변형을 수행할 수 있도록 서버 작업에서 `unauthorized`을 호출할 수 있습니다.
+
+```ts filename="app/actions/update-profile.ts" switcher
+'use server'
+
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+import db from '@/app/lib/db'
+
+export async function updateProfile(data: FormData) {
+  const session = await verifySession()
+
+  // If the user is not authenticated, return a 401
+  if (!session) {
+    unauthorized()
+  }
+
+  // Proceed with mutation
+  // ...
+}
+```
+
+```js filename="app/actions/update-profile.js" switcher
+'use server'
+
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+import db from '@/app/lib/db'
+
+export async function updateProfile(data) {
+  const session = await verifySession()
+
+  // If the user is not authenticated, return a 401
+  if (!session) {
+    unauthorized()
+  }
+
+  // Proceed with mutation
+  // ...
+}
+```
+
+### 라우트 핸들러로 데이터 가져오기
+
+경로 처리기에서 `unauthorized`를 사용하면 인증된 사용자만 엔드포인트에 액세스할 수 있도록 할 수 있습니다.
+
+```tsx filename="app/api/profile/route.ts" switcher
+import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  // Verify the user's session
+  const session = await verifySession()
+
+  // If no session exists, return a 401 and render unauthorized.tsx
+  if (!session) {
+    unauthorized()
+  }
+
+  // Fetch data
+  // ...
+}
+```
+
+```jsx filename="app/api/profile/route.js" switcher
+import { verifySession } from '@/app/lib/dal'
+import { unauthorized } from 'next/navigation'
+
+export async function GET() {
+  const session = await verifySession()
+
+  // If the user is not authenticated, return a 401 and render unauthorized.tsx
+  if (!session) {
+    unauthorized()
+  }
+
+  // Fetch data
+  // ...
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.1.0` | `unauthorized` introduced. |

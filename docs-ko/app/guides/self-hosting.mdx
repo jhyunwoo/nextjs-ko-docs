@@ -1,0 +1,218 @@
+---
+title: Next.js 애플리케이션을 자체 호스팅하는 방법
+nav_title: 셀프 호스팅
+description: Node.js 서버, Docker 이미지 또는 정적 HTML 파일(정적 내보내기)에서 Next.js 애플리케이션을 자체
+  호스팅하는 방법을 알아보세요.
+---
+
+Next.js 앱을 [배포](../getting-started/deploying.mdx)할 때 인프라에 따라 다양한 기능이 처리되는 방식을 구성할 수 있습니다.
+
+> **🎥 시청:** 자체 호스팅 Next.js에 대해 자세히 알아보세요 → [YouTube(45분)](https://www.youtube.com/watch?v=sIVL4JMqRfc).
+
+## 역방향 프록시
+
+자체 호스팅 시 인터넷에 직접 노출하기보다는 Next.js 서버 앞에 역방향 프록시(예: nginx)를 사용하는 것이 좋습니다. 역방향 프록시는 잘못된 요청, 느린 연결 공격, 페이로드 크기 제한, 속도 제한 및 기타 보안 문제를 처리하여 Next.js 서버에서 이러한 작업을 오프로드할 수 있습니다. 이를 통해 서버는 유효성 검사를 요청하는 대신 렌더링에 리소스를 전념할 수 있습니다.
+
+## 이미지 최적화
+
+[이미지 최적화](../api-reference/components/image.mdx) ~ `next/image`은 `next start`을 사용하여 배포할 때 구성 없이 자체 호스팅됩니다. 이미지를 최적화하기 위해 별도의 서비스를 원하는 경우 [이미지 로더를 구성](../api-reference/components/image.mdx#loader)할 수 있습니다.
+
+Image Optimization can be used with a [정적 내보내기](static-exports.mdx#image-optimization)와 함께 이미지 최적화를 사용할 수 있습니다. 이미지는 빌드 중이 아니라 런타임에 최적화됩니다.`next.config.js`. Note that images are optimized at runtime, not during the build.
+
+> **알아두면 좋은 점:**
+>
+> - glibc 기반 Linux 시스템에서는 과도한 메모리 사용을 방지하기 위해 이미지 최적화에 [추가 구성](https://sharp.pixelplumbing.com/install#linux-memory-allocator)이 필요할 수 있습니다.
+> - Learn more about the [최적화된 이미지의 캐싱 동작](../api-reference/components/image.mdx#minimumcachettl) 및 TTL 구성 방법에 대해 자세히 알아보세요.
+> - 원하는 경우 [이미지 최적화를 비활성화](../api-reference/components/image.mdx#unoptimized)하고 `next/image` 사용의 다른 이점을 계속 유지할 수도 있습니다. 예를 들어 이미지를 별도로 최적화하는 경우입니다.
+
+## 프록시
+
+[프록시](../api-reference/file-conventions/proxy.mdx)는 `next start`을 사용하여 배포할 때 구성 없이 자체 호스팅으로 작동합니다. 들어오는 요청에 대한 액세스가 필요하므로 [정적 내보내기](static-exports.mdx) 사용 시 지원되지 않습니다.
+
+프록시는 애플리케이션의 모든 경로 또는 자산 앞에서 실행될 수 있으므로 사용 가능한 모든 Node.js API의 하위 집합인 [Edge 런타임](../api-reference/edge.mdx)을 사용하여 짧은 대기 시간을 보장합니다. 이를 원하지 않으면 [전체 Node.js 런타임](https://nextjs.org/blog/next-15-2#nodejs-middleware-experimental)을 사용하여 프록시를 실행할 수 있습니다.
+
+모든 Node.js API가 필요한 논리를 추가하거나 외부 패키지를 사용하려는 경우 이 논리를 [서버 구성 요소](../api-reference/file-conventions/layout.mdx)로 [레이아웃](../getting-started/server-and-client-components.mdx)으로 이동할 수 있습니다. 예를 들어 [헤더](../api-reference/functions/headers.mdx) 및 [리디렉션](../api-reference/functions/redirect.mdx)을 확인합니다. 헤더, 쿠키 또는 쿼리 매개변수를 사용하여 [리디렉션](../api-reference/config/next-config-js/redirects.mdx#header-cookie-and-query-matching) 또는 [다시 쓰기](../api-reference/config/next-config-js/rewrites.mdx#header-cookie-and-query-matching)할 수도 있습니다. 그래도 작동하지 않으면 `next.config.js`. If that does not work, you can also use a [사용자 정의 서버](https://nextjs.org/docs/pages/guides/custom-server)를 사용할 수도 있습니다.
+
+## 환경 변수
+
+Next.js는 빌드 시간과 런타임 환경 변수를 모두 지원할 수 있습니다.. 환경 변수를 브라우저에 노출하려면  접두사가 붙어야 합니다. 그러나 이러한 공용 환경 변수는  중에 JavaScript 번들에 인라인됩니다.
+
+**By default, environment variables are only available on the server**. To expose an environment variable to the browser, it must be prefixed with `NEXT_PUBLIC_`. However, these public environment variables will be inlined into the JavaScript bundle during `next build`.
+
+이를 통해 서로 다른 값을 가진 여러 환경을 통해 승격될 수 있는 단일 Docker 이미지를 사용할 수 있습니다.
+
+```tsx filename="app/page.ts" switcher
+import { connection } from 'next/server'
+
+export default async function Component() {
+  await connection()
+  // cookies, headers, and other Dynamic APIs
+  // will also opt into dynamic rendering, meaning
+  // this env variable is evaluated at runtime
+  const value = process.env.MY_VALUE
+  // ...
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { connection } from 'next/server'
+
+export default async function Component() {
+  await connection()
+  // cookies, headers, and other Dynamic APIs
+  // will also opt into dynamic rendering, meaning
+  // this env variable is evaluated at runtime
+  const value = process.env.MY_VALUE
+  // ...
+}
+```
+
+Next.js는 응답, 생성된 정적 페이지, 빌드 출력 및 이미지, 글꼴, 스크립트와 같은 기타 정적 자산을 캐시할 수 있습니다.
+
+> **Good to know:**
+>
+> - You can run code on server startup using the [`register` function](instrumentation.mdx).
+
+## Caching and ISR
+
+페이지 캐싱 및 재검증( 사용)은 를 사용합니다. 기본적으로 이 캐시는 Next.js 서버의 파일 시스템(디스크)에 저장됩니다. .
+
+캐시된 페이지와 데이터를 내구성 있는 저장소에 유지하거나 Next.js 애플리케이션의 여러 컨테이너 또는 인스턴스에서 캐시를 공유하려는 경우 Next.js 캐시 위치를 구성할 수 있습니다.[Incremental Static Regeneration](incremental-static-regeneration.mdx)) use the **same shared cache**. By default, this cache is stored to the filesystem (on disk) on your Next.js server. **This works automatically when self-hosting** using both the Pages and App Router.
+
+다른 도메인이나 CDN에서 정적 자산을 호스팅하려는 경우 에서  을 사용할 수 있습니다. Next.js는 JavaScript 또는 CSS 파일을 검색할 때 이 자산 접두어를 사용합니다. 자산을 다른 도메인으로 분리하면 DNS 및 TLS 확인에 추가 시간이 소요된다는 단점이 있습니다.
+
+### 캐싱 구성기본적으로 생성된 캐시 자산은 메모리(기본값은 50MB)와 디스크에 저장됩니다. Kubernetes와 같은 컨테이너 오케스트레이션 플랫폼을 사용하여 Next.js를 호스팅하는 경우 각 포드에는 캐시 복사본이 있습니다. 캐시는 기본적으로 Pod 간에 공유되지 않으므로 오래된 데이터가 표시되는 것을 방지하려면 Next.js 캐시를 구성하여 캐시 핸들러를 제공하고 메모리 내 캐싱을 비활성화할 수 있습니다.
+
+- Next.js sets the `Cache-Control` header of `public, max-age=31536000, immutable` to truly immutable assets. It cannot be overridden. These immutable files contain a SHA-hash in the file name, so they can be safely cached indefinitely. For example, [Static Image Imports](../getting-started/images.mdx#local-images). You can [configure the TTL](../api-reference/components/image.mdx#minimumcachettl) for images.
+- Incremental Static Regeneration (ISR) sets the `Cache-Control` header of `s-maxage: <revalidate in getStaticProps>, stale-while-revalidate`. This revalidation time is defined in your [`getStaticProps` function](https://nextjs.org/docs/pages/building-your-application/data-fetching/get-static-props) in seconds. If you set `revalidate: false`, it will default to a one-year cache duration.
+- Dynamically rendered pages set a `Cache-Control` header of `private, no-cache, no-store, max-age=0, must-revalidate` to prevent user-specific data from being cached. This applies to both the App Router and Pages Router. This also includes [Draft Mode](draft-mode.mdx).
+
+### Static Assets
+
+자체 호스팅 시 ISR/데이터 캐시 위치를 구성하려면 `assetPrefix` 파일에서 사용자 정의 처리기를 구성할 수 있습니다.[configuration](../api-reference/config/next-config-js/assetPrefix.mdx) in `next.config.js`. Next.js will use this asset prefix when retrieving JavaScript or CSS files. Separating your assets to a different domain does come with the downside of extra time spent on DNS and TLS resolution.
+
+[Learn more about `assetPrefix`](../api-reference/config/next-config-js/assetPrefix.mdx).을 생성합니다. 예를 들면 다음과 같습니다.
+
+### Configuring Caching
+
+사용자 정의 캐시 핸들러를 사용하면 Next.js 애플리케이션을 호스팅하는 모든 포드에서 일관성을 보장할 수 있습니다. 예를 들어,  또는 AWS S3와 같은 곳에 캐시된 값을 저장할 수 있습니다.
+
+Next.js는 `next.config.js` 중에 ID를 생성하여 제공되는 애플리케이션 버전을 식별합니다. 동일한 빌드를 사용해야 하며 여러 컨테이너를 부팅해야 합니다.
+
+```jsx filename="next.config.js"
+module.exports = {
+  cacheHandler: require.resolve('./cache-handler.js'),
+  cacheMaxMemorySize: 0, // disable default in-memory caching
+}
+```
+
+Next.js는 대부분의 `cache-handler.js`에 불일치가 있는 경우 페이지 간 전환은 미리 가져온 값을 사용하는 대신 하드 탐색을 수행합니다.
+
+```jsx filename="cache-handler.js"
+const cache = new Map()
+
+module.exports = class CacheHandler {
+  constructor(options) {
+    this.options = options
+  }
+
+  async get(key) {
+    // This could be stored anywhere, like durable storage
+    return cache.get(key)
+  }
+
+  async set(key, data, ctx) {
+    // This could be stored anywhere, like durable storage
+    cache.set(key, {
+      value: data,
+      lastModified: Date.now(),
+      tags: ctx.tags,
+    })
+  }
+
+  async revalidateTag(tags) {
+    // tags is either a string or an array of strings
+    tags = [tags].flat()
+    // Iterate over all entries in the cache
+    for (let [key, value] of cache) {
+      // If the value's tags include the specified tag, delete this entry
+      if (value.tags.some((tag) => tags.includes(tag))) {
+        cache.delete(key)
+      }
+    }
+  }
+
+  // If you want to have temporary in memory cache for a single request that is reset
+  // before the next request you can leverage this method
+  resetRequestCache() {}
+}
+```
+
+Using a custom cache handler will allow you to ensure consistency across all pods hosting your Next.js application. For instance, you can save the cached values anywhere, like [캐시 구성 요소](https://github.com/vercel/next.js/tree/canary/examples/cache-handler-redis)는 기본적으로 Next.js에서 작동하며 CDN 전용 기능이 아닙니다. 여기에는 Node.js 서버(를 통해)로 배포하는 경우와 Docker 컨테이너와 함께 사용하는 경우가 포함됩니다.
+
+> **Good to know:**
+>
+> - `revalidatePath` is a convenience layer on top of cache tags. Calling `revalidatePath` will call the `revalidateTag` function with a special default tag for the provided page.
+
+## CDN 사용
+
+Next.js 애플리케이션 앞에서 CDN를 사용하는 경우 동적 API에 액세스하면 페이지에 `next build` 응답 헤더가 포함됩니다. 이렇게 하면 결과 HTML 페이지가 캐시 불가능으로 표시됩니다. 페이지가 정적으로 완전히 사전 렌더링된 경우 페이지가 CDN에 캐시될 수 있도록 이 포함됩니다.
+
+정적 구성 요소와 동적 구성 요소의 혼합이 필요하지 않은 경우 전체 경로를 정적으로 만들고 출력 HTML를 CDN에 캐시할 수 있습니다. 이 자동 정적 최적화는 동적 API가 사용되지 않는 경우 `generateBuildId`을 실행할 때 기본 동작입니다.`next.config.js`:
+
+```jsx filename="next.config.js"
+module.exports = {
+  generateBuildId: async () => {
+    // This could be anything, using the latest git hash
+    return process.env.GIT_HASH
+  },
+}
+```
+
+## Version Skew
+
+Next.js will automatically mitigate most instances of [version skew](https://www.industrialempathy.com/posts/version-skew/)은 `deploymentId`을(를) 사용하여 자체 호스팅할 때 완벽하게 지원됩니다.
+
+서버를 중지할 때 `useState` 또는  신호를 보내고 기다려서 정상적으로 종료되도록 하세요. 이를 통해  내부에서 사용된 보류 중인 콜백 함수 또는 약속이 완료될 때까지 Next.js 서버가 기다릴 수 있습니다.
+
+## Streaming and Suspense
+
+The Next.js App Router supports [streaming responses](../api-reference/file-conventions/loading.mdx) when self-hosting. If you are using nginx or a similar proxy, you will need to configure it to disable buffering to enable streaming.
+
+For example, you can disable buffering in nginx by setting `X-Accel-Buffering` to `no`:
+
+```js filename="next.config.js"
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/:path*{/}?',
+        headers: [
+          {
+            key: 'X-Accel-Buffering',
+            value: 'no',
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+## Cache Components
+
+[Cache Components](../getting-started/cache-components.mdx) works by default with Next.js and is not a CDN-only feature. This includes deployment as a Node.js server (through `next start`) and when used with a Docker container.
+
+## Usage with CDNs
+
+When using a CDN in front of your Next.js application, the page will include `Cache-Control: private` response header when dynamic APIs are accessed. This ensures that the resulting HTML page is marked as non-cacheable. If the page is fully prerendered to static, it will include `Cache-Control: public` to allow the page to be cached on the CDN.
+
+If you don't need a mix of both static and dynamic components, you can make your entire route static and cache the output HTML on a CDN. This Automatic Static Optimization is the default behavior when running `next build` if dynamic APIs are not used.
+
+As Partial Prerendering moves to stable, we will provide support through the Deployment Adapters API.
+
+## `after`
+
+[`after`](../api-reference/functions/after.mdx) is fully supported when self-hosting with `next start`.
+
+When stopping the server, ensure a graceful shutdown by sending `SIGINT` or `SIGTERM` signals and waiting. This allows the Next.js server to wait until after pending callback functions or promises used inside `after` have finished.

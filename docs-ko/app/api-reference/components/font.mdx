@@ -1,0 +1,858 @@
+---
+title: 글꼴 모듈
+nav_title: 세례반
+description: 내장된 `next/font` 로더를 사용하여 웹 글꼴 로딩을 최적화합니다.
+---
+
+[`next/font`](font.mdx)은 개인 정보 보호 및 성능 향상을 위해 글꼴(사용자 정의 글꼴 포함)을 자동으로 최적화하고 외부 네트워크 요청을 제거합니다.
+
+모든 글꼴 파일에 대한 **자동 자체 호스팅**이 내장되어 있습니다. 이는 [레이아웃 변경](https://web.dev/articles/cls) 없이 웹 글꼴을 최적으로 로드할 수 있음을 의미합니다.
+
+모든 [구글폰트](https://fonts.google.com/)도 편리하게 사용할 수 있습니다. CSS 및 글꼴 파일은 빌드 시 다운로드되며 나머지 정적 자산과 함께 자체 호스팅됩니다. **브라우저에서 Google로 요청이 전송되지 않습니다.**
+
+```tsx filename="app/layout.tsx" switcher
+import { Inter } from 'next/font/google'
+
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { Inter } from 'next/font/google'
+
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+> **🎥 시청:** `next/font` 사용에 대해 자세히 알아보세요 → [YouTube(6분)](https://www.youtube.com/watch?v=L8_98i_bMMA).
+
+## 참조
+
+| 열쇠 | `font/google` | `font/local` | 유형 | 필수 |[`src`](#src)                               | <Cross size={18} /> | <Check size={18} /> | String or Array of Objects | Yes               |[`weight`](#weight)                         | <Check size={18} /> | <Check size={18} /> | String or Array            | Required/Optional |[`style`](#style)                           | <Check size={18} /> | <Check size={18} /> | String or Array            | -                 |
+| [`subsets`](#subsets)                       | <Check size={18} /> | <Cross size={18} /> | Array of Strings           | -                 |
+| [`axes`](#axes)                             | <Check size={18} /> | <Cross size={18} /> | Array of Strings           | -                 |
+| [`display`](#display)                       | <Check size={18} /> | <Check size={18} /> | String                     | -                 |
+| [`preload`](#preload)                       | <Check size={18} /> | <Check size={18} /> | Boolean                    | -                 |
+| [`fallback`](#fallback)                     | <Check size={18} /> | <Check size={18} /> | Array of Strings           | -                 |
+| [`adjustFontFallback`](#adjustfontfallback) | <Check size={18} /> | <Check size={18} /> | Boolean or String          | -                 |
+| [`variable`](#variable)                     | <Check size={18} /> | <Check size={18} /> | String                     | -                 |
+| [`declarations`](#declarations)             | <Cross size={18} /> | <Check size={18} /> | Array of Objects           | -                 |
+
+### `src`
+
+The path of the font file as a string or an array of objects (with type `Array<{path: string, weight?: string, style?: string}>`에 사용됨
+
+예:`next/font/local`
+
+- Required 여기서 는  디렉터리 내의  디렉터리에 배치됩니다.
+
+다음과 같은 가능성이 있는 글꼴 :
+
+- `src:'./fonts/my-font.woff2'` where `my-font.woff2` is placed in a directory named `fonts` inside the `app` directory 글꼴인 경우 값 범위
+- `src:[{path: './inter/Inter-Thin.ttf', weight: '100',},{path: './inter/Inter-Regular.ttf',weight: '400',},{path: './inter/Inter-Bold-Italic.ttf', weight: '700',style: 'italic',},]`
+- if the font loader function is called in `app/page.tsx` using `src:'../styles/fonts/my-font.ttf'`, then `my-font.ttf` is placed in `styles/fonts` at the root of the project
+
+### `weight`
+
+다음과 같은 가능성이 있는 글꼴 [`weight`](https://fonts.google.com/knowledge/glossary/weight):
+
+- 기본값이 [값](https://fonts.google.com/variablefonts) font
+- 글꼴이 [변수 Google 글꼴](https://fonts.google.com/variablefonts)이 아닌 경우 스타일 값의 배열입니다. `next/font/google`에만 적용됩니다.
+
+Used in `next/font/google` 및 `next/font/local`
+
+- 선택사항**not** [variable](https://fonts.google.com/variablefonts)
+
+예:
+
+- `weight: '400'`: 문자열 - [`Inter`](https://fonts.google.com/specimen/Inter?query=inter), the possible values are `'100'`의 경우 `'200'` 또는 `'300'`일 수 있습니다.`'400'`, `'500'`, `'600'`, `'700'`, `'800'`, `'900'` or `'variable'` where `'variable'` is the default)
+- `weight: '100 900'`: 문자열 - `100`에 대한 모든 값을 사용할 수 있지만 `900` for a variable font에서 나올 것으로 예상됩니다.
+- `weight: ['100','400','900']`: 에 대한 2개 값의 배열 - 값은  및 에서 가져옴
+
+### `style`
+
+The font [`style`](https://developer.mozilla.org/docs/Web/CSS/font-style) with the following possibilities:에 사용됨
+
+- 선택사항[value](https://developer.mozilla.org/docs/Web/CSS/font-style#values) with default value of `'normal'`
+- An array of style values if the font is not a [variable google font](https://fonts.google.com/variablefonts). It applies to `next/font/google` only.
+
+예:`next/font/google` and `next/font/local`
+
+- Optional: 하위 집합 이 포함된 배열
+
+Google 글꼴 페이지에서 해당 글꼴의 모든 하위 집합 목록을 찾을 수 있습니다.
+
+- `style: 'italic'`: A string - it can be `normal` or `italic` for `next/font/google`
+- `style: 'oblique'`: A string - it can take any value for `next/font/local` but is expected to come from [standard font styles](https://developer.mozilla.org/docs/Web/CSS/font-style)
+- `style: ['italic','normal']`: An array of 2 values for `next/font/google` - the values are from `normal` and `italic`
+
+### `subsets`
+
+The font [`subsets`](https://fonts.google.com/knowledge/glossary/subsetting)이 있는 글꼴 [preloaded](font.mdx#specifying-a-subset) `subsets` 또는 [`preload`](#preload) option is true, which is the default.(기본값은 ).
+
+Used in `next/font/google`
+
+- 선택사항
+
+예:
+
+- `subsets: ['latin']`: `latin`
+
+글꼴을 해야 하는지 여부를 지정하는 부울 값입니다. 기본값은 입니다.
+
+### `axes`
+
+글꼴을 로드할 수 없는 경우 사용할 대체 글꼴입니다. 기본값이 없는 대체 글꼴 문자열 배열입니다.`axes` that can be included. By default, only the font weight is included to keep the file size down. The possible values of `axes` depend on the specific font.
+
+Used in `next/font/google`
+
+- Optional: 대체 글꼴을  또는 로 설정하는 배열
+
+예:
+
+- `axes: ['slnt']`: `slnt`용`Inter` variable font which has `slnt` as additional `axes` as shown [here](https://fonts.google.com/variablefonts?vfquery=inter#font-families). You can find the possible `axes` values for your font by using the filter on the [Google variable fonts page](https://fonts.google.com/variablefonts#font-families) and looking for axes other than `wght`
+
+### `display`
+
+스타일이 [`display`](https://developer.mozilla.org/docs/Web/CSS/@font-face/font-display)으로 적용되는 경우 사용할 CSS 변수 이름을 정의하는 문자열 값입니다.[values](https://developer.mozilla.org/docs/Web/CSS/@font-face/font-display#values) of `'auto'`, `'block'`, `'swap'`, `'fallback'` or `'optional'` with default value of `'swap'`.
+
+Used in `next/font/google` 및 `next/font/local`
+
+- 선택사항
+
+예:
+
+- `display: 'optional'`: CSS 변수 `optional`이 선언되었습니다.
+
+### `preload`
+
+생성된 [설명](font.mdx#preloading) 키-값 쌍의 배열입니다.`true`.
+
+Used in `next/font/google`에 사용됨`next/font/local`
+
+- 선택사항
+
+예:
+
+- `preload: false`
+
+### `fallback`
+
+Google 글꼴을 사용하려면 에서 함수로 가져옵니다. 최고의 성능과 유연성을 위해 을 사용하는 것이 좋습니다.
+
+- Optional
+
+가변 글꼴을 사용할 수 없는 경우 `next/font/google` and `next/font/local`
+
+배열을 사용하여 여러 가중치 및/또는 스타일을 지정할 수 있습니다.
+
+- `fallback: ['system-ui', 'arial']`: An array setting the fallback fonts to `system-ui` or `arial`
+
+### `adjustFontFallback`
+
+- For `next/font/google`: A boolean value that sets whether an automatic fallback font should be used to reduce [Cumulative Layout Shift](https://web.dev/cls/). The default is `true`.
+- For `next/font/local`: A string or boolean `false` value that sets whether an automatic fallback font should be used to reduce [Cumulative Layout Shift](https://web.dev/cls/). The possible values are `'Arial'`, `'Times New Roman'` or `false`. The default is `'Arial'`.
+
+Google 글꼴은 자동으로 `next/font/google`인 동안 하위 집합을 지정하지 못하면 경고가 발생합니다.`next/font/local`
+
+- Optional
+
+이는 함수 호출에 추가하여 수행할 수 있습니다.
+
+- `adjustFontFallback: false`: for `next/font/google`
+- `adjustFontFallback: 'Times New Roman'`: for `next/font/local`
+
+### `variable`
+
+자세한 내용은 [글꼴 API 참조](#css-variables)를 확인하세요.
+
+응용 프로그램에서 여러 글꼴을 가져와 사용할 수 있습니다. 취할 수 있는 접근 방식에는 두 가지가 있습니다.`next/font/google` and `next/font/local`
+
+- Optional
+
+첫 번째 접근 방식은 글꼴을 내보내고 가져오고 필요한 곳에 을 적용하는 유틸리티 함수를 만드는 것입니다. 이렇게 하면 글꼴이 렌더링될 때만 미리 로드됩니다.
+
+- `variable: '--my-font'`: The CSS variable `--my-font` is declared
+
+### `declarations`
+
+위의 예에서 [descriptor](https://developer.mozilla.org/docs/Web/CSS/@font-face#descriptors) key-value pairs that define the generated `@font-face`은 전역적으로 적용되며 필요에 따라 을 가져와 적용할 수 있습니다.
+
+또는 `next/font/local`
+
+- Optional
+
+위의 예에서 은 전역적으로 적용되며 모든  태그는 으로 스타일이 지정됩니다.> : 각각의 새 글꼴은 클라이언트가 다운로드해야 하는 추가 리소스이므로 여러 글꼴을 보수적으로 사용하세요.
+
+- `declarations: [{ prop: 'ascent-override', value: '90%' }]`
+
+## Examples
+
+## Google Fonts
+
+To use a Google font, import it from `next/font/google`을 가져오고 로컬 글꼴 파일의 [가변 글꼴](https://fonts.google.com/variablefonts)을 사용하는 것이 좋습니다.
+
+```tsx filename="app/layout.tsx" switcher
+import { Inter } from 'next/font/google'
+
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { Inter } from 'next/font/google'
+
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+단일 글꼴 모음에 여러 파일을 사용하려는 경우 **need to specify a weight**:은 배열일 수 있습니다.
+
+```tsx filename="app/layout.tsx" switcher
+import { Roboto } from 'next/font/google'
+
+const roboto = Roboto({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={roboto.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { Roboto } from 'next/font/google'
+
+const roboto = Roboto({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={roboto.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+마지막으로 에 CSS 변수를 추가합니다.
+
+```jsx filename="app/layout.js"
+const roboto = Roboto({
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  display: 'swap',
+})
+```
+
+> **Good to know**: Use an underscore (\_) for font names with multiple words. E.g. `Roboto Mono` should be imported as `Roboto_Mono`.
+
+### 순풍 CSS v3
+
+이제 [subset](https://fonts.google.com/knowledge/glossary/subsetting). This reduces the size of the font file and improves performance. You'll need to define which of these subsets you want to preload. Failing to specify any subsets while [`preload`](font.mdx#preload) is `true` 및  유틸리티 클래스를 사용하여 요소에 글꼴을 적용할 수 있습니다.
+
+다음 세 가지 방법으로 글꼴 스타일을 적용할 수 있습니다.
+
+```tsx filename="app/layout.tsx" switcher
+const inter = Inter({ subsets: ['latin'] })
+```
+
+```jsx filename="app/layout.js" switcher
+const inter = Inter({ subsets: ['latin'] })
+```
+
+외부 스타일 시트에서 스타일을 설정하고 거기에 추가 옵션을 지정하려면 CSS 변수 방법을 사용하세요.[Font API Reference](font.mdx) for more information.
+
+## Using Multiple Fonts
+
+글꼴을 가져오는 것 외에도 CSS 변수가 정의된 CSS 파일도 가져오고 글꼴 로더 개체의 변수 옵션을 다음과 같이 설정합니다.
+
+글꼴을 사용하려면 스타일을 지정하려는 텍스트의 상위 컨테이너의 `className`를 글꼴 로더의  값으로 설정하고 텍스트의 을 외부 CSS 파일의  속성으로 설정합니다.
+
+```ts filename="app/fonts.ts" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+export const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+})
+```
+
+```js filename="app/fonts.js" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+export const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+})
+```
+
+```tsx filename="app/layout.tsx" switcher
+import { inter } from './fonts'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>
+        <div>{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { inter } from './fonts'
+
+export default function Layout({ children }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>
+        <div>{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx filename="app/page.tsx" switcher
+import { roboto_mono } from './fonts'
+
+export default function Page() {
+  return (
+    <>
+      <h1 className={roboto_mono.className}>My page</h1>
+    </>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { roboto_mono } from './fonts'
+
+export default function Page() {
+  return (
+    <>
+      <h1 className={roboto_mono.className}>My page</h1>
+    </>
+  )
+}
+```
+
+코드에서 글꼴 정의에 더 쉽게 액세스할 수 있도록 다음과 같이 `Inter` 또는 `Roboto Mono` 파일에 경로 별칭을 정의할 수 있습니다.
+
+이제 다음과 같이 글꼴 정의를 가져올 수 있습니다.[CSS variable](font.mdx#variable) and use it with your preferred CSS solution:
+
+```tsx filename="app/layout.tsx" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+import styles from './global.css'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  variable: '--font-roboto-mono',
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={`${inter.variable} ${roboto_mono.variable}`}>
+      <body>
+        <h1>My App</h1>
+        <div>{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  variable: '--font-roboto-mono',
+  display: 'swap',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={`${inter.variable} ${roboto_mono.variable}`}>
+      <body>
+        <h1>My App</h1>
+        <div>{children}</div>
+      </body>
+    </html>
+  )
+}
+```
+
+```css filename="app/global.css"
+html {
+  font-family: var(--font-inter);
+}
+
+h1 {
+  font-family: var(--font-roboto-mono);
+}
+```
+
+사이트 페이지에서 글꼴 기능이 호출되면 전역적으로 사용 가능하지 않으며 모든 경로에 미리 로드됩니다. 오히려 글꼴은 사용되는 파일 유형에 따라 관련 경로에만 미리 로드됩니다.`Inter` will be applied globally, and any `<h1>` tags will be styled with `Roboto Mono`.
+
+> **Recommendation**: Use multiple fonts conservatively since each new font is an additional resource the client has to download.
+
+### Local Fonts
+
+| 버전 | 변경사항 |`next/font/local` and specify the `src` of your local font file. We recommend using [variable fonts](https://fonts.google.com/variablefonts) for the best performance and flexibility.
+
+```tsx filename="app/layout.tsx" switcher
+import localFont from 'next/font/local'
+
+// Font files can be colocated inside of `app`
+const myFont = localFont({
+  src: './my-font.woff2',
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={myFont.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import localFont from 'next/font/local'
+
+// Font files can be colocated inside of `app`
+const myFont = localFont({
+  src: './my-font.woff2',
+  display: 'swap',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={myFont.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+| --------- | -------------------------------------------------------- |`src` can be an array:
+
+```js
+const roboto = localFont({
+  src: [
+    {
+      path: './Roboto-Regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: './Roboto-Italic.woff2',
+      weight: '400',
+      style: 'italic',
+    },
+    {
+      path: './Roboto-Bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+    {
+      path: './Roboto-BoldItalic.woff2',
+      weight: '700',
+      style: 'italic',
+    },
+  ],
+})
+```
+
+| [Font API Reference](font.mdx) for more information. | 이 추가되었습니다.                                               |
+
+### With Tailwind CSS
+
+`next/font` integrates seamlessly with [Tailwind CSS](https://tailwindcss.com/) using [CSS variables](font.mdx#css-variables).
+
+In the example below, we use the `Inter` and `Roboto_Mono` fonts from `next/font/google` (you can use any Google Font or Local Font). Use the `variable` option to define a CSS variable name, such as `inter` and `roboto_mono` for these fonts, respectively. Then, apply `inter.variable` and `roboto_mono.variable` to include the CSS variables in your HTML document.
+
+> **Good to know**: You can add these variables to the `<html>` or `<body>` tag, depending on your preference, styling needs or project requirements.
+
+```tsx filename="app/layout.tsx" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
+const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${roboto_mono.variable} antialiased`}
+    >
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
+const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${roboto_mono.variable} antialiased`}
+    >
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+Finally, add the CSS variable to your [Tailwind CSS config](../../getting-started/css.mdx#tailwind-css):
+
+```css filename="global.css"
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-roboto-mono);
+}
+```
+
+### Tailwind CSS v3
+
+```js filename="tailwind.config.js"
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+    './app/**/*.{js,ts,jsx,tsx}',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+        mono: ['var(--font-roboto-mono)'],
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+You can now use the `font-sans` and `font-mono` utility classes to apply the font to your elements.
+
+```html
+<p class="font-sans ...">The quick brown fox ...</p>
+<p class="font-mono ...">The quick brown fox ...</p>
+```
+
+### Applying Styles
+
+You can apply the font styles in three ways:
+
+- [`className`](#classname)
+- [`style`](#style-1)
+- [CSS Variables](#css-variables)
+
+#### `className`
+
+Returns a read-only CSS `className` for the loaded font to be passed to an HTML element.
+
+```tsx
+<p className={inter.className}>Hello, Next.js!</p>
+```
+
+#### `style`
+
+Returns a read-only CSS `style` object for the loaded font to be passed to an HTML element, including `style.fontFamily` to access the font family name and fallback fonts.
+
+```tsx
+<p style={inter.style}>Hello World</p>
+```
+
+#### CSS Variables
+
+If you would like to set your styles in an external style sheet and specify additional options there, use the CSS variable method.
+
+In addition to importing the font, also import the CSS file where the CSS variable is defined and set the variable option of the font loader object as follows:
+
+```tsx filename="app/page.tsx" switcher
+import { Inter } from 'next/font/google'
+import styles from '../styles/component.module.css'
+
+const inter = Inter({
+  variable: '--font-inter',
+})
+```
+
+```jsx filename="app/page.js" switcher
+import { Inter } from 'next/font/google'
+import styles from '../styles/component.module.css'
+
+const inter = Inter({
+  variable: '--font-inter',
+})
+```
+
+To use the font, set the `className` of the parent container of the text you would like to style to the font loader's `variable` value and the `className` of the text to the `styles` property from the external CSS file.
+
+```tsx filename="app/page.tsx" switcher
+<main className={inter.variable}>
+  <p className={styles.text}>Hello World</p>
+</main>
+```
+
+```jsx filename="app/page.js" switcher
+<main className={inter.variable}>
+  <p className={styles.text}>Hello World</p>
+</main>
+```
+
+Define the `text` selector class in the `component.module.css` CSS file as follows:
+
+```css filename="styles/component.module.css"
+.text {
+  font-family: var(--font-inter);
+  font-weight: 200;
+  font-style: italic;
+}
+```
+
+In the example above, the text `Hello World` is styled using the `Inter` font and the generated font fallback with `font-weight: 200` and `font-style: italic`.
+
+### Using a font definitions file
+
+Every time you call the `localFont` or Google font function, that font will be hosted as one instance in your application. Therefore, if you need to use the same font in multiple places, you should load it in one place and import the related font object where you need it. This is done using a font definitions file.
+
+For example, create a `fonts.ts` file in a `styles` folder at the root of your app directory.
+
+Then, specify your font definitions as follows:
+
+```ts filename="styles/fonts.ts" switcher
+import { Inter, Lora, Source_Sans_3 } from 'next/font/google'
+import localFont from 'next/font/local'
+
+// define your variable fonts
+const inter = Inter()
+const lora = Lora()
+// define 2 weights of a non-variable font
+const sourceCodePro400 = Source_Sans_3({ weight: '400' })
+const sourceCodePro700 = Source_Sans_3({ weight: '700' })
+// define a custom local font where GreatVibes-Regular.ttf is stored in the styles folder
+const greatVibes = localFont({ src: './GreatVibes-Regular.ttf' })
+
+export { inter, lora, sourceCodePro400, sourceCodePro700, greatVibes }
+```
+
+```js filename="styles/fonts.js" switcher
+import { Inter, Lora, Source_Sans_3 } from 'next/font/google'
+import localFont from 'next/font/local'
+
+// define your variable fonts
+const inter = Inter()
+const lora = Lora()
+// define 2 weights of a non-variable font
+const sourceCodePro400 = Source_Sans_3({ weight: '400' })
+const sourceCodePro700 = Source_Sans_3({ weight: '700' })
+// define a custom local font where GreatVibes-Regular.ttf is stored in the styles folder
+const greatVibes = localFont({ src: './GreatVibes-Regular.ttf' })
+
+export { inter, lora, sourceCodePro400, sourceCodePro700, greatVibes }
+```
+
+You can now use these definitions in your code as follows:
+
+```tsx filename="app/page.tsx" switcher
+import { inter, lora, sourceCodePro700, greatVibes } from '../styles/fonts'
+
+export default function Page() {
+  return (
+    <div>
+      <p className={inter.className}>Hello world using Inter font</p>
+      <p style={lora.style}>Hello world using Lora font</p>
+      <p className={sourceCodePro700.className}>
+        Hello world using Source_Sans_3 font with weight 700
+      </p>
+      <p className={greatVibes.className}>My title in Great Vibes font</p>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { inter, lora, sourceCodePro700, greatVibes } from '../styles/fonts'
+
+export default function Page() {
+  return (
+    <div>
+      <p className={inter.className}>Hello world using Inter font</p>
+      <p style={lora.style}>Hello world using Lora font</p>
+      <p className={sourceCodePro700.className}>
+        Hello world using Source_Sans_3 font with weight 700
+      </p>
+      <p className={greatVibes.className}>My title in Great Vibes font</p>
+    </div>
+  )
+}
+```
+
+To make it easier to access the font definitions in your code, you can define a path alias in your `tsconfig.json` or `jsconfig.json` files as follows:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "paths": {
+      "@/fonts": ["./styles/fonts"]
+    }
+  }
+}
+```
+
+You can now import any font definition as follows:
+
+```tsx filename="app/about/page.tsx" switcher
+import { greatVibes, sourceCodePro400 } from '@/fonts'
+```
+
+```jsx filename="app/about/page.js" switcher
+import { greatVibes, sourceCodePro400 } from '@/fonts'
+```
+
+### Preloading
+
+When a font function is called on a page of your site, it is not globally available and preloaded on all routes. Rather, the font is only preloaded on the related routes based on the type of file where it is used:
+
+- If it's a [unique page](../file-conventions/page.mdx), it is preloaded on the unique route for that page.
+- If it's a [layout](../file-conventions/layout.mdx), it is preloaded on all the routes wrapped by the layout.
+- If it's the [root layout](../file-conventions/layout.mdx#root-layout), it is preloaded on all routes.
+
+## Version Changes
+
+| Version   | Changes                                                               |`v13.2.0` | `@next/font` renamed to `next/font`. Installation no longer required. |`v13.0.0` | `@next/font` was added.                                               |

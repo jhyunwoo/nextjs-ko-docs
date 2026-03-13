@@ -1,0 +1,161 @@
+---
+title: 사용라우터
+description: useRouter 후크에 대한 API 참조입니다.
+---
+
+The `useRouter` 후크를 사용하면 [클라이언트 구성 요소](../../getting-started/server-and-client-components.mdx) 내부의 경로를 프로그래밍 방식으로 변경할 수 있습니다.
+
+> **권장 사항:** [`<Link>` 구성 요소](../components/link.mdx)를 사용하세요.`useRouter`.
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.push('/dashboard')}>
+      Dashboard
+    </button>
+  )
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.push('/dashboard')}>
+      Dashboard
+    </button>
+  )
+}
+```
+
+## `useRouter()`
+
+- `router.push(href: string, { scroll: boolean })`: 제공된 경로에 대한 클라이언트 측 탐색을 수행합니다. [브라우저의 기록 스택](https://developer.mozilla.org/docs/Web/API/History_API)에 새 항목을 추가합니다.
+- `router.replace(href: string, { scroll: boolean })`: 브라우저의 기록 스택에 새 항목을 추가하지 않고 제공된 경로에 대한 클라이언트 측 탐색을 수행합니다.
+- `router.refresh()`: 현재 경로를 새로 고칩니다. 서버에 새 요청을 보내고, 데이터 요청을 다시 가져오고, 서버 구성 요소를 다시 렌더링합니다. 클라이언트는 영향을 받지 않은 클라이언트 측 React(예: `useState`) 또는 브라우저 상태(예: 스크롤 위치)를 잃지 않고 업데이트된 React 서버 구성 요소 페이로드를 병합합니다.
+- `router.prefetch(href: string, options?: { onInvalidate?: () => void })`: [프리페치](../../getting-started/linking-and-navigating.mdx#prefetching) 더 빠른 클라이언트 측 전환을 위해 제공된 경로입니다. 선택적 `onInvalidate` 콜백은 [프리페치된 데이터가 오래되면](../../guides/prefetching.mdx#extending-or-ejecting-link) 호출됩니다.
+- `router.back()`: 브라우저 기록 스택에서 이전 경로로 다시 이동합니다.
+- `router.forward()`: 브라우저 기록 스택의 다음 페이지로 이동합니다.
+
+> **알면 좋은 점**:
+>
+> - 신뢰할 수 없거나 정리되지 않은 URL를 `router.push` 또는 `router.replace`로 보내면 안 됩니다. 이렇게 하면 사이트가 XSS(교차 사이트 스크립팅) 취약점에 노출될 수 있습니다. 예를 들어, `javascript:` 또는 `router.push`로 전송된 `router.replace` URL는 페이지의 컨텍스트에서 실행됩니다.
+> - The `<Link>` 구성 요소는 경로가 뷰포트에 표시되면 자동으로 미리 가져옵니다.
+> - `refresh()`는 가져오기 요청이 캐시된 경우 동일한 결과를 재현할 수 있습니다. `cookies` 및 `headers`과 같은 다른 동적 API도 응답을 변경할 수 있습니다.
+> - The `onInvalidate` 콜백은 프리페치 요청당 최대 한 번 호출됩니다. 업데이트된 경로 데이터에 대해 새로운 미리 가져오기를 트리거하려는 경우 신호를 보냅니다.
+
+### Migrating from `next/router`
+
+- 앱 라우터를 사용할 때 `useRouter` 후크는 `next/navigation`이 아닌 `next/router`에서 가져와야 합니다.
+- The `pathname` 문자열이 제거되었으며 [`usePathname()`](use-pathname.mdx)
+- The `query` 개체가 제거되었으며 [`useSearchParams()`](use-search-params.mdx)
+- `router.events`이 교체되었습니다. [아래를 참조하세요.](#router-events)
+
+[전체 마이그레이션 가이드 보기](../../guides/migrating/app-router-migration.mdx).
+
+## 예
+
+### 라우터 이벤트
+
+You can listen for page changes by composing other Client Component hooks like `usePathname` 및 `useSearchParams`과 같은 다른 클라이언트 구성 요소 후크를 구성하여 페이지 변경 사항을 수신할 수 있습니다.
+
+```jsx filename="app/components/navigation-events.js"
+'use client'
+
+import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+
+export function NavigationEvents() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const url = `${pathname}?${searchParams}`
+    console.log(url)
+    // You can now use the current URL
+    // ...
+  }, [pathname, searchParams])
+
+  return '...'
+}
+```
+
+레이아웃으로 가져올 수 있습니다.
+
+```jsx filename="app/layout.js" highlight={2,10-12}
+import { Suspense } from 'react'
+import { NavigationEvents } from './components/navigation-events'
+
+export default function Layout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+
+        <Suspense fallback={null}>
+          <NavigationEvents />
+        </Suspense>
+      </body>
+    </html>
+  )
+}
+```
+
+> **알아두면 좋은 정보**: `<NavigationEvents>`는 [`Suspense` 경계](../file-conventions/loading.mdx#examples)에 래핑됩니다. 왜냐하면 [`useSearchParams()`](use-search-params.mdx)는 \[정적] 동안 가장 가까운 `Suspense` 경계까지 클라이언트 측 렌더링을 발생시키기 때문입니다. 렌더링]\(../../guides/caching.mdx#static-rendering). [자세히 알아보기](../../guides/caching.mdx#static-rendering).[Learn more](use-search-params.mdx#behavior).
+
+### 위로 스크롤 비활성화
+
+기본적으로 Next.js는 새 경로로 이동할 때 페이지 상단으로 스크롤합니다. `scroll: false`을 `router.push()` 또는 `router.replace()`에 전달하여 이 동작을 비활성화할 수 있습니다.
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button
+      type="button"
+      onClick={() => router.push('/dashboard', { scroll: false })}
+    >
+      Dashboard
+    </button>
+  )
+}
+```
+
+```jsx filename="app/example-client-component.jsx" switcher
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button
+      type="button"
+      onClick={() => router.push('/dashboard', { scroll: false })}
+    >
+      Dashboard
+    </button>
+  )
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.4.0` | Optional `onInvalidate` callback for `router.prefetch` introduced |`v13.0.0` | `useRouter` from `next/navigation` introduced.                    |

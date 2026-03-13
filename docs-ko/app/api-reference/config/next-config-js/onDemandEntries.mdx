@@ -1,0 +1,19 @@
+---
+title: onDemand항목
+description: Next.js가 개발 중에 생성된 메모리 페이지를 처리하고 유지하는 방법을 구성합니다.
+---
+
+Next.js는 서버가 개발 시 메모리 구축 페이지를 처리하거나 유지하는 방법을 제어할 수 있는 몇 가지 옵션을 제공합니다.
+
+기본값을 변경하려면 `next.config.js`을 열고 `onDemandEntries` 구성을 추가하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
+}
+```

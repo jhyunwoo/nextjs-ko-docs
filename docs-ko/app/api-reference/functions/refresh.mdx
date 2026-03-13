@@ -1,0 +1,69 @@
+---
+title: 새로 고치다
+description: 새로 고침 기능에 대한 API 참조입니다.
+---
+
+`refresh`를 사용하면 [서버 작업](../../getting-started/updating-data.mdx) 내에서 클라이언트 라우터를 새로 고칠 수 있습니다.
+
+## 사용법
+
+`refresh`은 서버 작업 내에서만 **호출**할 수 있습니다. 경로 처리기, 클라이언트 구성 요소 또는 기타 컨텍스트에서는 사용할 수 없습니다.
+
+## 매개변수
+
+```tsx
+refresh(): void;
+```
+
+## 반품
+
+`refresh`은 값을 반환하지 않습니다.
+
+## 예
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { refresh } from 'next/cache'
+
+export async function createPost(formData: FormData) {
+  const title = formData.get('title')
+  const content = formData.get('content')
+
+  // Create the post in your database
+  const post = await db.post.create({
+    data: { title, content },
+  })
+
+  refresh()
+}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+import { refresh } from 'next/cache'
+
+export async function createPost(formData) {
+  const title = formData.get('title')
+  const content = formData.get('content')
+
+  // Create the post in your database
+  const post = await db.post.create({
+    data: { title, content },
+  })
+
+  refresh()
+}
+```
+
+### 서버 작업 외부에서 사용할 때 오류 발생
+
+```ts filename="app/api/posts/route.ts" switcher
+import { refresh } from 'next/cache'
+
+export async function POST() {
+  // This will throw an error
+  refresh()
+}
+```

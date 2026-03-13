@@ -1,0 +1,199 @@
+---
+title: 캐시태그
+description: 캐시Tag 기능을 사용하여 Next.js 애플리케이션에서 캐시 무효화를 관리하는 방법을 알아보세요.
+related:
+  title: 관련된
+  description: 관련 API 참조를 확인하세요.
+  links:
+    - app/api-reference/config/next-config-js/cacheComponents
+    - app/api-reference/directives/use-cache
+    - app/api-reference/functions/revalidateTag
+    - app/api-reference/functions/cacheLife
+---
+
+The `cacheTag` 함수를 사용하면 필요 시 무효화를 위해 캐시된 데이터에 태그를 지정할 수 있습니다. 태그를 캐시 항목과 연결하면 캐시된 다른 데이터에 영향을 주지 않고 특정 캐시 항목을 선택적으로 제거하거나 재검증할 수 있습니다.
+
+## 사용법
+
+To use `cacheTag`을 사용하려면 [`cacheComponents` 플래그](../config/next-config-js/cacheComponents.mdx)를 활성화하세요.`next.config.js` file:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+const nextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+The `cacheTag` 함수는 하나 이상의 문자열 값을 사용합니다.
+
+```tsx filename="app/data.ts" switcher
+import { cacheTag } from 'next/cache'
+
+export async function getData() {
+  'use cache'
+  cacheTag('my-data')
+  const data = await fetch('/api/data')
+  return data
+}
+```
+
+```jsx filename="app/data.js" switcher
+import { cacheTag } from 'next/cache'
+
+export async function getData() {
+  'use cache'
+  cacheTag('my-data')
+  const data = await fetch('/api/data')
+  return data
+}
+```
+
+그런 다음 다른 함수(예: [`revalidateTag`](revalidateTag.mdx) 또는 [서버 작업](../file-conventions/route.mdx))에서 [Server Action](../../getting-started/updating-data.mdx) API를 사용하여 필요에 따라 캐시를 제거할 수 있습니다.
+
+```tsx filename="app/action.ts" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export default async function submit() {
+  await addPost()
+  revalidateTag('my-data')
+}
+```
+
+```jsx filename="app/action.js" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export default async function submit() {
+  await addPost()
+  revalidateTag('my-data')
+}
+```
+
+## 알아두면 좋은 점
+
+- **멱등성 태그**: 동일한 태그를 여러 번 적용해도 추가 효과가 없습니다.
+- **다중 태그**: 여러 문자열 값을 `cacheTag`에 전달하여 단일 캐시 항목에 여러 태그를 할당할 수 있습니다.
+
+```tsx
+cacheTag('tag-one', 'tag-two')
+```
+
+- **한도**: 사용자 정의 태그의 최대 길이는 256자이고 최대 태그 항목은 128자입니다.
+
+## 예
+
+### 구성 요소 또는 기능에 태그 지정
+
+캐시된 함수 또는 구성 요소 내에서 `cacheTag`을 호출하여 캐시된 데이터에 태그를 지정합니다.
+
+```tsx filename="app/components/bookings.tsx" switcher
+import { cacheTag } from 'next/cache'
+
+interface BookingsProps {
+  type: string
+}
+
+export async function Bookings({ type = 'haircut' }: BookingsProps) {
+  'use cache'
+  cacheTag('bookings-data')
+
+  async function getBookingsData() {
+    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
+    return data
+  }
+
+  return //...
+}
+```
+
+```jsx filename="app/components/bookings.js" switcher
+import { cacheTag } from 'next/cache'
+
+export async function Bookings({ type = 'haircut' }) {
+  'use cache'
+  cacheTag('bookings-data')
+
+  async function getBookingsData() {
+    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
+    return data
+  }
+
+  return //...
+}
+```
+
+### 외부 데이터에서 태그 만들기
+
+비동기 함수에서 반환된 데이터를 사용하여 캐시 항목에 태그를 지정할 수 있습니다.
+
+```tsx filename="app/components/bookings.tsx" switcher
+import { cacheTag } from 'next/cache'
+
+interface BookingsProps {
+  type: string
+}
+
+export async function Bookings({ type = 'haircut' }: BookingsProps) {
+  async function getBookingsData() {
+    'use cache'
+    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
+    cacheTag('bookings-data', data.id)
+    return data
+  }
+  return //...
+}
+```
+
+```jsx filename="app/components/bookings.js" switcher
+import { cacheTag } from 'next/cache'
+
+export async function Bookings({ type = 'haircut' }) {
+  async function getBookingsData() {
+    'use cache'
+    const data = await fetch(`/api/bookings?type=${encodeURIComponent(type)}`)
+    cacheTag('bookings-data', data.id)
+    return data
+  }
+  return //...
+}
+```
+
+### 태그된 캐시 무효화 중
+
+Using [`revalidateTag`](revalidateTag.mdx)을 사용하면 필요할 때 특정 태그에 대한 캐시를 무효화할 수 있습니다.
+
+```tsx filename="app/actions.ts" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function updateBookings() {
+  await updateBookingData()
+  revalidateTag('bookings-data')
+}
+```
+
+```jsx filename="app/actions.js" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function updateBookings() {
+  await updateBookingData()
+  revalidateTag('bookings-data')
+}
+```

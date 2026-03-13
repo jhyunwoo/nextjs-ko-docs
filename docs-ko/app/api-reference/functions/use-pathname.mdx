@@ -1,0 +1,153 @@
+---
+title: usePathname
+description: usePathname 후크에 대한 API 참조입니다.
+---
+
+`usePathname`은 현재 URL의 **경로 이름**을 읽을 수 있는 **클라이언트 구성 요소** 후크입니다.
+
+> **알아두면 좋은 정보**: [`cacheComponents`](../config/next-config-js/cacheComponents.mdx)가 활성화되면 경로에 동적 매개변수가 있는 경우 `usePathname` 주변에 `Suspense` 경계가 필요할 수 있습니다. `generateStaticParams`을 사용하는 경우 `Suspense` 경계는 선택 사항입니다.
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const pathname = usePathname()
+  return <p>Current pathname: {pathname}</p>
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const pathname = usePathname()
+  return <p>Current pathname: {pathname}</p>
+}
+```
+
+`usePathname`에서는 의도적으로 [클라이언트 구성 요소](../../getting-started/server-and-client-components.mdx)를 사용해야 합니다. 클라이언트 구성 요소는 최적화 해제가 아니라는 점에 유의하는 것이 중요합니다. 이는 [서버 구성 요소](../../getting-started/server-and-client-components.mdx) 아키텍처의 필수 부분입니다.
+
+예를 들어, `usePathname`이 있는 클라이언트 구성 요소는 초기 페이지 로드 시 HTML로 렌더링됩니다. 새 경로로 이동할 때 이 구성 요소를 다시 가져올 필요가 없습니다. 대신 구성 요소가 클라이언트 JavaScript 번들에 한 번 다운로드되고 현재 상태에 따라 다시 렌더링됩니다.
+
+> **알면 좋은 점**:
+>
+> - Reading the current URL from a [서버 구성 요소](../../getting-started/server-and-client-components.mdx)에서 현재 URL를 읽는 것은 지원되지 않습니다. 이 디자인은 페이지 탐색 전반에 걸쳐 레이아웃 상태가 유지되도록 지원하기 위한 것입니다.
+> - 페이지가 정적으로 사전 렌더링되고 앱이 [프록시](../config/next-config-js/rewrites.mdx) 파일에 `next.config`으로 경로 이름을 읽으면 하이드레이션 불일치 오류가 발생할 수 있습니다. 라우팅 후 실제 브라우저 경로 이름과 일치하지 않을 수 있습니다. 이 문제를 완화하는 방법은 [예](../file-conventions/proxy.mdx)를 참조하세요.`usePathname()` can result in hydration mismatch errors—because the initial value comes from the server and may not match the actual browser pathname after routing. See our [example](#avoid-hydration-mismatch-with-rewrites) for a way to mitigate this issue.
+
+<details>
+  <summary>페이지 라우터와의 호환성</summary>
+
+  If you have components that use `usePathname`을 사용하는 구성 요소가 있고 페이지 라우터 내의 경로로 가져온 경우, 라우터가 아직 초기화되지 않은 경우 `usePathname`이 `null`을 반환할 수 있다는 점에 유의하세요. 이는 [대체 경로](https://nextjs.org/docs/pages/api-reference/functions/get-static-paths#fallback-true) 또는 페이지 라우터의 [자동 정적 최적화](https://nextjs.org/docs/pages/building-your-application/rendering/static#automatic-static-optimization) 도중에 발생할 수 있습니다.
+
+  라우팅 시스템 간의 호환성을 향상시키기 위해 프로젝트에 `app` 및 `pages` 디렉터리가 모두 포함되어 있는 경우 Next.js는 `usePathname`의 반환 유형을 자동으로 조정합니다.
+</details>
+
+## 매개변수
+
+```tsx
+const pathname = usePathname()
+```
+
+`usePathname`은 매개변수를 사용하지 않습니다.
+
+## 반품
+
+`usePathname`는 현재 URL의 경로 이름 문자열을 반환합니다. 예를 들면:
+
+| URL | 반환된 값 |`/`                 | `'/'`                 |
+| `/dashboard`        | `'/dashboard'`        |
+| `/dashboard?v=2`    | `'/dashboard'`        |
+| `/blog/hello-world` | `'/blog/hello-world'` |
+
+## 예### 경로 변경에 대응하여 조치를 취하세요.
+
+### 재작성으로 인한 수화 불일치 방지
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+
+function ExampleClientComponent() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    // Do something here...
+  }, [pathname, searchParams])
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+
+function ExampleClientComponent() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    // Do something here...
+  }, [pathname, searchParams])
+}
+```
+
+### Avoid hydration mismatch with rewrites
+
+| 버전 | 변경사항 |`next.config` or `Proxy`, the browser URL may differ, and `usePathname()` will read the rewritten pathname on the client.
+
+| --------- | ------------ |
+|  | 이 도입되었습니다. |
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+
+export default function PathnameBadge() {
+  const pathname = usePathname()
+  const [clientPathname, setClientPathname] = useState('')
+
+  useEffect(() => {
+    setClientPathname(pathname)
+  }, [pathname])
+
+  return (
+    <p>
+      Current pathname: <span>{clientPathname}</span>
+    </p>
+  )
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+
+export default function PathnameBadge() {
+  const pathname = usePathname()
+  const [clientPathname, setClientPathname] = useState('')
+
+  useEffect(() => {
+    setClientPathname(pathname)
+  }, [pathname])
+
+  return (
+    <p>
+      Current pathname: <span>{clientPathname}</span>
+    </p>
+  )
+}
+```
+
+| Version   | Changes                   |
+| --------- | ------------------------- |
+| `v13.0.0` | `usePathname` introduced. |

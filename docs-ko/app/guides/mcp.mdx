@@ -1,0 +1,174 @@
+---
+title: 코딩 에이전트를 위한 Next.js MCP 서버 활성화
+nav_title: Next.js MCP 서버
+description: 코딩 에이전트가 애플리케이션 상태에 액세스할 수 있도록 Next.js MCP 지원을 사용하는 방법을 알아보세요.
+---
+
+The [MCP(모델 컨텍스트 프로토콜)](https://modelcontextprotocol.io)는 AI 에이전트 및 코딩 도우미가 표준화된 인터페이스를 통해 애플리케이션과 상호 작용할 수 있도록 하는 개방형 표준입니다.
+
+Next.js 16+에는 코딩 에이전트가 애플리케이션 내부에 실시간으로 액세스할 수 있도록 하는 MCP 지원이 포함되어 있습니다. 이 기능을 사용하려면 [`next-devtools-mcp`](https://www.npmjs.com/package/next-devtools-mcp) 패키지를 설치하세요.
+
+## 시작하기
+
+**요구 사항:** Next.js 16 이상
+
+프로젝트 루트에 있는 `next-devtools-mcp` 파일에 `.mcp.json`을 추가합니다.
+
+```json filename=".mcp.json"
+{
+  "mcpServers": {
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+그게 다야! 개발 서버를 시작하면 `next-devtools-mcp`가 실행 중인 Next.js 인스턴스를 자동으로 검색하고 연결합니다.
+
+더 많은 구성 옵션을 보려면 [next-devtools-mcp 저장소](https://github.com/vercel/next-devtools-mcp)를 참조하세요.
+
+## 기능
+
+`next-devtools-mcp`은 코딩 에이전트에 점점 더 많은 기능을 제공합니다.
+
+### 애플리케이션 런타임 액세스
+
+- **오류 감지**: 개발 서버에서 현재 빌드 오류, 런타임 오류 및 유형 오류를 검색합니다.
+- **라이브 상태 쿼리**: 실시간 애플리케이션 상태 및 런타임 정보에 액세스
+- **페이지 메타데이터**: 페이지 경로, 구성 요소 및 렌더링 세부 정보 쿼리
+- **서버 작업**: 서버 작업 및 구성 요소 계층 검사
+- **개발 로그**: 개발 서버 로그 및 콘솔 출력에 액세스합니다.
+
+### 개발 도구
+
+- **Next.js 기술 자료**: 포괄적인 Next.js 문서 및 모범 사례 쿼리
+- **마이그레이션 및 업그레이드 도구**: codemod를 사용하여 Next.js 16으로 업그레이드하기 위한 자동화된 도우미
+- **캐시 구성 요소 가이드**: 캐시 구성 요소에 대한 설정 및 구성 지원
+- **브라우저 테스트**: 브라우저에서 페이지를 확인하기 위한 [Playwright MCP](https://github.com/microsoft/playwright-mcp) 통합
+
+> **참고:** Next.js 팀은 이러한 기능을 적극적으로 확장하고 있습니다. 에이전트 개발 환경을 개선하기 위해 새로운 도구와 기능이 정기적으로 추가됩니다.
+
+## 개발 워크플로
+
+1. Next.js 개발 서버를 시작합니다.
+
+```bash filename="Terminal"
+npm run dev
+```
+
+2. 코딩 에이전트는 `next-devtools-mcp`
+
+2. 브라우저에서 애플리케이션을 열어 페이지를 봅니다.
+
+2. 에이전트에게 통찰력과 진단을 요청합니다(아래 예 참조).
+
+### 사용 가능한 도구
+
+Through `next-devtools-mcp`을 통해 상담원은 다음 도구를 사용할 수 있습니다.
+
+- **`get_errors`**: 개발 서버에서 현재 빌드 오류, 런타임 오류 및 유형 오류를 검색합니다.
+- **`get_logs`**: 브라우저 콘솔 로그 및 서버 출력이 포함된 개발 로그 파일의 경로를 가져옵니다.
+- **`get_page_metadata`**: 경로, 구성 요소 및 렌더링 정보를 포함하여 특정 페이지에 대한 메타데이터 가져오기
+- **`get_project_metadata`**: 프로젝트 구조, 구성 및 개발 서버 검색 URL
+- **`get_server_action_by_id`**: 소스 파일 및 함수 이름을 찾기 위해 해당 ID로 서버 작업을 조회합니다.
+
+## 에이전트와 함께 사용
+
+MCP 호환 코딩 에이전트는 Next.js 개발 서버를 자동으로 검색하고 연결하여 프로젝트에 대한 풍부한 컨텍스트를 제공할 수 있습니다.
+
+### 에이전트 지원 개발의 이점
+
+상담원은 다음을 수행할 수 있습니다.
+
+- **컨텍스트 인식 제안**: 기존 구조를 기반으로 새로운 기능을 추가할 적절한 장소를 추천합니다.
+- **실시간 애플리케이션 상태 쿼리**: 개발 중 현재 구성, 경로, 미들웨어 확인
+- **앱 라우터 페이지 레이아웃 이해**: 어떤 페이지와 레이아웃이 렌더링되는지 정확히 파악
+- **정확한 구현 제공**: 프로젝트의 패턴과 규칙을 따르는 코드 생성
+
+## 예
+
+### 오류 감지 및 진단
+
+에이전트에게 실시간으로 오류에 대해 문의하세요.
+
+```bash
+User: "What errors are currently in my application?"
+```
+
+상담원은 다음을 수행합니다.
+
+- Query your running Next.js application via `next-devtools-mcp`
+- 현재 빌드 오류, 런타임 오류 및 유형 오류 검색
+- 오류를 분석하고 실행 가능한 수정 사항 제공
+
+<details>
+  <summary>에이전트 응답(확대하려면 클릭)</summary>
+
+  ```bash
+  > fix errors on the page
+
+  ⏺ I'll help you fix the errors on the page. Let me first check what errors exist by looking at the
+    current state of the project.
+
+  ⏺ next-devtools - nextjs_runtime (MCP)(action: "discover_servers")
+  ⏺ next-devtools - nextjs_runtime (MCP)(action: "call_tool", toolName: "get_errors")
+
+  ⏺ I found a hydration error on the /about page. The error shows that the server is rendering
+    "server" but the client is rendering "client", causing a mismatch. Let me create a todo list and fix
+     this issue.
+
+  ⏺ Perfect! Now let me check for errors on the page.           01:14 PM  claude-sonnet-4-5-20250929
+
+  ⏺ next-devtools - nextjs_runtime (MCP)(action: "call_tool", toolName: "get_errors")
+    ⎿ {
+        "success": true,
+        "port": 3000,
+        "toolName": "get_errors",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "# Found errors in 1 browser session(s)\n\n## Session: /about\n\n**1 error(s)
+       found**\n\n### Runtime Errors\n\n#### Error 1 (Type: recoverable)\n\n**Error**: Hydration failed
+  ```
+</details>
+
+### 업그레이드 및 모범 사례
+
+Next.js 개념 및 마이그레이션에 대한 도움을 받으십시오.
+
+```bash
+User: "Help me upgrade my Next.js app to version 16"
+```
+
+에이전트는 현재 버전을 분석하고, codemod를 사용한 자동 마이그레이션을 안내하며, 주요 변경 사항 처리를 위한 단계별 지침을 제공합니다.
+
+개념적인 질문을 해보세요:
+
+```bash
+User: "When should I use 'use client' in App Router?"
+```
+
+에이전트는 Next.js 기술 자료를 쿼리하고 코드 베이스의 예제와 함께 문서 기반 설명을 제공합니다.
+
+## 작동 방식
+
+Next.js 16+에는 개발 서버 내에서 실행되는 `/_next/mcp`에 내장된 MCP 엔드포인트가 포함되어 있습니다. `next-devtools-mcp` 패키지는 이러한 엔드포인트를 자동으로 검색하고 통신하여 다음을 수행할 수 있습니다.
+
+- 서로 다른 포트에서 실행되는 여러 Next.js 인스턴스에 연결
+- 적절한 Next.js 개발 서버로 도구 호출을 전달합니다.
+- 코딩 에이전트를 위한 통합 인터페이스 제공
+
+이 아키텍처는 내부 구현에서 에이전트 인터페이스를 분리하여 `next-devtools-mcp`이 다양한 Next.js 프로젝트에서 원활하게 작동할 수 있도록 합니다.
+
+## 문제 해결
+
+### MCP 서버가 연결되지 않습니다
+
+- Next.js v16 이상을 사용하고 있는지 확인하세요.
+- Verify `next-devtools-mcp`에 `.mcp.json`
+- 개발 서버를 시작하세요: `npm run dev`
+- 이미 실행 중인 경우 개발 서버를 다시 시작하세요.
+- 코딩 에이전트가 MCP 서버 구성을 로드했는지 확인하세요.

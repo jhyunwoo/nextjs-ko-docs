@@ -1,0 +1,323 @@
+---
+title: 양식 구성 요소
+description: "`<Form>` 구성 요소를 사용하여 양식 제출을 처리하고 클라이언트 측 탐색으로 매개변수 업데이트를 검색하는 방법을 알아보세요."
+---
+
+The `<Form>` 구성 요소는 HTML `<form>` 요소를 확장하여 [**prefetching**](../../getting-started/linking-and-navigating.mdx#prefetching)의 [loading UI](../file-conventions/loading.mdx), 제출 시 **클라이언트 측 탐색** 및 **점진적 향상**을 제공합니다.
+
+위의 목적을 달성하는 데 필요한 상용구 코드를 줄이므로 URL 검색 매개변수를 업데이트하는 양식에 유용합니다.
+
+기본 사용법:
+
+```tsx filename="/app/ui/search.tsx" switcher
+import Form from 'next/form'
+
+export default function Page() {
+  return (
+    <Form action="/search">
+      {/* On submission, the input value will be appended to
+          the URL, e.g. /search?query=abc */}
+      <input name="query" />
+      <button type="submit">Submit</button>
+    </Form>
+  )
+}
+```
+
+```jsx filename="/app/ui/search.js" switcher
+import Form from 'next/form'
+
+export default function Search() {
+  return (
+    <Form action="/search">
+      {/* On submission, the input value will be appended to
+          the URL, e.g. /search?query=abc */}
+      <input name="query" />
+      <button type="submit">Submit</button>
+    </Form>
+  )
+}
+```
+
+## 참조
+
+The behavior of the `<Form>` 구성 요소의 동작은 `action` 소품이 `string` 또는 `function`에 전달되는지 여부에 따라 달라집니다.
+
+- When `action`가 **문자열**인 경우 `<Form>`는 **`GET`** 메서드를 사용하는 기본 HTML 형식처럼 동작합니다. 양식 데이터는 검색 매개변수로 URL에 인코딩되며, 양식이 제출되면 지정된 URL로 이동합니다. 또한 Next.js:
+  - [프리페치](../../getting-started/linking-and-navigating.mdx#prefetching)하면 공유 UI(예: `layout.js` 및 `loading.js`)가 미리 로드되어 더 빠른 탐색이 가능해집니다.
+  - 양식이 제출되면 전체 페이지를 다시 로드하는 대신 [클라이언트측 탐색](../../getting-started/linking-and-navigating.mdx#client-side-transitions)을 수행합니다. 이렇게 하면 공유 UI와 클라이언트 측 상태가 유지됩니다.
+- When `action`가 **함수**(서버 작업)인 경우 `<Form>`은 [React 양식](https://react.dev/reference/react-dom/components/form)처럼 동작하여 양식이 제출될 때 작업을 실행합니다.
+
+### `action` (문자열) 소품
+
+When `action`가 문자열인 경우 `<Form>` 구성 요소는 다음 props를 지원합니다.
+
+| 소품 | 예 | 유형 | 필수 |`action`   | `action="/search"` | `string` (URL or relative path) | Yes      |`replace`  | `replace={false}`  | `boolean`                       | -        |
+| `scroll`   | `scroll={true}`    | `boolean`                       | -        |
+| `prefetch` | `prefetch={true}`  | `boolean`                       | -        |
+
+- **`action`**: The URL or path to navigate to when the form is submitted.은 업데이트된 검색 매개변수를 사용하여 동일한 경로로 이동합니다.
+  - An empty string `""` will navigate to the same route with updated search params.
+- **`replace`**: [브라우저의 기록](https://developer.mozilla.org/en-US/docs/Web/API/History_API) 스택에 새 기록 상태를 푸시하는 대신 현재 기록 상태를 대체합니다. 기본값은 `false`입니다.
+- **`scroll`**: 탐색 중 스크롤 동작을 제어합니다. 기본값은 `true`입니다. 이는 새 경로의 맨 위로 스크롤하고 앞뒤 탐색을 위해 스크롤 위치를 유지함을 의미합니다.
+- **`prefetch`**: 양식이 사용자 뷰포트에 표시될 때 경로를 미리 가져와야 하는지 여부를 제어합니다. 기본값은 `true`입니다.
+
+### `action` (함수) 소품
+
+When `action`가 함수인 경우 `<Form>` 구성 요소는 다음 소품을 지원합니다.
+
+| 소품 | 예 | 유형 | 필수 |`action` | `action={myAction}` | `function` (Server Action) | Yes      |
+
+- **`action`**: 양식이 제출될 때 호출될 서버 작업입니다. 자세한 내용은 [React 문서](https://react.dev/reference/react-dom/components/form#props)를 참조하세요.
+
+> **알아두면 좋은 정보**: `action`이 함수인 경우 `replace` 및 `scroll` 소품은 무시됩니다.
+
+### 주의사항
+
+- **`formAction`**: `<button>` 또는 `<input type="submit">` 필드에서 `action` 소품을 재정의하는 데 사용할 수 있습니다. Next.js는 클라이언트측 탐색을 수행하지만 이 접근 방식은 프리패치를 지원하지 않습니다.
+  - When using [`basePath`](../config/next-config-js/basePath.mdx)을 사용하는 경우 `formAction` 경로에도 포함해야 합니다. 예를 들어 `formAction="/base-path/search"`.
+- **`key`**: `key` 소품을 문자열 `action`에 전달하는 것은 지원되지 않습니다. 다시 렌더링을 실행하거나 변형을 수행하려면 대신 `action` 함수를 사용하는 것이 좋습니다.\* : 양식 제출 로직을 처리하는 데 사용할 수 있습니다. 그러나 을 호출하면 지정된 URL로 이동하는 것과 같은  동작이 재정의됩니다.
+
+* **`onSubmit`**: 재정의되므로 지원되지 않습니다. `event.preventDefault()` 동작.`<Form>` behavior such as navigating to the specified URL.
+* **[`method`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method), [`encType`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#enctype), [`target`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#target)**: `<Form>`이 문자열일 때 이 입력 유형을 사용하면 파일 객체 대신 파일 이름을 제출하여 브라우저 동작과 일치합니다.
+  - Similarly, `formMethod`, `formEncType`, and `formTarget` can be used to override the `method`, `encType`, and `target` props respectively, and using them will fallback to native browser behavior.
+  - If you need to use these props, use the HTML `<form>` element instead.
+* **`<input type="file">`**: Using this input type when the `action` is a string will match browser behavior by submitting the filename instead of the file object.
+
+## 예
+
+### 검색결과 페이지로 연결되는 검색양식
+
+경로를 `action`로 전달하여 검색 결과 페이지로 이동하는 검색 양식을 만들 수 있습니다.
+
+```tsx filename="/app/page.tsx" switcher
+import Form from 'next/form'
+
+export default function Page() {
+  return (
+    <Form action="/search">
+      <input name="query" />
+      <button type="submit">Submit</button>
+    </Form>
+  )
+}
+```
+
+```jsx filename="/app/page.js" switcher
+import Form from 'next/form'
+
+export default function Page() {
+  return (
+    <Form action="/search">
+      <input name="query" />
+      <button type="submit">Submit</button>
+    </Form>
+  )
+}
+```
+
+사용자가 쿼리 입력 필드를 업데이트하고 양식을 제출하면 양식 데이터가 검색 매개변수로 URL에 인코딩됩니다. `/search?query=abc`.
+
+> **알아두면 좋은 정보**: 빈 문자열 `""`을 `action`에 전달하면 양식은 업데이트된 검색 매개변수를 사용하여 동일한 경로로 이동합니다.
+
+결과 페이지에서 [`searchParams`](../file-conventions/page.mdx#searchparams-optional) `page.js` 소품을 사용하여 쿼리에 액세스하고 이를 사용하여 외부 소스에서 데이터를 가져올 수 있습니다.
+
+```tsx filename="/app/search/page.tsx" switcher
+import { getSearchResults } from '@/lib/search'
+
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const results = await getSearchResults((await searchParams).query)
+
+  return <div>...</div>
+}
+```
+
+```jsx filename="/app/search/page.js" switcher
+import { getSearchResults } from '@/lib/search'
+
+export default async function SearchPage({ searchParams }) {
+  const results = await getSearchResults((await searchParams).query)
+
+  return <div>...</div>
+}
+```
+
+When the `<Form>`이 사용자의 뷰포트에 표시되면 `layout.js` 페이지의 공유 UI(예: `loading.js` 및 `/search`)가 프리페치됩니다. 제출 시 양식은 즉시 새 경로로 이동하고 결과를 가져오는 동안 로딩 UI를 표시합니다. [`loading.js`](../file-conventions/loading.mdx)을 사용하여 대체 UI를 디자인할 수 있습니다.
+
+```tsx filename="/app/search/loading.tsx" switcher
+export default function Loading() {
+  return <div>Loading...</div>
+}
+```
+
+```jsx filename="/app/search/loading.js" switcher
+export default function Loading() {
+  return <div>Loading...</div>
+}
+```
+
+공유 UI가 아직 로드되지 않은 경우를 처리하려면 [`useFormStatus`](https://react.dev/reference/react-dom/hooks/useFormStatus)을 사용하여 사용자에게 즉각적인 피드백을 표시할 수 있습니다.
+
+먼저 양식이 보류 중일 때 로드 상태를 표시하는 구성 요소를 만듭니다.
+
+```tsx filename="/app/ui/search-button.tsx" switcher
+'use client'
+import { useFormStatus } from 'react-dom'
+
+export default function SearchButton() {
+  const status = useFormStatus()
+  return (
+    <button type="submit">{status.pending ? 'Searching...' : 'Search'}</button>
+  )
+}
+```
+
+```jsx filename="/app/ui/search-button.js" switcher
+'use client'
+import { useFormStatus } from 'react-dom'
+
+export default function SearchButton() {
+  const status = useFormStatus()
+  return (
+    <button type="submit">{status.pending ? 'Searching...' : 'Search'}</button>
+  )
+}
+```
+
+그런 다음 `SearchButton` 구성 요소를 사용하도록 검색 양식 페이지를 업데이트합니다.
+
+```tsx filename="/app/page.tsx" switcher
+import Form from 'next/form'
+import { SearchButton } from '@/ui/search-button'
+
+export default function Page() {
+  return (
+    <Form action="/search">
+      <input name="query" />
+      <SearchButton />
+    </Form>
+  )
+}
+```
+
+```jsx filename="/app/ui/search-button.js" switcher
+import Form from 'next/form'
+import { SearchButton } from '@/ui/search-button'
+
+export default function Page() {
+  return (
+    <Form action="/search">
+      <input name="query" />
+      <SearchButton />
+    </Form>
+  )
+}
+```
+
+### 서버 작업을 통한 변형
+
+You can perform mutations by passing a function to the `action` prop에 함수를 전달하여 변형을 수행할 수 있습니다.
+
+```tsx filename="/app/posts/create/page.tsx" switcher
+import Form from 'next/form'
+import { createPost } from '@/posts/actions'
+
+export default function Page() {
+  return (
+    <Form action={createPost}>
+      <input name="title" />
+      {/* ... */}
+      <button type="submit">Create Post</button>
+    </Form>
+  )
+}
+```
+
+```jsx filename="/app/posts/create/page.js" switcher
+import Form from 'next/form'
+import { createPost } from '@/posts/actions'
+
+export default function Page() {
+  return (
+    <Form action={createPost}>
+      <input name="title" />
+      {/* ... */}
+      <button type="submit">Create Post</button>
+    </Form>
+  )
+}
+```
+
+변형 후에는 새 리소스로 리디렉션되는 것이 일반적입니다. [`redirect`](../../guides/redirecting.mdx) 함수를 사용하여 새 게시물 페이지로 이동할 수 있습니다.> `next/navigation`은 공유 UI를 자동으로 프리페치할 수 없습니다.
+
+> **Good to know**: Since the "destination" of the form submission is not known until the action is executed, `<Form>` cannot automatically prefetch shared UI.
+
+```tsx filename="/app/posts/actions.ts" switcher
+'use server'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  // Create a new post
+  // ...
+
+  // Redirect to the new post
+  redirect(`/posts/${data.id}`)
+}
+```
+
+```jsx filename="/app/posts/actions.js" switcher
+'use server'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData) {
+  // Create a new post
+  // ...
+
+  // Redirect to the new post
+  redirect(`/posts/${data.id}`)
+}
+```
+
+그런 다음 새 페이지에서 `params` 소품을 사용하여 데이터를 가져올 수 있습니다.
+
+```tsx filename="/app/posts/[id]/page.tsx" switcher
+import { getPost } from '@/posts/data'
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const data = await getPost(id)
+
+  return (
+    <div>
+      <h1>{data.title}</h1>
+      {/* ... */}
+    </div>
+  )
+}
+```
+
+```jsx filename="/app/posts/[id]/page.js" switcher
+import { getPost } from '@/posts/data'
+
+export default async function PostPage({ params }) {
+  const { id } = await params
+  const data = await getPost(id)
+
+  return (
+    <div>
+      <h1>{data.title}</h1>
+      {/* ... */}
+    </div>
+  )
+}
+```
+
+더 많은 예를 보려면 [서버 작업](../../getting-started/updating-data.mdx) 문서를 참조하세요.

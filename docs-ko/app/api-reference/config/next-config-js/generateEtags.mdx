@@ -1,0 +1,14 @@
+---
+title: generateEtags
+description: Next.js는 기본적으로 모든 페이지에 대해 etag를 생성합니다. 여기에서 etag 생성을 비활성화하는 방법에 대해 자세히 알아보세요.
+---
+
+Next.js는 기본적으로 모든 페이지에 대해 [etag](https://en.wikipedia.org/wiki/HTTP_ETag)를 생성합니다. 캐시 전략에 따라 HTML 페이지에 대한 etag 생성을 비활성화할 수 있습니다.
+
+Open `next.config.js`을 열고 `generateEtags` 옵션을 비활성화합니다.
+
+```js filename="next.config.js"
+module.exports = {
+  generateEtags: false,
+}
+```

@@ -1,0 +1,940 @@
+---
+title: 페이지에서 앱 라우터로 마이그레이션하는 방법
+nav_title: 앱 라우터
+description: 기존 Next.js 애플리케이션을 페이지 라우터에서 앱 라우터로 업그레이드하는 방법을 알아보세요.
+---
+
+이 가이드는 다음 사항에 도움이 될 것입니다.
+
+- [Next.js 애플리케이션을 버전 12에서 버전 13으로 업데이트](#nextjs-version)
+- [Upgrade features that work in both the `pages` 및 `app` 디렉터리 모두에서 작동하는 업그레이드 기능](#upgrading-new-features)
+- [기존 애플리케이션을 `pages`에서 `app`](#migrating-from-pages-to-app)
+
+## 업그레이드 중
+
+### Node.js 버전
+
+이제 최소 Node.js 버전은 **v18.17**입니다. 자세한 내용은 [Node.js 문서](https://nodejs.org/docs/latest-v18.x/api/)를 참조하세요.
+
+### Next.js 버전
+
+Next.js 버전 13으로 업데이트하려면 원하는 패키지 관리자를 사용하여 다음 명령을 실행하세요.
+
+```bash filename="Terminal"
+npm install next@latest react@latest react-dom@latest
+```
+
+### ESLint 버전
+
+ESLint를 사용하는 경우 ESLint 버전을 업그레이드해야 합니다.
+
+```bash filename="Terminal"
+npm install -D eslint-config-next@latest
+```
+
+> **알아두면 좋은 정보**: ESLint 변경 사항을 적용하려면 VS Code에서 ESLint 서버를 다시 시작해야 할 수도 있습니다. 명령 팔레트(Mac에서는 `cmd+shift+p`, Windows에서는 `ctrl+shift+p`)를 열고 `ESLint: Restart ESLint Server`를 검색합니다.
+
+## 다음 단계
+
+업데이트한 후 다음 단계는 다음 섹션을 참조하세요.
+
+- [새로운 기능 업그레이드](#upgrading-new-features): 향상된 이미지, 링크 구성 요소 등 새로운 기능으로 업그레이드하는 데 도움이 되는 가이드입니다.
+- [Migrate from the `pages`에서 `app` 디렉터리로 마이그레이션](#migrating-from-pages-to-app): `pages`에서 `app` 디렉터리로 점진적으로 마이그레이션하는 데 도움이 되는 단계별 가이드입니다.
+
+## 새로운 기능 업그레이드
+
+Next.js 13에서는 새로운 기능과 규칙을 갖춘 새로운 [앱 라우터](../../index.mdx)를 출시했습니다. 새 라우터는 `app` 디렉터리에서 사용할 수 있으며 `pages` 디렉터리와 공존합니다.
+
+Next.js 13으로 업그레이드하는 경우 앱 라우터를 사용할 필요가 **없습니다**. 업데이트된 `pages`을 계속 사용할 수 있습니다. 최적화]\(#font-optimization).[Image component](#image-component), [Link component](#link-component), [Script component](#script-component), and [Font optimization](#font-optimization).
+
+### `<Image/>` 구성 요소
+
+Next.js 12에서는 임시 가져오기인 `next/future/image`를 통해 이미지 구성 요소에 대한 새로운 개선 사항을 도입했습니다. 이러한 개선 사항에는 클라이언트 측 JavaScript 감소, 이미지 확장 및 스타일 지정이 더 쉬워진 방법, 접근성 향상, 기본 브라우저 지연 로딩이 포함되었습니다.
+
+버전 13에서는 이 새로운 동작이 이제 `next/image`의 기본값입니다.
+
+새로운 이미지 구성 요소로 마이그레이션하는 데 도움이 되는 두 가지 codemod가 있습니다.- :  가져오기의 이름을 로 안전하게 자동으로 바꿉니다. 기존 구성 요소는 동일한 동작을 유지합니다.
+
+- [**`next-image-to-legacy-image` codemod**](../upgrading/codemods.mdx#next-image-to-legacy-image): 인라인 스타일을 위험하게 추가하고 사용하지 않는 소품을 제거합니다. 그러면 새 기본값과 일치하도록 기존 구성 요소의 동작이 변경됩니다. 이 codemod를 사용하려면 먼저 `next/image` codemod를 실행해야 합니다.`next/legacy/image`. Existing components will maintain the same behavior.
+- [**`next-image-experimental` codemod**](../upgrading/codemods.mdx#next-image-experimental): Dangerously adds inline styles and removes unused props. This will change the behavior of existing components to match the new defaults. To use this codemod, you need to run the `next-image-to-legacy-image` codemod first.
+
+### `<Link>` 구성 요소
+
+The [`<Link>` 구성 요소](../../api-reference/components/link.mdx)에서는 더 이상 `<a>` 태그를 하위 태그로 수동으로 추가할 필요가 없습니다. 이 동작은 [버전 12.2](https://nextjs.org/blog/next-12-2)에서 실험적 옵션으로 추가되었으며 이제 기본값입니다. Next.js 13에서 `<Link>`은 항상 `<a>`을 렌더링하고 props를 기본 태그로 전달할 수 있도록 합니다.
+
+예를 들면:
+
+```jsx
+import Link from 'next/link'
+
+// Next.js 12: `<a>` has to be nested otherwise it's excluded
+<Link href="/about">
+  <a>About</a>
+</Link>
+
+// Next.js 13: `<Link>` always renders `<a>` under the hood
+<Link href="/about">
+  About
+</Link>
+```
+
+링크를 Next.js 13으로 업그레이드하려면 [`new-link` codemod](../upgrading/codemods.mdx#new-link)를 사용할 수 있습니다.
+
+### `<Script>` 구성요소
+
+The behavior of [`next/script`](../../api-reference/components/script.mdx)의 동작은 `pages` 및 `app`을 모두 지원하도록 업데이트되었지만 원활한 마이그레이션을 위해서는 몇 가지 변경이 필요합니다.
+
+- 이전에 `beforeInteractive`에 포함했던 `_document.js` 스크립트를 루트 레이아웃 파일(`app/layout.tsx`)로 이동합니다.
+- 실험적인 `worker` 전략은 아직 `app`에서 작동하지 않으며 이 전략으로 표시된 스크립트는 제거되거나 다른 전략(예: `lazyOnload`)을 사용하도록 수정되어야 합니다.
+- `onLoad`, `onReady` 및 `onError` 핸들러는 서버 구성 요소에서 작동하지 않으므로 반드시 [클라이언트 구성 요소](../../getting-started/server-and-client-components.mdx)로 이동하거나 완전히 제거하세요.
+
+### 글꼴 최적화
+
+이전에는 Next.js를 사용하여 [글꼴 인라인 CSS](../../api-reference/components/font.mdx)을 통해 글꼴을 최적화할 수 있었습니다. 버전 13에는 뛰어난 성능과 개인 정보 보호를 보장하면서 글꼴 로딩 환경을 사용자 정의할 수 있는 기능을 제공하는 새로운 [`next/font`](../../api-reference/components/font.mdx) 모듈이 도입되었습니다. `next/font`은 `pages` 및 `app` 디렉터리 모두에서 지원됩니다.
+
+While [인라인 CSS](../../api-reference/components/font.mdx)은 `pages`에서 여전히 작동하지만 `app`에서는 작동하지 않습니다. 대신 [`next/font`](../../api-reference/components/font.mdx)을 사용해야 합니다.
+
+See the [글꼴 최적화](../../api-reference/components/font.mdx) 페이지를 참조하세요.`next/font`.
+
+## Migrating from `pages`에서 `app`
+
+> **🎥 시청:** 앱 라우터를 점진적으로 채택하는 방법을 알아보세요 → [YouTube(16분)](https://www.youtube.com/watch?v=YQMSietiFm0).앱 라우터로 이동하는 것은 Next.js가 서버 구성 요소, Suspense 등을 기반으로 구축하는 React 기능을 사용하는 것이 처음일 수 있습니다.  및 과 같은 새로운 Next.js 기능과 결합되면 마이그레이션은 학습할 새로운 개념, 정신 모델 및 행동 변화를 의미합니다.
+
+마이그레이션을 더 작은 단계로 나누어 이러한 업데이트의 결합된 복잡성을 줄이는 것이 좋습니다. [special files](../../api-reference/file-conventions/index.mdx) and [layouts](../../api-reference/file-conventions/layout.mdx), migration means new concepts, mental models, and behavioral changes to learn. 디렉터리는 점진적인 페이지별 마이그레이션을 허용하기 위해 의도적으로  디렉터리와 동시에 작동하도록 설계되었습니다.
+
+최신 Next.js 버전으로 업데이트하세요(13.4 이상 필요).`app` directory is intentionally designed to work simultaneously with the `pages` directory to allow for incremental page-by-page migration.
+
+- The `app` 디렉터리에는 *and* layouts. [Learn more](../../getting-started/layouts-and-pages.mdx). 루트 레이아웃이 포함되어야 합니다.
+- 루트 레이아웃은 `page.js` 및 [Learn more](#step-4-migrating-pages). 태그를 정의해야 합니다. Next.js는 태그를 자동으로 생성하지 않기 때문입니다.
+- [Special file conventions](../../api-reference/file-conventions/index.mdx) are used to create UI for each route segment. The most common special files are `page.js` 및 `layout.js` 파일을 대체합니다.
+  - Use `page.js` to define UI unique to a route.
+  - Use `layout.js` to define UI that is shared across multiple routes.
+  - `.js`, `.jsx`, or `.tsx` file extensions can be used for special files.
+- 레이아웃 파일에는 `app`, [Learn more](../../index.mdx). 또는  확장자를 사용할 수 있습니다.
+- Data fetching functions like `getServerSideProps` and `getStaticProps` have been replaced with [a new API](../../getting-started/fetching-data.mdx) inside `app`. `getStaticPaths` has been replaced with [`generateStaticParams`](../../api-reference/functions/generate-static-params.mdx).
+- `pages/_app.js` and `pages/_document.js` have been replaced with a single `app/layout.js` root layout. [Learn more](../../api-reference/file-conventions/layout.mdx#root-layout).
+- `pages/_error.js` has been replaced with more granular `error.js` special files. [Learn more](../../getting-started/error-handling.mdx).
+- `pages/404.js` has been replaced with the [`not-found.js`](../../api-reference/file-conventions/not-found.mdx) file.
+- `pages/api/*` API Routes have been replaced with the [`route.js`](../../api-reference/file-conventions/route.mdx) (Route Handler) special file.
+
+### Step 1: Creating the `app` directory
+
+Update to the latest Next.js version (requires 13.4 or greater): HTML 요소를 관리하려면 을 사용할 수 있습니다.
+
+```bash
+npm install next@latest
+```
+
+기존 `app` 또는 `src/` 파일이 있는 경우 콘텐츠(예: 전역 스타일)를 루트 레이아웃()에 복사할 수 있습니다. 의 스타일은 에 적용되지 .  경로가 중단되는 것을 방지하려면 마이그레이션하는 동안 /을 유지해야 합니다. 완전히 마이그레이션되면 안전하게 삭제할 수 있습니다.
+
+### 3단계:  마이그레이션 디렉터리에서  React 구성 요소는  및  HTML 요소를 관리하는 데 사용됩니다.  .  디렉터리에서 는 새로운 으로 대체되었습니다.
+
+Create a new `app/layout.tsx` file inside the `app` directory. This is a [root layout](../../api-reference/file-conventions/layout.mdx#root-layout) that will apply to all routes inside `app`.
+
+```tsx filename="app/layout.tsx" switcher
+export default function RootLayout({
+  // Layouts must accept a children prop.
+  // This will be populated with nested layouts or pages
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function RootLayout({
+  // Layouts must accept a children prop.
+  // This will be populated with nested layouts or pages
+  children,
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+- The `app` 디렉터리와 다릅니다.**must** include a root layout.
+- The root layout must define `<html>`에서 변경되었습니다. `<body>`,  및 이 더 간단한 API로 대체되었습니다.
+- The root layout replaces the `pages/_app.tsx` 디렉터리는 중첩된 폴더를 사용하여 경로를 정의하고 특수 `pages/_document.tsx` 파일을 사용하여 경로 세그먼트에 공개적으로 액세스할 수 있도록 합니다.
+- `.js` 디렉토리 | `.jsx` 디렉토리 | 경로 |
+  | ----------------- | -------- | -------------- |
+  | `.tsx` |  |  |
+  |  |  |  |
+  |  |  |  |
+
+페이지 이전을 두 가지 주요 단계로 나누는 것이 좋습니다.`<head>` HTML elements, you can use the [built-in SEO support](../../getting-started/metadata-and-og-images.mdx):
+
+```tsx filename="app/layout.tsx" switcher
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Home',
+  description: 'Welcome to Next.js',
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export const metadata = {
+  title: 'Home',
+  description: 'Welcome to Next.js',
+}
+```
+
+#### Migrating `_document.js` and `_app.js`
+
+If you have an existing `_app` or `_document` file, you can copy the contents (e.g. global styles) to the root layout (`app/layout.tsx`). Styles in `app/layout.tsx` will *not* apply to `pages/*`. You should keep `_app`/`_document` while migrating to prevent your `pages/*` routes from breaking. Once fully migrated, you can then safely delete them.
+
+If you are using any React Context providers, they will need to be moved to a [Client Component](../../getting-started/server-and-client-components.mdx). 디렉터리의 새로운 동작을 지원하기 위해 새로운 라우터가 추가되었습니다.
+
+#### Migrating the `getLayout()`과  간의 구성요소 공유
+
+Next.js recommended adding a [property to Page components의  후크](https://nextjs.org/docs/pages/building-your-application/routing/pages-and-layouts#layout-pattern)를 참조하세요.
+이는 `pages` 디렉터리의 [nested layouts의 ](../../api-reference/file-conventions/layout.mdx)로 업데이트하세요.`app` directory.
+
+<details>
+  <summary>See before and after example</summary>
+
+  **Before**
+
+  ```jsx filename="components/DashboardLayout.js"
+  export default function DashboardLayout({ children }) {
+    return (
+      <div>
+        <h2>My Dashboard</h2>
+        {children}
+      </div>
+    )
+  }
+  ```
+
+  ```jsx filename="pages/dashboard/index.js"
+  import DashboardLayout from '../components/DashboardLayout'
+
+  export default function Page() {
+    return <p>My Page</p>
+  }
+
+  Page.getLayout = function getLayout(page) {
+    return <DashboardLayout>{page}</DashboardLayout>
+  }
+  ```
+
+  **After**
+
+  - Remove the `Page.getLayout` property from `pages/dashboard/index.js` and follow the [steps for migrating pages](#step-4-migrating-pages) to the `app` directory.
+
+    ```jsx filename="app/dashboard/page.js"
+    export default function Page() {
+      return <p>My Page</p>
+    }
+    ```
+
+  - Move the contents of `DashboardLayout` into a new [Client Component](../../getting-started/server-and-client-components.mdx) to retain `pages` directory behavior.
+
+    ```jsx filename="app/dashboard/DashboardLayout.js"
+    'use client' // this directive should be at top of the file, before any imports.
+
+    // This is a Client Component
+    export default function DashboardLayout({ children }) {
+      return (
+        <div>
+          <h2>My Dashboard</h2>
+          {children}
+        </div>
+      )
+    }
+    ```
+
+  - Import the `DashboardLayout` into a new `layout.js` file inside the `app` directory.
+
+    ```jsx filename="app/dashboard/layout.js"
+    import DashboardLayout from './DashboardLayout'
+
+    // This is a Server Component
+    export default function Layout({ children }) {
+      return <DashboardLayout>{children}</DashboardLayout>
+    }
+    ```
+
+  - You can incrementally move non-interactive parts of `DashboardLayout.js` (Client Component) into `layout.js` (Server Component) to reduce the amount of component JavaScript you send to the client.
+</details>
+
+### 6단계: 데이터 가져오기 방법 마이그레이션`next/head`
+
+In the `pages` 디렉터리는 `next/head` 및 `<head>`을 사용하여 페이지의 데이터를 가져옵니다. `title` 디렉터리 내에서 이러한 이전 데이터 가져오기 기능은 `meta` 및 `app` React 서버 위에 구축된 `next/head` is replaced with the new [더 단순한 API](../../getting-started/metadata-and-og-images.mdx)로 대체되었습니다. 구성 요소.
+
+**Before:**
+
+```tsx filename="pages/index.tsx" switcher
+import Head from 'next/head'
+
+export default function Page() {
+  return (
+    <>
+      <Head>
+        <title>My page title</title>
+      </Head>
+    </>
+  )
+}
+```
+
+```jsx filename="pages/index.js" switcher
+import Head from 'next/head'
+
+export default function Page() {
+  return (
+    <>
+      <Head>
+        <title>My page title</title>
+      </Head>
+    </>
+  )
+}
+```
+
+**After:**
+
+```tsx filename="app/page.tsx" switcher
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'My Page Title',
+}
+
+export default function Page() {
+  return '...'
+}
+```
+
+```jsx filename="app/page.js" switcher
+export const metadata = {
+  title: 'My Page Title',
+}
+
+export default function Page() {
+  return '...'
+}
+```
+
+[See all metadata options](../../api-reference/functions/generate-metadata.mdx). 디렉터리에서  함수는 빌드 시 페이지를 사전 렌더링하는 데 사용됩니다. 이 함수는 외부 API 또는 데이터베이스에서 직접 데이터를 가져오고 빌드 중에 생성되는 이 데이터를 전체 페이지에 전달하는 데 사용할 수 있습니다.
+
+### Step 4: Migrating Pages
+
+- Pages in the [`app` directory](../../index.mdx) are [Server Components](../../getting-started/server-and-client-components.mdx) by default. This is different from the `pages` directory where pages are [Client Components](../../getting-started/server-and-client-components.mdx).
+- [Data fetching](../../getting-started/fetching-data.mdx) has changed in `app`. `getServerSideProps`, `getStaticProps` and `getInitialProps` have been replaced with a simpler API.
+- The `app` directory uses nested folders to define routes and a special `page.js` file to make a route segment publicly accessible.
+- | `pages` Directory | `app` Directory       | Route          |
+  | ----------------- | --------------------- | -------------- |
+  | `index.js`        | `page.js`             | `/`            |
+  | `about.js`        | `about/page.js`       | `/about`       |
+  | `blog/[slug].js`  | `blog/[slug]/page.js` | `/blog/post-1` |
+
+We recommend breaking down the migration of a page into two main steps: 디렉터리에서 를 사용한 데이터 가져오기는 기본적으로 으로 설정되며, 수동으로 무효화될 때까지 요청 데이터를 캐시합니다. 이는  디렉터리의 과 유사합니다.
+
+- Step 1: Move the default exported Page Component into a new Client Component.
+- Step 2: Import the new Client Component into a new `page.js` file inside the `app` directory.
+
+> **Good to know**: This is the easiest migration path because it has the most comparable behavior to the `pages` directory.
+
+**Step 1: Create a new Client Component**
+
+- Create a new separate file inside the `app`에 포함되지 않은 동적 세그먼트는 요청 시 생성됩니다.`app/home-page.tsx` or similar) that exports a Client Component. To define Client Components, add the `'use client'` directive to the top of the file (before any imports).
+  - Similar to the Pages Router, there is an [optimization step](../../getting-started/server-and-client-components.mdx#on-the-client-first-load) to prerender Client Components to static HTML on the initial page load.
+- Move the default exported page component from `pages/index.js`에 포함되지 않은 동적 세그먼트는 404를 반환합니다.`app/home-page.tsx`.
+
+```tsx filename="app/home-page.tsx" switcher
+'use client'
+
+// This is a Client Component (same as components in the `pages` directory)
+// It receives data as props, has access to state and effects, and is
+// prerendered on the server during the initial page load.
+export default function HomePage({ recentPosts }) {
+  return (
+    <div>
+      {recentPosts.map((post) => (
+        <div key={post.id}>{post.title}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+```jsx filename="app/home-page.js" switcher
+'use client'
+
+// This is a Client Component. It receives data as props and
+// has access to state and effects just like Page components
+// in the `pages` directory.
+export default function HomePage({ recentPosts }) {
+  return (
+    <div>
+      {recentPosts.map((post) => (
+        <div key={post.id}>{post.title}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+**Step 2: Create a new page**
+
+- Create a new `app/page.tsx` file inside the `app` directory. This is a Server Component by default.
+
+- Import the `home-page.tsx` Client Component into the page.
+
+- If you were fetching data in `pages/index.js`, move the data fetching logic directly into the Server Component using the new [data fetching APIs](../../getting-started/fetching-data.mdx). See the [data fetching upgrade guide](#step-6-migrating-data-fetching-methods) for more details.
+
+  ```tsx filename="app/page.tsx" switcher
+  // Import your Client Component
+  import HomePage from './home-page'
+
+  async function getPosts() {
+    const res = await fetch('https://...')
+    const posts = await res.json()
+    return posts
+  }
+
+  export default async function Page() {
+    // Fetch data directly in a Server Component
+    const recentPosts = await getPosts()
+    // Forward fetched data to your Client Component
+    return <HomePage recentPosts={recentPosts} />
+  }
+  ```
+
+  ```jsx filename="app/page.js" switcher
+  // Import your Client Component
+  import HomePage from './home-page'
+
+  async function getPosts() {
+    const res = await fetch('https://...')
+    const posts = await res.json()
+    return posts
+  }
+
+  export default async function Page() {
+    // Fetch data directly in a Server Component
+    const recentPosts = await getPosts()
+    // Forward fetched data to your Client Component
+    return <HomePage recentPosts={recentPosts} />
+  }
+  ```
+
+- If your previous page used `useRouter`, you'll need to update to the new routing hooks. [Learn more](../../api-reference/functions/use-router.mdx).
+
+- Start your development server and visit [`http://localhost:3000`](http://localhost:3000). You should see your existing index route, now served through the app directory.
+
+### Step 5: Migrating Routing Hooks
+
+API 경로는 변경 없이 `app` 디렉터리에서 계속 작동합니다. 그러나  디렉터리의 로 대체되었습니다.
+
+경로 핸들러를 사용하면 웹 `app`, you should use the three new hooks imported from `next/navigation`: [`useRouter()`](../../api-reference/functions/use-router.mdx) 및 [`usePathname()`](../../api-reference/functions/use-pathname.mdx) API를 사용하여 지정된 경로에 대한 사용자 정의 요청 핸들러를 생성할 수 있습니다.[`useSearchParams()`](../../api-reference/functions/use-search-params.mdx).
+
+- The new `useRouter` hook is imported from `next/navigation` and has different behavior to the `useRouter` hook in `pages` which is imported from `next/router`.
+  - The [`useRouter` hook imported from `next/router`](https://nextjs.org/docs/pages/api-reference/functions/use-router) is not supported in the `app` directory but can continue to be used in the `pages` directory.
+- The new `useRouter` does not return the `pathname` string. Use the separate `usePathname` hook instead.
+- The new `useRouter` does not return the `query` object. Search parameters and dynamic route parameters are now separate. Use the `useSearchParams` and `useParams` hooks instead.
+- You can use `useSearchParams` and `usePathname` together to listen to page changes. See the [CSS-in-JS](../../api-reference/functions/use-router.mdx#router-events) section for more details.
+- These new hooks are only supported in Client Components. They cannot be used in Server Components.
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // ...
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // ...
+}
+```
+
+In addition, the new `useRouter` hook has the following changes:에 대해 자세히 알아보세요.
+
+- `isFallback` has been removed because `fallback` has [been replaced](#replacing-fallback).
+- The `locale`, `locales`, `defaultLocales`, `domainLocales` values have been removed because built-in i18n Next.js features are no longer necessary in the `app` directory. [Learn more about i18n](../internationalization.mdx).
+- `basePath` has been removed. The alternative will not be part of `useRouter`. It has not yet been implemented.
+- `asPath` has been removed because the concept of `as` has been removed from the new router.
+- `isReady` has been removed because it is no longer necessary. During [static rendering](../caching.mdx#static-rendering), any component that uses the [`useSearchParams()`](../../api-reference/functions/use-search-params.mdx) hook will skip the prerendering step and instead be rendered on the client at runtime.
+- `route` has been removed. `usePathname` or `useSelectedLayoutSegments()` provide an alternative.
+
+[View the `useRouter()` API reference](../../api-reference/functions/use-router.mdx).을 사용한 자동 링크 프리페치는 라우터 전체에서 프리페치되지 않습니다.
+
+#### Sharing components between `pages` and `app`
+
+대신 앱 라우터와 페이지 라우터 간의 `pages` and `app` routers, refer to the [`useRouter` hook from `next/compat/router`](https://nextjs.org/docs/pages/api-reference/functions/use-router#the-nextcompatrouter-export)하여 미리 가져온 빠른 페이지 전환을 유지할 수 있습니다. `useRouter` hook from the `pages` directory, but intended to be used while sharing components between routers. Once you are ready to use it only on the `app` router, update to the new [`useRouter` from `next/navigation`](../../api-reference/functions/use-router.mdx).
+
+### Step 6: Migrating Data Fetching Methods
+
+Next.js는 기능이 더 이상 사용되지 않을 때 코드베이스를 업그레이드하는 데 도움이 되는 Codemod 변환을 제공합니다. 자세한 내용은 `pages` directory uses `getServerSideProps` and `getStaticProps` to fetch data for pages. Inside the `app` directory, these previous data fetching functions are replaced with a [Codemods](../../getting-started/fetching-data.mdx)를 참조하세요.`fetch()` and `async` React Server Components.
+
+```tsx filename="app/page.tsx" switcher
+export default async function Page() {
+  // This request should be cached until manually invalidated.
+  // Similar to `getStaticProps`.
+  // `force-cache` is the default and can be omitted.
+  const staticData = await fetch(`https://...`, { cache: 'force-cache' })
+
+  // This request should be refetched on every request.
+  // Similar to `getServerSideProps`.
+  const dynamicData = await fetch(`https://...`, { cache: 'no-store' })
+
+  // This request should be cached with a lifetime of 10 seconds.
+  // Similar to `getStaticProps` with the `revalidate` option.
+  const revalidatedData = await fetch(`https://...`, {
+    next: { revalidate: 10 },
+  })
+
+  return <div>...</div>
+}
+```
+
+```jsx filename="app/page.js" switcher
+export default async function Page() {
+  // This request should be cached until manually invalidated.
+  // Similar to `getStaticProps`.
+  // `force-cache` is the default and can be omitted.
+  const staticData = await fetch(`https://...`, { cache: 'force-cache' })
+
+  // This request should be refetched on every request.
+  // Similar to `getServerSideProps`.
+  const dynamicData = await fetch(`https://...`, { cache: 'no-store' })
+
+  // This request should be cached with a lifetime of 10 seconds.
+  // Similar to `getStaticProps` with the `revalidate` option.
+  const revalidatedData = await fetch(`https://...`, {
+    next: { revalidate: 10 },
+  })
+
+  return <div>...</div>
+}
+```
+
+#### Server-side Rendering (`getServerSideProps`)
+
+In the `pages` directory, `getServerSideProps` is used to fetch data on the server and forward props to the default exported React component in the file. The initial HTML for the page is prerendered from the server, followed by "hydrating" the page in the browser (making it interactive).
+
+```jsx filename="pages/dashboard.js"
+// `pages` directory
+
+export async function getServerSideProps() {
+  const res = await fetch(`https://...`)
+  const projects = await res.json()
+
+  return { props: { projects } }
+}
+
+export default function Dashboard({ projects }) {
+  return (
+    <ul>
+      {projects.map((project) => (
+        <li key={project.id}>{project.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+In the App Router, we can colocate our data fetching inside our React components using [Server Components](../../getting-started/server-and-client-components.mdx). This allows us to send less JavaScript to the client, while maintaining the rendered HTML from the server.
+
+By setting the `cache` option to `no-store`, we can indicate that the fetched data should [never be cached](../../getting-started/fetching-data.mdx). This is similar to `getServerSideProps` in the `pages` directory.
+
+```tsx filename="app/dashboard/page.tsx" switcher
+// `app` directory
+
+// This function can be named anything
+async function getProjects() {
+  const res = await fetch(`https://...`, { cache: 'no-store' })
+  const projects = await res.json()
+
+  return projects
+}
+
+export default async function Dashboard() {
+  const projects = await getProjects()
+
+  return (
+    <ul>
+      {projects.map((project) => (
+        <li key={project.id}>{project.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/dashboard/page.js" switcher
+// `app` directory
+
+// This function can be named anything
+async function getProjects() {
+  const res = await fetch(`https://...`, { cache: 'no-store' })
+  const projects = await res.json()
+
+  return projects
+}
+
+export default async function Dashboard() {
+  const projects = await getProjects()
+
+  return (
+    <ul>
+      {projects.map((project) => (
+        <li key={project.id}>{project.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+#### Accessing Request Object
+
+In the `pages` directory, you can retrieve request-based data based on the Node.js HTTP API.
+
+For example, you can retrieve the `req` object from `getServerSideProps` and use it to retrieve the request's cookies and headers.
+
+```jsx filename="pages/index.js"
+// `pages` directory
+
+export async function getServerSideProps({ req, query }) {
+  const authHeader = req.getHeaders()['authorization'];
+  const theme = req.cookies['theme'];
+
+  return { props: { ... }}
+}
+
+export default function Page(props) {
+  return ...
+}
+```
+
+The `app` directory exposes new read-only functions to retrieve request data:
+
+- [`headers`](../../api-reference/functions/headers.mdx): Based on the Web Headers API, and can be used inside [Server Components](../../getting-started/server-and-client-components.mdx) to retrieve request headers.
+- [`cookies`](../../api-reference/functions/cookies.mdx): Based on the Web Cookies API, and can be used inside [Server Components](../../getting-started/server-and-client-components.mdx) to retrieve cookies.
+
+```tsx filename="app/page.tsx" switcher
+// `app` directory
+import { cookies, headers } from 'next/headers'
+
+async function getData() {
+  const authHeader = (await headers()).get('authorization')
+
+  return '...'
+}
+
+export default async function Page() {
+  // You can use `cookies` or `headers` inside Server Components
+  // directly or in your data fetching function
+  const theme = (await cookies()).get('theme')
+  const data = await getData()
+  return '...'
+}
+```
+
+```jsx filename="app/page.js" switcher
+// `app` directory
+import { cookies, headers } from 'next/headers'
+
+async function getData() {
+  const authHeader = (await headers()).get('authorization')
+
+  return '...'
+}
+
+export default async function Page() {
+  // You can use `cookies` or `headers` inside Server Components
+  // directly or in your data fetching function
+  const theme = (await cookies()).get('theme')
+  const data = await getData()
+  return '...'
+}
+```
+
+#### Static Site Generation (`getStaticProps`)
+
+In the `pages` directory, the `getStaticProps` function is used to pre-render a page at build time. This function can be used to fetch data from an external API or directly from a database, and pass this data down to the entire page as it's being generated during the build.
+
+```jsx filename="pages/index.js"
+// `pages` directory
+
+export async function getStaticProps() {
+  const res = await fetch(`https://...`)
+  const projects = await res.json()
+
+  return { props: { projects } }
+}
+
+export default function Index({ projects }) {
+  return projects.map((project) => <div>{project.name}</div>)
+}
+```
+
+In the `app` directory, data fetching with [`fetch()`](../../api-reference/functions/fetch.mdx) will default to `cache: 'force-cache'`, which will cache the request data until manually invalidated. This is similar to `getStaticProps` in the `pages` directory.
+
+```jsx filename="app/page.js"
+// `app` directory
+
+// This function can be named anything
+async function getProjects() {
+  const res = await fetch(`https://...`)
+  const projects = await res.json()
+
+  return projects
+}
+
+export default async function Index() {
+  const projects = await getProjects()
+
+  return projects.map((project) => <div>{project.name}</div>)
+}
+```
+
+#### Dynamic paths (`getStaticPaths`)
+
+In the `pages` directory, the `getStaticPaths` function is used to define the dynamic paths that should be pre-rendered at build time.
+
+```jsx filename="pages/posts/[id].js"
+// `pages` directory
+import PostLayout from '@/components/post-layout'
+
+export async function getStaticPaths() {
+  return {
+    paths: [{ params: { id: '1' } }, { params: { id: '2' } }],
+  }
+}
+
+export async function getStaticProps({ params }) {
+  const res = await fetch(`https://.../posts/${params.id}`)
+  const post = await res.json()
+
+  return { props: { post } }
+}
+
+export default function Post({ post }) {
+  return <PostLayout post={post} />
+}
+```
+
+In the `app` directory, `getStaticPaths` is replaced with [`generateStaticParams`](../../api-reference/functions/generate-static-params.mdx).
+
+[`generateStaticParams`](../../api-reference/functions/generate-static-params.mdx) behaves similarly to `getStaticPaths`, but has a simplified API for returning route parameters and can be used inside [layouts](../../api-reference/file-conventions/layout.mdx). The return shape of `generateStaticParams` is an array of segments instead of an array of nested `param` objects or a string of resolved paths.
+
+```jsx filename="app/posts/[id]/page.js"
+// `app` directory
+import PostLayout from '@/components/post-layout'
+
+export async function generateStaticParams() {
+  return [{ id: '1' }, { id: '2' }]
+}
+
+async function getPost(params) {
+  const res = await fetch(`https://.../posts/${(await params).id}`)
+  const post = await res.json()
+
+  return post
+}
+
+export default async function Post({ params }) {
+  const post = await getPost(params)
+
+  return <PostLayout post={post} />
+}
+```
+
+Using the name `generateStaticParams` is more appropriate than `getStaticPaths` for the new model in the `app` directory. The `get` prefix is replaced with a more descriptive `generate`, which sits better alone now that `getStaticProps` and `getServerSideProps` are no longer necessary. The `Paths` suffix is replaced by `Params`, which is more appropriate for nested routing with multiple dynamic segments.
+
+***
+
+#### Replacing `fallback`
+
+In the `pages` directory, the `fallback` property returned from `getStaticPaths` is used to define the behavior of a page that isn't pre-rendered at build time. This property can be set to `true` to show a fallback page while the page is being generated, `false` to show a 404 page, or `blocking` to generate the page at request time.
+
+```jsx filename="pages/posts/[id].js"
+// `pages` directory
+
+export async function getStaticPaths() {
+  return {
+    paths: [],
+    fallback: 'blocking'
+  };
+}
+
+export async function getStaticProps({ params }) {
+  ...
+}
+
+export default function Post({ post }) {
+  return ...
+}
+```
+
+In the `app` directory the [`config.dynamicParams` property](../../api-reference/file-conventions/route-segment-config.mdx#dynamicparams) controls how params outside of [`generateStaticParams`](../../api-reference/functions/generate-static-params.mdx) are handled:
+
+- **`true`**: (default) Dynamic segments not included in `generateStaticParams` are generated on demand.
+- **`false`**: Dynamic segments not included in `generateStaticParams` will return a 404.
+
+This replaces the `fallback: true | false | 'blocking'` option of `getStaticPaths` in the `pages` directory. The `fallback: 'blocking'` option is not included in `dynamicParams` because the difference between `'blocking'` and `true` is negligible with streaming.
+
+```jsx filename="app/posts/[id]/page.js"
+// `app` directory
+
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  return [...]
+}
+
+async function getPost(params) {
+  ...
+}
+
+export default async function Post({ params }) {
+  const post = await getPost(params);
+
+  return ...
+}
+```
+
+With [`dynamicParams`](../../api-reference/file-conventions/route-segment-config.mdx#dynamicparams) set to `true` (the default), when a route segment is requested that hasn't been generated, it will be server-rendered and cached.
+
+#### Incremental Static Regeneration (`getStaticProps` with `revalidate`)
+
+In the `pages` directory, the `getStaticProps` function allows you to add a `revalidate` field to automatically regenerate a page after a certain amount of time.
+
+```jsx filename="pages/index.js"
+// `pages` directory
+
+export async function getStaticProps() {
+  const res = await fetch(`https://.../posts`)
+  const posts = await res.json()
+
+  return {
+    props: { posts },
+    revalidate: 60,
+  }
+}
+
+export default function Index({ posts }) {
+  return (
+    <Layout>
+      <PostList posts={posts} />
+    </Layout>
+  )
+}
+```
+
+In the `app` directory, data fetching with [`fetch()`](../../api-reference/functions/fetch.mdx) can use `revalidate`, which will cache the request for the specified amount of seconds.
+
+```jsx filename="app/page.js"
+// `app` directory
+
+async function getPosts() {
+  const res = await fetch(`https://.../posts`, { next: { revalidate: 60 } })
+  const data = await res.json()
+
+  return data.posts
+}
+
+export default async function PostList() {
+  const posts = await getPosts()
+
+  return posts.map((post) => <div>{post.name}</div>)
+}
+```
+
+#### API Routes
+
+API Routes continue to work in the `pages/api` directory without any changes. However, they have been replaced by [Route Handlers](../../api-reference/file-conventions/route.mdx) in the `app` directory.
+
+Route Handlers allow you to create custom request handlers for a given route using the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs.
+
+```ts filename="app/api/route.ts" switcher
+export async function GET(request: Request) {}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {}
+```
+
+> **Good to know**: If you previously used API routes to call an external API from the client, you can now use [Server Components](../../getting-started/server-and-client-components.mdx) instead to securely fetch data. Learn more about [data fetching](../../getting-started/fetching-data.mdx).
+
+#### Single-Page Applications
+
+If you are also migrating to Next.js from a Single-Page Application (SPA) at the same time, see our [documentation](../single-page-applications.mdx) to learn more.
+
+### Step 7: Styling
+
+In the `pages` directory, global stylesheets are restricted to only `pages/_app.js`. With the `app` directory, this restriction has been lifted. Global styles can be added to any layout, page, or component.
+
+- [CSS Modules](../../getting-started/css.mdx#css-modules)
+- [Tailwind CSS](../../getting-started/css.mdx#tailwind-css)
+- [Global Styles](../../getting-started/css.mdx#global-css)
+- [CSS-in-JS](../css-in-js.mdx)
+- [External Stylesheets](../../getting-started/css.mdx#external-stylesheets)
+- [Sass](../sass.mdx)
+
+#### Tailwind CSS
+
+If you're using Tailwind CSS, you'll need to add the `app` directory to your `tailwind.config.js` file:
+
+```js filename="tailwind.config.js"
+module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}', // <-- Add this line
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+}
+```
+
+You'll also need to import your global styles in your `app/layout.js` file:
+
+```jsx filename="app/layout.js"
+import '../styles/globals.css'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+Learn more about [styling with Tailwind CSS](../../getting-started/css.mdx#tailwind-css)
+
+## Using App Router together with Pages Router
+
+When navigating between routes served by the different Next.js routers, there will be a hard navigation. Automatic link prefetching with `next/link` will not prefetch across routers.
+
+Instead, you can [optimize navigations](https://vercel.com/guides/optimizing-hard-navigations) between App Router and Pages Router to retain the prefetched and fast page transitions. [Learn more](https://vercel.com/guides/optimizing-hard-navigations).
+
+## Codemods
+
+Next.js provides Codemod transformations to help upgrade your codebase when a feature is deprecated. See [Codemods](../upgrading/codemods.mdx) for more information.

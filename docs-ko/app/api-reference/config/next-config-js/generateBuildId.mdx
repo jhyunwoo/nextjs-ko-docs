@@ -1,0 +1,17 @@
+---
+title: 생성빌드ID
+description: 애플리케이션이 제공되는 현재 빌드를 식별하는 데 사용되는 빌드 ID를 구성합니다.
+---
+
+Next.js는 `next build` 중에 ID를 생성하여 제공되는 애플리케이션 버전을 식별합니다. 동일한 빌드를 사용해야 하며 여러 컨테이너를 부팅해야 합니다.
+
+환경의 각 단계에 대해 다시 빌드하는 경우 컨테이너 간에 사용할 일관된 빌드 ID를 생성해야 합니다. `generateBuildId`에서 `next.config.js` 명령을 사용합니다.
+
+```jsx filename="next.config.js"
+module.exports = {
+  generateBuildId: async () => {
+    // This could be anything, using the latest git hash
+    return process.env.GIT_HASH
+  },
+}
+```

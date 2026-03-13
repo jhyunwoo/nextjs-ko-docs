@@ -1,0 +1,265 @@
+---
+title: 생성이미지메타데이터
+description: 단일 메타데이터 API 특수 ​​파일에서 여러 이미지를 생성하는 방법을 알아보세요.
+related:
+  title: 다음 단계
+  description: 모든 메타데이터 API 옵션을 확인하세요.
+  links:
+    - app/api-reference/file-conventions/metadata
+---
+
+You can use `generateImageMetadata`을 사용하여 하나의 이미지에 대해 다양한 버전을 생성하거나 하나의 경로 세그먼트에 대해 여러 이미지를 반환할 수 있습니다. 이는 아이콘과 같은 메타데이터 값을 하드코딩하지 않으려는 경우에 유용합니다.
+
+## 매개변수
+
+`generateImageMetadata` 함수는 다음 매개변수를 허용합니다.
+
+#### `params`(선택 사항)
+
+루트 세그먼트부터 [동적 경로 매개변수](../file-conventions/dynamic-routes.mdx) 개체를 포함하는 개체가 호출됩니다.`generateImageMetadata` is called from.
+
+```tsx filename="icon.tsx" switcher
+export function generateImageMetadata({
+  params,
+}: {
+  params: { slug: string }
+}) {
+  // ...
+}
+```
+
+```jsx filename="icon.js" switcher
+export function generateImageMetadata({ params }) {
+  // ...
+}
+```
+
+| 경로 | URL | `params` |`app/shop/icon.js`              | `/shop`     | `undefined`               |`app/shop/[slug]/icon.js`       | `/shop/1`   | `{ slug: '1' }`           |
+| `app/shop/[tag]/[item]/icon.js` | `/shop/1/2` | `{ tag: '1', item: '2' }` |
+
+## 반품
+
+The `generateImageMetadata` 함수는 `array` 및 `alt`과 같은 이미지의 메타데이터를 포함하는 개체의 `size`을 반환해야 합니다. 또한 각 항목에는 **반드시** 이미지 생성 함수의 props에 대한 약속으로 전달될 `id` 값이 포함되어야 합니다.
+
+| 이미지 메타데이터 개체 | 유형 |`id`                  | `string` (required)                 |`alt`                 | `string`                            |
+| `size`                | `{ width: number; height: number }` |
+| `contentType`         | `string`                            |
+
+```tsx filename="icon.tsx" switcher
+import { ImageResponse } from 'next/og'
+
+export function generateImageMetadata() {
+  return [
+    {
+      contentType: 'image/png',
+      size: { width: 48, height: 48 },
+      id: 'small',
+    },
+    {
+      contentType: 'image/png',
+      size: { width: 72, height: 72 },
+      id: 'medium',
+    },
+  ]
+}
+
+export default async function Icon({ id }: { id: Promise<string | number> }) {
+  const iconId = await id
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 88,
+          background: '#000',
+          color: '#fafafa',
+        }}
+      >
+        Icon {iconId}
+      </div>
+    )
+  )
+}
+```
+
+```jsx filename="icon.js" switcher
+import { ImageResponse } from 'next/og'
+
+export function generateImageMetadata() {
+  return [
+    {
+      contentType: 'image/png',
+      size: { width: 48, height: 48 },
+      id: 'small',
+    },
+    {
+      contentType: 'image/png',
+      size: { width: 72, height: 72 },
+      id: 'medium',
+    },
+  ]
+}
+
+export default async function Icon({ id }) {
+  const iconId = await id
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 88,
+          background: '#000',
+          color: '#fafafa',
+        }}
+      >
+        Icon {iconId}
+      </div>
+    )
+  )
+}
+```
+
+## 이미지 생성 기능 소품
+
+When using `generateImageMetadata`을 사용할 때 기본 내보내기 이미지 생성 기능은 다음 소품을 받습니다.
+
+#### `id`
+
+A promise that resolves to the `id`에 의해 반환된 항목 중 하나에서 `generateImageMetadata` 값으로 확인되는 약속입니다. `id`은 `string`에서 반환된 내용에 따라 `number` 또는 `generateImageMetadata`이 됩니다.
+
+```tsx filename="icon.tsx" switcher
+export default async function Icon({ id }: { id: Promise<string | number> }) {
+  const iconId = await id
+  // Use iconId to generate the image
+}
+```
+
+```jsx filename="icon.js" switcher
+export default async function Icon({ id }) {
+  const iconId = await id
+  // Use iconId to generate the image
+}
+```
+
+#### `params`(선택 사항)
+
+루트 세그먼트부터 이미지가 같은 위치에 있는 세그먼트까지 [동적 경로 매개변수](../file-conventions/dynamic-routes.mdx)를 포함하는 객체로 확인되는 Promise입니다.
+
+```tsx filename="icon.tsx" switcher
+export default async function Icon({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  // Use slug to generate the image
+}
+```
+
+```jsx filename="icon.js" switcher
+export default async function Icon({ params }) {
+  const { slug } = await params
+  // Use slug to generate the image
+}
+```
+
+### 예
+
+#### 외부 데이터 사용
+
+이 예에서는 `params` 개체와 외부 데이터를 사용하여 경로 세그먼트에 대한 여러 [오픈 그래프 이미지](../file-conventions/metadata/opengraph-image.mdx)를 생성합니다.
+
+```tsx filename="app/products/[id]/opengraph-image.tsx" switcher
+import { ImageResponse } from 'next/og'
+import { getCaptionForImage, getOGImages } from '@/app/utils/images'
+
+export async function generateImageMetadata({
+  params,
+}: {
+  params: { id: string }
+}) {
+  const images = await getOGImages(params.id)
+
+  return images.map((image, idx) => ({
+    id: idx,
+    size: { width: 1200, height: 600 },
+    alt: image.text,
+    contentType: 'image/png',
+  }))
+}
+
+export default async function Image({
+  params,
+  id,
+}: {
+  params: Promise<{ id: string }>
+  id: Promise<number>
+}) {
+  const productId = (await params).id
+  const imageId = await id
+  const text = await getCaptionForImage(productId, imageId)
+
+  return new ImageResponse(
+    (
+      <div
+        style={
+          {
+            // ...
+          }
+        }
+      >
+        {text}
+      </div>
+    )
+  )
+}
+```
+
+```jsx filename="app/products/[id]/opengraph-image.js" switcher
+import { ImageResponse } from 'next/og'
+import { getCaptionForImage, getOGImages } from '@/app/utils/images'
+
+export async function generateImageMetadata({ params }) {
+  const images = await getOGImages(params.id)
+
+  return images.map((image, idx) => ({
+    id: idx,
+    size: { width: 1200, height: 600 },
+    alt: image.text,
+    contentType: 'image/png',
+  }))
+}
+
+export default async function Image({ params, id }) {
+  const productId = (await params).id
+  const imageId = await id
+  const text = await getCaptionForImage(productId, imageId)
+
+  return new ImageResponse(
+    (
+      <div
+        style={
+          {
+            // ...
+          }
+        }
+      >
+        {text}
+      </div>
+    )
+  )
+}
+```
+
+## 버전 기록| 버전 | 변경사항 |
+
+| --------- | ------------------------------------------------------------------------- |`v16.0.0` | `id` passed to the Image generation function is now a promise that resolves to `string` or `number` |`v16.0.0` | `params` passed to the Image generation function is now a promise that resolves to an object        |
+| `v13.3.0` | `generateImageMetadata` introduced.                                                                 |

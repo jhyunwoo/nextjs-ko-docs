@@ -1,0 +1,38 @@
+---
+title: 뷰전환
+description: 앱 라우터의 React에서 ViewTransition API 활성화
+version: experimental
+---
+
+`viewTransition`는 React에서 새로운 [전환 보기 API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API)를 활성화하는 실험적 플래그입니다. 이 API를 사용하면 기본 보기 전환 브라우저 API를 활용하여 UI 상태 간 원활한 전환을 생성할 수 있습니다.
+
+이 기능을 활성화하려면 `viewTransition` 파일에서 `true` 속성을 `next.config.js`로 설정해야 합니다.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    viewTransition: true,
+  },
+}
+
+module.exports = nextConfig
+```
+
+> 중요 공지: `<ViewTransition>` 구성 요소는 이미 React의 Canary 릴리스 채널에서 사용할 수 있습니다.
+> `experimental.viewTransition`은 Next.js 기능과의 심층 통합을 활성화하는 데만 필요합니다. 자동으로
+> 탐색을 위한 [전환 유형 추가](https://react.dev/reference/react/addTransitionType). Next.js 특정 전환 유형은 아직 구현되지 않았습니다.
+
+## 사용법
+
+애플리케이션의 React에서 [`<ViewTransition>` 구성요소](https://react.dev/reference/react/ViewTransition)를 가져올 수 있습니다.
+
+```jsx
+import { ViewTransition } from 'react'
+```
+
+### 라이브 데모
+
+이 기능이 실제로 작동하는 모습을 보려면 [Next.js 전환 데모 보기](https://view-transition-example.vercel.app)를 확인하세요.
+
+이 API가 발전함에 따라 문서를 업데이트하고 더 많은 예제를 공유할 것입니다. 그러나 지금은 프로덕션 환경에서 이 기능을 사용하지 않는 것이 좋습니다.

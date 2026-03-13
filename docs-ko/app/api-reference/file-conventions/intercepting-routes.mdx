@@ -1,0 +1,60 @@
+---
+title: 경로 차단
+description: 가로채기 경로를 사용하여 브라우저 URL을 마스킹하면서 현재 레이아웃 내에서 새 경로를 로드합니다. 이는 모달과 같은
+  고급 라우팅 패턴에 유용합니다.
+related:
+  title: 다음 단계
+  description: 가로채기 및 병렬 경로를 사용하여 모달을 생성하는 방법을 알아보세요.
+  links:
+    - app/api-reference/file-conventions/parallel-routes
+---
+
+경로를 가로채면 현재 레이아웃 내 애플리케이션의 다른 부분에서 경로를 로드할 수 있습니다. 이 라우팅 패러다임은 사용자가 다른 컨텍스트로 전환하지 않고도 경로의 내용을 표시하려는 경우 유용할 수 있습니다.
+
+예를 들어, 피드에서 사진을 클릭하면 피드에 오버레이되어 사진을 모달로 표시할 수 있습니다. 이 경우 Next.js는 `/photo/123` 경로를 가로채서 URL를 마스크하고 `/feed` 위에 오버레이합니다.
+
+<Image alt="경로 소프트 네비게이션 차단" srcLight="/docs/light/intercepting-routes-soft-navigate.png" srcDark="/docs/dark/intercepting-routes-soft-navigate.png" width="1600" height="617" />
+
+그러나 공유 가능한 URL를 클릭하거나 페이지를 새로 고쳐 사진으로 이동하면 모달 대신 전체 사진 페이지가 렌더링되어야 합니다. 경로 차단이 발생해서는 안 됩니다.
+
+<Image alt="경로 하드 탐색 가로채기" srcLight="/docs/light/intercepting-routes-hard-navigate.png" srcDark="/docs/dark/intercepting-routes-hard-navigate.png" width="1600" height="604" />
+
+## 컨벤션
+
+경로 차단은 `(..)` 규칙으로 정의할 수 있습니다. 이는 상대 경로 규칙 `../`과 유사하지만 경로 세그먼트에 대한 것입니다.
+
+다음을 사용할 수 있습니다.
+
+- `(.)` to match segments on the **same level**
+- `(..)` to match segments **one level above**
+- `(..)(..)` 세그먼트 **두 레벨 위**
+- `(...)` 디렉터리의 세그먼트와 일치하는 **root** `app` directory
+
+예를 들어, `photo` 디렉터리를 생성하여 `feed` 세그먼트 내에서 `(..)photo` 세그먼트를 가로챌 수 있습니다.
+
+<Image alt="차단 경로 폴더 구조" srcLight="/docs/light/intercepted-routes-files.png" srcDark="/docs/dark/intercepted-routes-files.png" width="1600" height="604" />
+
+> **알아두면 좋은 점:** `(..)` 규칙은 파일 시스템이 아닌 *경로 세그먼트*를 기반으로 합니다. 예를 들어, `@slot` 폴더는 고려하지 않습니다.[Parallel Routes](parallel-routes.mdx).
+
+## 예
+
+### 모달
+
+경로 차단은 [병렬 경로](parallel-routes.mdx)와 함께 사용하여 모달을 생성할 수 있습니다. 이를 통해 다음과 같은 모달 구축 시 일반적인 문제를 해결할 수 있습니다.
+
+- 모달 콘텐츠를 **URL**을 통해 공유 가능하게 만듭니다.
+- **컨텍스트를 보존**합니다.
+- **이전 경로로 이동하지 않고 뒤로 탐색 시 모달을 닫습니다**.
+- **앞으로 탐색 시 모달 다시 열기**.
+
+사용자가 클라이언트 측 탐색을 사용하여 갤러리에서 사진 모달을 열거나 공유 가능한 URL에서 직접 사진 페이지로 이동할 수 있는 다음 UI 패턴을 고려해보세요.
+
+<Image alt="경로 차단 모달 예" srcLight="/docs/light/intercepted-routes-modal-example.png" srcDark="/docs/dark/intercepted-routes-modal-example.png" width="1600" height="976" />
+
+위의 예에서 `photo` 세그먼트에 대한 경로는 `(..)`이 세그먼트가 `@modal` 일치자를 사용할 수 있습니다. 이는 **not** a segment. This means that the `photo` 경로가 파일 시스템 수준이 두 개 더 높음에도 불구하고 세그먼트 수준이 한 개만 높다는 것을 의미합니다.
+
+단계별 예는 [병렬 경로](parallel-routes.mdx#modals) 문서를 참조하거나 [이미지 갤러리 예](https://github.com/vercel-labs/nextgram)를 참조하세요.
+
+> **알아두면 좋은 점:**
+>
+> - 다른 예로는 전용 `/login` 페이지가 있는 동시에 상단 탐색 표시줄에서 로그인 모달을 열거나 측면 모달에서 장바구니를 여는 것이 포함될 수 있습니다.

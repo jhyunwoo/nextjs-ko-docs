@@ -1,0 +1,192 @@
+---
+title: 경로 처리기
+nav_title: 경로 처리기
+description: 경로 처리기 사용 방법 알아보기
+related:
+  title: API 참조
+  description: 경로 처리기에 대해 자세히 알아보기
+  links:
+    - app/api-reference/file-conventions/route
+    - app/guides/backend-for-frontend
+---
+
+## 경로 처리기
+
+경로 핸들러를 사용하면 웹 [요청](https://developer.mozilla.org/docs/Web/API/Request) 및 [응답](https://developer.mozilla.org/docs/Web/API/Response) API를 사용하여 지정된 경로에 대한 사용자 정의 요청 핸들러를 생성할 수 있습니다.
+
+<Image alt="Route.js 특수 파일" srcLight="/docs/light/route-special-file.png" srcDark="/docs/dark/route-special-file.png" width="1600" height="444" />
+
+> **알아두면 좋은 정보**: 경로 처리기는 `app` 디렉터리 내에서만 사용할 수 있습니다. 이는 [API 경로](https://nextjs.org/docs/pages/building-your-application/routing/api-routes)와 동일합니다. 즉, API 경로와 경로 처리기를 함께 사용할 필요가 `pages` directory meaning you **없습니다**.
+
+### 컨벤션
+
+경로 처리기는 [`route.js|ts` 파일](../api-reference/file-conventions/route.mdx)에 정의되어 있습니다.`app` directory:
+
+```ts filename="app/api/route.ts" switcher
+export async function GET(request: Request) {}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {}
+```
+
+경로 처리기는 `app` 및 `page.js`과 유사하게 `layout.js` 디렉터리 내부 어디에나 중첩될 수 있습니다. 그러나 **없습니다**.`route.js` file at the same route segment level as `page.js`.
+
+### 지원되는 HTTP 메소드
+
+다음 [HTTP 메서드](https://developer.mozilla.org/docs/Web/HTTP/Methods)가 지원됩니다: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` 및 `OPTIONS`. 지원되지 않는 메서드가 호출되면 Next.js는 `405 Method Not Allowed` 응답을 반환합니다.
+
+### 확장된 `NextRequest` 및 `NextResponse` API
+
+기본 [요청](https://developer.mozilla.org/docs/Web/API/Request) 및 [응답](https://developer.mozilla.org/docs/Web/API/Response) API를 지원하는 것 외에도 Next.js는 이를 [`NextRequest`](../api-reference/functions/next-request.mdx) 및 [`NextResponse`](../api-reference/functions/next-response.mdx)은 고급 사용 사례에 편리한 도우미를 제공합니다.
+
+### 캐싱
+
+경로 처리기는 기본적으로 캐시되지 않습니다. 그러나 `GET` 메서드에 대한 캐싱을 선택할 수 있습니다. 지원되는 다른 HTTP 메소드는 캐시되지 **않습니다**. `GET` 메서드를 캐시하려면 경로 처리기 파일에서 [경로 구성 옵션](../api-reference/file-conventions/route-segment-config.mdx#dynamic)을 사용하세요.`export const dynamic = 'force-static'` in your Route Handler file.
+
+```ts filename="app/items/route.ts" switcher
+export const dynamic = 'force-static'
+
+export async function GET() {
+  const res = await fetch('https://data.mongodb-api.com/...', {
+    headers: {
+      'Content-Type': 'application/json',
+      'API-Key': process.env.DATA_API_KEY,
+    },
+  })
+  const data = await res.json()
+
+  return Response.json({ data })
+}
+```
+
+```js filename="app/items/route.js" switcher
+export const dynamic = 'force-static'
+
+export async function GET() {
+  const res = await fetch('https://data.mongodb-api.com/...', {
+    headers: {
+      'Content-Type': 'application/json',
+      'API-Key': process.env.DATA_API_KEY,
+    },
+  })
+  const data = await res.json()
+
+  return Response.json({ data })
+}
+```
+
+> **알아두면 좋은 정보**: 지원되는 다른 HTTP 메서드는 동일한 파일에서 캐시되는 **않습니다**.`GET` method that is cached, in the same file.
+
+#### 캐시 구성요소 포함
+
+When [캐시 구성 요소](cache-components.mdx)가 활성화되면 `GET` 경로 처리기는 애플리케이션의 일반 UI 경로와 동일한 모델을 따릅니다. 기본적으로 요청 시 실행되고, 동적 또는 런타임 데이터에 액세스하지 않을 때 사전 렌더링될 수 있으며, `use cache`을 사용하여 정적 응답에 동적 데이터를 포함할 수 있습니다.
+
+**정적 예** - 동적 또는 런타임 데이터에 액세스하지 않으므로 빌드 시 사전 렌더링됩니다.
+
+```tsx filename="app/api/project-info/route.ts"
+export async function GET() {
+  return Response.json({
+    projectName: 'Next.js',
+  })
+}
+```
+
+**동적 예** - 비결정적 작업에 액세스합니다. 빌드 중에 `Math.random()`이 호출되면 사전 렌더링이 중지되고 요청 시 렌더링이 연기됩니다.
+
+```tsx filename="app/api/random-number/route.ts"
+export async function GET() {
+  return Response.json({
+    randomNumber: Math.random(),
+  })
+}
+```
+
+**런타임 데이터 예** - 요청별 데이터에 액세스합니다. `headers()`와 같은 런타임 API가 호출되면 사전 렌더링이 종료됩니다.
+
+```tsx filename="app/api/user-agent/route.ts"
+import { headers } from 'next/headers'
+
+export async function GET() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+
+  return Response.json({ userAgent })
+}
+```
+
+> **알아두면 좋은 정보**: `GET` 핸들러가 네트워크 요청, 데이터베이스 쿼리, 비동기 파일 시스템 작업, 요청 개체 속성(예: `req.url`, `request.headers`, `request.cookies`, `request.body`), 런타임 API에 액세스하는 경우 사전 렌더링이 중지됩니다. [`cookies()`](../api-reference/functions/cookies.mdx), [`headers()`](../api-reference/functions/headers.mdx), [`connection()`](../api-reference/functions/connection.mdx) 또는 비결정적 작업.
+
+**캐시된 예** - 동적 데이터(데이터베이스 쿼리)에 액세스하지만 이를 `use cache`로 캐시하여 사전 렌더링된 응답에 포함될 수 있도록 합니다.
+
+```tsx filename="app/api/products/route.ts"
+import { cacheLife } from 'next/cache'
+
+export async function GET() {
+  const products = await getProducts()
+  return Response.json(products)
+}
+
+async function getProducts() {
+  'use cache'
+  cacheLife('hours')
+
+  return await db.query('SELECT * FROM products')
+}
+```
+
+> **알아두면 좋은 정보**: `use cache`는 경로 핸들러 본문 내에서 직접 사용할 수 없습니다. 도우미 함수로 추출합니다. 캐시된 응답은 새 요청이 도착하면 `cacheLife`에 따라 재검증됩니다.
+
+### 특수 경로 처리기
+
+Special Route Handlers like [`sitemap.ts`](../api-reference/file-conventions/metadata/sitemap.mdx), [`opengraph-image.tsx`](../api-reference/file-conventions/metadata/opengraph-image.mdx), [`icon.tsx`](../api-reference/file-conventions/metadata/app-icons.mdx)과 같은 특수 경로 처리기 및 기타 [메타데이터 파일](../api-reference/file-conventions/metadata/index.mdx)은 동적 API 또는 동적 구성 옵션을 사용하지 않는 한 기본적으로 정적으로 유지됩니다.
+
+### 경로 확인
+
+You can consider a `route`를 가장 낮은 수준의 라우팅 기본 요소로 간주할 수 있습니다.
+
+- They **않습니다**.`page`.
+- There **없습니다**.`route.js` file at the same route as `page.js`.
+
+| 페이지 | 경로 | 결과 |`app/page.js`        | `app/route.js`     | <Cross size={18} /> Conflict |`app/page.js`        | `app/api/route.js` | <Check size={18} /> Valid    |`app/[user]/page.js` | `app/api/route.js` | <Check size={18} /> Valid    |
+
+| `route.js` | `page.js` |  Valid    |
+
+```ts filename="app/page.ts" switcher
+export default function Page() {
+  return <h1>Hello, Next.js!</h1>
+}
+
+// Conflict
+// `app/route.ts`
+export async function POST(request: Request) {}
+```
+
+```js filename="app/page.js" switcher
+export default function Page() {
+  return <h1>Hello, Next.js!</h1>
+}
+
+// Conflict
+// `app/route.js`
+export async function POST(request) {}
+```
+
+경로 핸들러가 [프런트엔드 애플리케이션을 보완](../guides/backend-for-frontend.mdx)하는 방법에 대해 자세히 알아보거나 경로 핸들러[API 참조](../api-reference/file-conventions/route.mdx)를 살펴보세요.
+
+### 경로 컨텍스트 도우미
+
+TypeScript에서는 전역적으로 사용 가능한 `context` 매개 변수를 입력할 수 있습니다.[`RouteContext`](../api-reference/file-conventions/route.mdx#route-context-helper) helper:
+
+```ts filename="app/users/[id]/route.ts" switcher
+import type { NextRequest } from 'next/server'
+
+export async function GET(_req: NextRequest, ctx: RouteContext<'/users/[id]'>) {
+  const { id } = await ctx.params
+  return Response.json({ id })
+}
+```
+
+> **알면 좋은 점**
+>
+> - 유형은 `next dev`, `next build` 또는 `next typegen` 중에 생성됩니다.

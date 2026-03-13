@@ -1,0 +1,176 @@
+---
+title: ~ 후에
+description: after 함수에 대한 API 참조입니다.
+---
+
+`after`을 사용하면 응답(또는 사전 렌더링)이 완료된 후 실행될 작업을 예약할 수 있습니다. 이는 로깅 및 분석과 같이 응답을 차단해서는 안 되는 작업 및 기타 부작용에 유용합니다.
+
+It can be used in [서버 구성 요소](../../getting-started/server-and-client-components.mdx)([`generateMetadata`](generate-metadata.mdx) 포함), [서버 기능](../../getting-started/updating-data.mdx), [경로 처리기](../file-conventions/route.mdx) 및 [프록시](../file-conventions/proxy.mdx).
+
+이 함수는 응답(또는 사전 렌더링)이 완료된 후 실행될 콜백을 허용합니다.
+
+```tsx filename="app/layout.tsx" switcher
+import { after } from 'next/server'
+// Custom logging function
+import { log } from '@/app/utils'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  after(() => {
+    // Execute after the layout is rendered and sent to the user
+    log()
+  })
+  return <>{children}</>
+}
+```
+
+```jsx filename="app/layout.jsx" switcher
+import { after } from 'next/server'
+// Custom logging function
+import { log } from '@/app/utils'
+
+export default function Layout({ children }) {
+  after(() => {
+    // Execute after the layout is rendered and sent to the user
+    log()
+  })
+  return <>{children}</>
+}
+```
+
+> **알아두면 좋은 점:** `after`은 [동적 API](../../guides/caching.mdx#dynamic-rendering)이 아니며 이를 호출해도 경로가 동적이 되지 않습니다. 정적 페이지 내에서 사용되는 경우 콜백은 빌드 시 또는 페이지 유효성을 다시 검사할 때마다 실행됩니다.
+
+## 참조
+
+### 매개변수
+
+- 응답(또는 사전 렌더링)이 완료된 후 실행될 콜백 함수입니다.
+
+### 기간
+
+`after`은 플랫폼의 기본 또는 구성된 최대 경로 기간 동안 실행됩니다. 플랫폼에서 지원하는 경우 [`maxDuration`](../file-conventions/route-segment-config.mdx#maxduration) 경로 세그먼트 구성을 사용하여 시간 초과 제한을 구성할 수 있습니다.
+
+## 알아두면 좋은 점
+
+- `after`이 실행됩니다. 오류가 발생한 경우나 `notFound` 또는 `redirect`이 호출된 경우도 포함됩니다.
+- React `cache`를 사용하여 `after` 내부에서 호출된 함수를 중복 제거할 수 있습니다.
+- `after`은 다른 `after` 호출 내에 중첩될 수 있습니다. 예를 들어 `after` 호출을 래핑하여 추가 기능을 추가하는 유틸리티 함수를 생성할 수 있습니다.
+
+## 예
+
+### 요청 API 사용
+
+You can use request APIs such as [`cookies`](cookies.mdx) 및 \[Route]의 [`headers`](headers.mdx) 및 `after` in [Server Functions](../../getting-started/updating-data.mdx)과 같은 요청 API를 사용할 수 있습니다. 처리기]\(../file-conventions/route.mdx). 이는 돌연변이 후 활동을 기록하는 데 유용합니다. 예를 들면:[Route Handlers](../file-conventions/route.mdx). This is useful for logging activity after a mutation. For example:
+
+```ts filename="app/api/route.ts" highlight={2,7-9} switcher
+import { after } from 'next/server'
+import { cookies, headers } from 'next/headers'
+import { logUserAction } from '@/app/utils'
+
+export async function POST(request: Request) {
+  // Perform mutation
+  // ...
+
+  // Log user activity for analytics
+  after(async () => {
+    const userAgent = (await headers().get('user-agent')) || 'unknown'
+    const sessionCookie =
+      (await cookies().get('session-id'))?.value || 'anonymous'
+
+    logUserAction({ sessionCookie, userAgent })
+  })
+
+  return new Response(JSON.stringify({ status: 'success' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+```
+
+```js filename="app/api/route.js" highlight={2,7-9} switcher
+import { after } from 'next/server'
+import { cookies, headers } from 'next/headers'
+import { logUserAction } from '@/app/utils'
+
+export async function POST(request) {
+  // Perform mutation
+  // ...
+
+  // Log user activity for analytics
+  after(async () => {
+    const userAgent = (await headers().get('user-agent')) || 'unknown'
+    const sessionCookie =
+      (await cookies().get('session-id'))?.value || 'anonymous'
+
+    logUserAction({ sessionCookie, userAgent })
+  })
+
+  return new Response(JSON.stringify({ status: 'success' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+```
+
+그러나 `after` 내에서는 이러한 요청 API를 사용할 수 없습니다. 이는 Next.js가 [캐시 구성 요소](../../getting-started/server-and-client-components.mdx)를 지원하기 위해 요청 API에 액세스하는 트리의 어느 부분을 알아야 하지만 [Cache Components](../../getting-started/cache-components.mdx), but `after`는 React의 렌더링 수명 주기 후에 실행되기 때문입니다.
+
+## 플랫폼 지원
+
+| 배포 옵션 | 지원됨 |[Node.js server](../../getting-started/deploying.mdx#nodejs-server) | Yes               |[Docker container](../../getting-started/deploying.mdx#docker)      | Yes               |[Static export](../../getting-started/deploying.mdx#static-export)  | No                |
+| [Adapters](../../getting-started/deploying.mdx#adapters)            | Platform-specific |
+
+| [Static export`after`](../../guides/self-hosting.mdx#after)  | No                |
+|             | Platform-specific |
+
+<details id="after-serverless">
+  <summary>참조: 서버리스 플랫폼에 대한 `after` 지원</summary>
+
+  서버리스 컨텍스트에서 `after`을 사용하려면 응답이 전송된 후 비동기 작업이 완료될 때까지 기다려야 합니다. Next.js 및 Vercel에서는 `waitUntil(promise)`라는 기본 요소를 사용하여 이를 달성합니다.[`waitUntil`](https://vercel.com/docs/functions/functions-api-reference#waituntil) have settled.
+
+  사용자가 `after`을 실행할 수 있도록 하려면 유사한 방식으로 작동하는 `waitUntil` 구현을 제공해야 합니다.
+
+  When `after`이 호출되면 Next.js는 다음과 같이 `waitUntil`에 액세스합니다.
+
+  ```jsx
+  const RequestContext = globalThis[Symbol.for('@next/request-context')]
+  const contextValue = RequestContext?.get()
+  const waitUntil = contextValue?.waitUntil
+  ```
+
+  즉, `globalThis[Symbol.for('@next/request-context')]`에는 다음과 같은 객체가 포함될 것으로 예상됩니다.
+
+  ```tsx
+  type NextRequestContext = {
+    get(): NextRequestContextValue | undefined
+  }
+
+  type NextRequestContextValue = {
+    waitUntil?: (promise: Promise<any>) => void
+  }
+  ```
+
+  다음은 구현 예입니다.
+
+  ```tsx
+  import { AsyncLocalStorage } from 'node:async_hooks'
+
+  const RequestContextStorage = new AsyncLocalStorage<NextRequestContextValue>()
+
+  // Define and inject the accessor that next.js will use
+  const RequestContext: NextRequestContext = {
+    get() {
+      return RequestContextStorage.getStore()
+    },
+  }
+  globalThis[Symbol.for('@next/request-context')] = RequestContext
+
+  const handler = (req, res) => {
+    const contextValue = { waitUntil: YOUR_WAITUNTIL }
+    // Provide the value
+    return RequestContextStorage.run(contextValue, () => nextJsHandler(req, res))
+  }
+  ```
+</details>
+
+## 버전 기록
+
+| 버전 기록 | 설명 |`v15.1.0`       | `after` became stable.       |`v15.0.0-rc`    | `unstable_after` introduced. |

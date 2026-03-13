@@ -1,0 +1,73 @@
+---
+title: htmlLimitedBots
+description: 차단 메타데이터를 수신해야 하는 사용자 에이전트 목록을 지정합니다.
+---
+
+The `htmlLimitedBots` 구성을 사용하면 [스트리밍 메타데이터](../../functions/generate-metadata.mdx#streaming-metadata) 대신 차단 메타데이터를 수신해야 하는 사용자 에이전트 목록을 지정할 수 있습니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const config: NextConfig = {
+  htmlLimitedBots: /MySpecialBot|MyAnotherSpecialBot|SimpleCrawler/,
+}
+
+export default config
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  htmlLimitedBots: /MySpecialBot|MyAnotherSpecialBot|SimpleCrawler/,
+}
+```
+
+## 기본 목록
+
+Next.js에는 다음을 포함한 HTML 제한된 봇의 기본 목록이 포함되어 있습니다.
+
+- Google 크롤러(예: Mediapartners-Google, AdsBot-Google, Google-PageRenderer)
+- 빙봇
+- 트위터봇
+- 슬랙봇
+
+전체 목록은 [여기](https://github.com/vercel/next.js/blob/canary/packages/next/src/shared/lib/router/utils/html-bots.ts)에서 확인하세요.
+
+Specifying a `htmlLimitedBots` 구성을 지정하면 Next.js' 기본 목록이 재정의됩니다. 그러나 이는 고급 동작이므로 대부분의 경우 기본값이면 충분합니다.
+
+```ts filename="next.config.ts" switcher
+const config: NextConfig = {
+  htmlLimitedBots: /MySpecialBot|MyAnotherSpecialBot|SimpleCrawler/,
+}
+
+export default config
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  htmlLimitedBots: /MySpecialBot|MyAnotherSpecialBot|SimpleCrawler/,
+}
+```
+
+## 비활성화 중
+
+스트리밍 메타데이터를 완전히 비활성화하려면:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const config: NextConfig = {
+  htmlLimitedBots: /.*/,
+}
+
+export default config
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  htmlLimitedBots: /.*/,
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`htmlLimitedBots` option introduced. |

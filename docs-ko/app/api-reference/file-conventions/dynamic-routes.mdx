@@ -1,0 +1,367 @@
+---
+title: 동적 경로 세그먼트
+nav_title: 동적 세그먼트
+description: 동적 경로 세그먼트를 사용하면 동적 데이터에서 프로그래밍 방식으로 경로 세그먼트를 생성할 수 있습니다.
+related:
+  title: 다음 단계
+  description: 다음에 수행할 작업에 대한 자세한 내용을 보려면 다음 섹션을 참조하세요.
+  links:
+    - app/api-reference/functions/generate-static-params
+---
+
+정확한 경로 세그먼트 이름을 미리 모르고 동적 데이터에서 경로를 생성하려는 경우 요청 시 채워지거나 빌드 시 미리 렌더링되는 동적 세그먼트를 사용할 수 있습니다.
+
+## 컨벤션
+
+동적 세그먼트는 폴더 이름을 대괄호(`[folderName]`)로 묶어 생성할 수 있습니다. 예를 들어, 블로그에는 `app/blog/[slug]/page.js` 경로가 포함될 수 있습니다. 여기서 `[slug]`는 블로그 게시물의 동적 세그먼트입니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  return <div>My Post: {slug}</div>
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+export default async function Page({ params }) {
+  const { slug } = await params
+  return <div>My Post: {slug}</div>
+}
+```
+
+동적 세그먼트는 `params` 소품으로 [`layout`](layout.mdx), [`page`](page.mdx)에 전달됩니다. [`route`](route.mdx) 및 [`generateMetadata`](../functions/generate-metadata.mdx#generatemetadata-function) 함수입니다.
+
+| 경로 | 예 URL | `params` |`app/blog/[slug]/page.js` | `/blog/a`   | `{ slug: 'a' }` |`app/blog/[slug]/page.js` | `/blog/b`   | `{ slug: 'b' }` |
+| `app/blog/[slug]/page.js` | `/blog/c`   | `{ slug: 'c' }` |
+
+### 클라이언트 구성 요소
+
+클라이언트 구성 요소 **페이지**에서 [`use`](https://react.dev/reference/react/use) 후크를 사용하여 props의 동적 세그먼트에 액세스할 수 있습니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+'use client'
+import { use } from 'react'
+
+export default function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = use(params)
+
+  return (
+    <div>
+      <p>{slug}</p>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+'use client'
+import { use } from 'react'
+
+export default function BlogPostPage({ params }) {
+  const { slug } = use(params)
+
+  return (
+    <div>
+      <p>{slug}</p>
+    </div>
+  )
+}
+```
+
+또는 클라이언트 구성 요소는 [`useParams`](../functions/use-params.mdx) 후크를 사용하여 클라이언트 구성 요소 트리의 어느 위치에서나 `params`에 액세스할 수 있습니다.
+
+### 포괄 세그먼트
+
+동적 세그먼트는 괄호 **포괄적인** 후속 세그먼트로 확장될 수 있습니다.`[...folderName]`.
+
+예를 들어, `app/shop/[...slug]/page.js`는 `/shop/clothes`과 일치하지만 `/shop/clothes/tops`, `/shop/clothes/tops/t-shirts` 등과도 일치합니다.
+
+| 경로 | 예 URL | `params` |`app/shop/[...slug]/page.js` | `/shop/a`     | `{ slug: ['a'] }`           |`app/shop/[...slug]/page.js` | `/shop/a/b`   | `{ slug: ['a', 'b'] }`      |
+| `app/shop/[...slug]/page.js` | `/shop/a/b/c` | `{ slug: ['a', 'b', 'c'] }` |
+
+### 선택적 포괄 세그먼트
+
+포괄 세그먼트는 이중 대괄호 안에 매개변수(**선택 사항**으로 만들 수 있습니다.`[[...folderName]]`.
+
+예를 들어 `app/shop/[[...slug]]/page.js`은 **also** match `/shop`, `/shop/clothes`, `/shop/clothes/tops` 외에도 `/shop/clothes/tops/t-shirts`과  일치합니다.
+
+The difference between **catch-all**과 **선택적 catch-all** 세그먼트의 차이점은 선택사항을 사용하면 매개변수가 없는 경로도 일치한다는 것입니다(위 예에서는 `/shop`).| 경로 | 예 URL |  |
+
+| ----------------- | ------------- | -------------- |`params`                    |
+| ------------------------------ | ------------- | --------------------------- |
+| `app/shop/[[...slug]]/page.js` | `/shop`       | `{ slug: undefined }`       |
+| `app/shop/[[...slug]]/page.js` | `/shop/a`     | `{ slug: ['a'] }`           |
+| `app/shop/[[...slug]]/page.js` | `/shop/a/b`   | `{ slug: ['a', 'b'] }`      |
+| `app/shop/[[...slug]]/page.js` | `/shop/a/b/c` | `{ slug: ['a', 'b', 'c'] }` |
+
+### TypeScript
+
+TypeScript를 사용할 때 구성된 경로 세그먼트에 따라 `params`에 대한 유형을 추가할 수 있습니다. [`PageProps<'/route'>`](page.mdx#page-props-helper), [`LayoutProps<'/route'>`](layout.mdx#layout-props-helper)을 사용하거나 [`RouteContext<'/route'>`](route.mdx#route-context-helper)를 사용하여 각각 `params`, `page` 및 `layout`에 `route`을 입력합니다.
+
+경로 `params` 값은 `string`, `string[]` 또는 `undefined`(선택적 포괄 세그먼트의 경우)로 입력됩니다. 그 이유는 해당 값이 런타임까지 알려지지 않기 때문입니다. 사용자는 주소 표시줄에 URL를 입력할 수 있으며 이러한 광범위한 유형은 애플리케이션 코드가 이러한 가능한 모든 경우를 처리하는 데 도움이 됩니다.
+
+| 경로 | `params` 유형 정의 |`app/blog/[slug]/page.js`           | `{ slug: string }`                       |`app/shop/[...slug]/page.js`        | `{ slug: string[] }`                     |
+| `app/shop/[[...slug]]/page.js`      | `{ slug?: string[] }`                    |
+| `app/[categoryId]/[itemId]/page.js` | `{ categoryId: string, itemId: string }` |
+
+| `params`        | `[locale]`                     |
+|       |                     |
+
+```tsx filename="/app/[locale]/page.tsx"
+import { notFound } from 'next/navigation'
+import type { Locale } from '@i18n/types'
+import { isValidLocale } from '@i18n/utils'
+
+function assertValidLocale(value: string): asserts value is Locale {
+  if (!isValidLocale(value)) notFound()
+}
+
+export default async function Page(props: PageProps<'/[locale]'>) {
+  const { locale } = await props.params // locale is typed as string
+  assertValidLocale(locale)
+  // locale is now typed as Locale
+}
+```
+
+## 행동
+
+- Since the `params` 소품은 약속이기 때문입니다. 값에 액세스하려면 `async`/`await` 또는 React의 사용 함수를 사용해야 합니다.
+  - 버전 14 이하에서는 `params`가 동기식 prop가었습니다. 이전 버전과의 호환성을 돕기 위해 Next.js 15에서 동기적으로 계속 액세스할 수 있지만 이 동작은 향후 더 이상 사용되지 않습니다.
+
+### 캐시 구성요소 포함
+
+동적 경로 세그먼트와 함께 [캐시 구성 요소](../../getting-started/cache-components.mdx)를 사용할 때 매개변수를 처리하는 방법은 [`generateStaticParams`](../functions/generate-static-params.mdx) 사용 여부에 따라 달라집니다.
+
+Without `generateStaticParams`이 없으면 사전 렌더링 중에 매개변수 값을 알 수 없으므로 매개변수 런타임 데이터가 생성됩니다. 대체 UI를 제공하려면 `<Suspense>` 경계에서 매개변수 액세스를 래핑해야 합니다.를 사용하면 빌드 시 사용할 수 있는 샘플 매개변수 값을 제공합니다. 빌드 프로세스에서는 동적 콘텐츠 및 기타 런타임 API가 올바르게 처리되었는지 확인한 다음 샘플에 대한 정적 HTML 파일을 생성합니다. 런타임 매개변수로 렌더링된 페이지는 첫 번째 요청이 성공한 후 디스크에 저장됩니다.
+
+아래 섹션에서는 두 패턴을 모두 보여줍니다.`generateStaticParams`, you provide sample param values that can be used at build time. The build process validates that dynamic content and other runtime APIs are correctly handled, then generates static HTML files for the samples. Pages rendered with runtime params are saved to disk after a successful first request.
+
+모든 매개변수는 런타임 데이터입니다. 매개변수 액세스는 Suspense 폴백 UI로 래핑되어야 합니다. Next.js는 빌드 시 정적 셸을 생성하고 각 요청마다 콘텐츠가 로드됩니다.
+
+#### Without `generateStaticParams`
+
+빌드 시 페이지를 미리 렌더링하려면 매개변수를 미리 제공하세요. 필요에 따라 모든 경로 또는 하위 집합을 미리 렌더링할 수 있습니다.
+
+> **Good to know**: You can also use [`loading.tsx`](loading.mdx) for page-level fallback UI.
+
+```tsx filename="app/blog/[slug]/page.tsx"
+import { Suspense } from 'react'
+
+export default function Page({ params }: PageProps<'/blog/[slug]'>) {
+  return (
+    <div>
+      <h1>Blog Post</h1>
+      <Suspense fallback={<div>Loading...</div>}>
+        {params.then(({ slug }) => (
+          <Content slug={slug} />
+        ))}
+      </Suspense>
+    </div>
+  )
+}
+
+async function Content({ slug }: { slug: string }) {
+  const res = await fetch(`https://api.vercel.app/blog/${slug}`)
+  const post = await res.json()
+
+  return (
+    <article>
+      <h2>{post.title}</h2>
+      <p>{post.content}</p>
+    </article>
+  )
+}
+```
+
+#### With `generateStaticParams`
+
+빌드 시간 유효성 검사에는 샘플 매개변수로 실행되는 코드 경로만 포함됩니다. 경로에 샘플에 없는 특정 매개변수 값에 대한 런타임 API에 액세스하는 조건부 논리가 있는 경우 해당 분기는 빌드 시 검증되지 않습니다.
+
+During the build process, the route is executed with each sample param to collect the HTML result. If dynamic content or runtime data are accessed incorrectly, the build will fail.에서 반환되지 않은 런타임 매개변수의 경우 첫 번째 요청 중에 유효성 검사가 수행됩니다. 위의 예에서 로 시작하는 슬러그에 대한 요청은 가 Suspense 경계 없이 에 액세스하기 때문에 실패합니다. 조건 분기에 도달하지 않은 다른 런타임 매개변수는 성공적으로 렌더링되고 후속 요청을 위해 디스크에 저장됩니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" highlight={3-5,8,19}
+import { Suspense } from 'react'
+
+export async function generateStaticParams() {
+  return [{ slug: '1' }, { slug: '2' }, { slug: '3' }]
+}
+
+export default async function Page({ params }: PageProps<'/blog/[slug]'>) {
+  const { slug } = await params
+
+  return (
+    <div>
+      <h1>Blog Post</h1>
+      <Content slug={slug} />
+    </div>
+  )
+}
+
+async function Content({ slug }: { slug: string }) {
+  const post = await getPost(slug)
+  return (
+    <article>
+      <h2>{post.title}</h2>
+      <p>{post.content}</p>
+    </article>
+  )
+}
+
+async function getPost(slug: string) {
+  'use cache'
+  const res = await fetch(`https://api.vercel.app/blog/${slug}`)
+  return res.json()
+}
+```
+
+Build-time validation only covers code paths that execute with the sample params. If your route has conditional logic that accesses runtime APIs for certain param values not in your samples, those branches won't be validated at build time: 함수를 사용하여 요청 시 주문형 경로 대신 빌드 시 경로를 할 수 있습니다.
+
+```tsx filename="app/blog/[slug]/page.tsx"
+import { cookies } from 'next/headers'
+
+export async function generateStaticParams() {
+  return [{ slug: 'public-post' }, { slug: 'hello-world' }]
+}
+
+export default async function Page({ params }: PageProps<'/blog/[slug]'>) {
+  const { slug } = await params
+
+  if (slug.startsWith('private-')) {
+    // This branch is never executed at build time
+    // Runtime requests for 'private-*' slugs will error
+    return <PrivatePost slug={slug} />
+  }
+
+  return <PublicPost slug={slug} />
+}
+
+async function PrivatePost({ slug }: { slug: string }) {
+  const token = (await cookies()).get('token')
+  // ... fetch and render private post using token for auth
+}
+```
+
+For runtime params not returned by `generateStaticParams` 함수 내에서 `private-`을 사용하면 요청이 `PrivatePost` 기능에 대한 다중 네트워크 호출을 방지하여 빌드 시간을 단축할 수 있습니다.`cookies()` without a Suspense boundary. Other runtime params that don't hit the conditional branch will render successfully and be saved to disk for subsequent requests.
+
+To fix this, wrap `PrivatePost`은 또한 동적 와 함께 작동하여 빌드 시 API 응답을 정적으로 생성합니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" highlight={13-15}
+import { Suspense } from 'react'
+import { cookies } from 'next/headers'
+
+export async function generateStaticParams() {
+  return [{ slug: 'public-post' }, { slug: 'hello-world' }]
+}
+
+export default async function Page({ params }: PageProps<'/blog/[slug]'>) {
+  const { slug } = await params
+
+  if (slug.startsWith('private-')) {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <PrivatePost slug={slug} />
+      </Suspense>
+    )
+  }
+
+  return <PublicPost slug={slug} />
+}
+
+async function PrivatePost({ slug }: { slug: string }) {
+  const token = (await cookies()).get('token')
+  // ... fetch and render private post using token for auth
+}
+```
+
+## Examples
+
+### With `generateStaticParams`
+
+이 예에서는 [`generateStaticParams`](../functions/generate-static-params.mdx) function can be used to [statically generate](../../guides/caching.mdx#static-rendering) routes at build time instead of on-demand at request time.에서 반환된 모든 블로그 게시물 ID에 대한 경로 핸들러가 빌드 시 정적으로 생성됩니다. 다른 ID에 대한 요청은 요청 시 동적으로 처리됩니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+```
+
+When using `fetch` inside the `generateStaticParams` function, the requests are [automatically deduplicated](../../guides/caching.mdx#request-memoization). This avoids multiple network calls for the same data Layouts, Pages, and other `generateStaticParams` functions, speeding up build time.
+
+### Dynamic GET Route Handlers with `generateStaticParams`
+
+`generateStaticParams` also works with dynamic [Route Handlers](route.mdx) to statically generate API responses at build time:
+
+```ts filename="app/api/posts/[id]/route.ts" switcher
+export async function generateStaticParams() {
+  const posts: { id: number }[] = await fetch(
+    'https://api.vercel.app/blog'
+  ).then((res) => res.json())
+
+  return posts.map((post) => ({
+    id: `${post.id}`,
+  }))
+}
+
+export async function GET(
+  request: Request,
+  { params }: RouteContext<'/api/posts/[id]'>
+) {
+  const { id } = await params
+  const res = await fetch(`https://api.vercel.app/blog/${id}`)
+
+  if (!res.ok) {
+    return Response.json({ error: 'Post not found' }, { status: 404 })
+  }
+
+  const post = await res.json()
+  return Response.json(post)
+}
+```
+
+```js filename="app/api/posts/[id]/route.js" switcher
+export async function generateStaticParams() {
+  const posts = await fetch('https://api.vercel.app/blog').then((res) =>
+    res.json()
+  )
+
+  return posts.map((post) => ({
+    id: `${post.id}`,
+  }))
+}
+
+export async function GET(request, { params }) {
+  const { id } = await params
+  const res = await fetch(`https://api.vercel.app/blog/${id}`)
+
+  if (!res.ok) {
+    return Response.json({ error: 'Post not found' }, { status: 404 })
+  }
+
+  const post = await res.json()
+  return Response.json(post)
+}
+```
+
+In this example, route handlers for all blog post IDs returned by `generateStaticParams` will be statically generated at build time. Requests to other IDs will be handled dynamically at request time.

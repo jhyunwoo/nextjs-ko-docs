@@ -1,0 +1,229 @@
+---
+title: not-found.js
+description: not-found.js 파일에 대한 API 참조입니다.
+---
+
+Next.js는 찾을 수 없는 사례를 처리하기 위한 두 가지 규칙을 제공합니다.
+
+- **`not-found.js`**: 경로 세그먼트에서 [`notFound`](../functions/not-found.mdx) 함수를 호출할 때 사용됩니다.
+- **`global-not-found.js`**: 전체 앱에서 일치하지 않는 경로에 대한 전역 404 페이지를 정의하는 데 사용됩니다. 이는 라우팅 수준에서 처리되며 레이아웃이나 페이지 렌더링에 의존하지 않습니다.
+
+## `not-found.js`
+
+The **not-found** 파일은 [`notFound`](../functions/not-found.mdx) 함수가 경로 세그먼트 내에서 발생하는 경우 UI를 렌더링하는 데 사용됩니다. 사용자 정의 UI 제공과 함께 Next.js는 스트리밍된 응답에 대해 `200` HTTP 상태 코드를 반환하고, 스트리밍되지 않은 응답에 대해 `404`를 반환합니다.
+
+```tsx filename="app/not-found.tsx" switcher
+import Link from 'next/link'
+
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Not Found</h2>
+      <p>Could not find requested resource</p>
+      <Link href="/">Return Home</Link>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/blog/not-found.js" switcher
+import Link from 'next/link'
+
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Not Found</h2>
+      <p>Could not find requested resource</p>
+      <Link href="/">Return Home</Link>
+    </div>
+  )
+}
+```
+
+## `global-not-found.js` (실험적)
+
+The `global-not-found.js` 파일을 사용하면 전체 애플리케이션에 대해 404 페이지를 정의할 수 있습니다. 경로 수준에서 작동하는 `not-found.js`과 달리 이는 요청된 URL가 어떤 경로와도 전혀 일치하지 않을 때 사용됩니다. Next.js **렌더링을 건너뛰고** 이 글로벌 페이지를 직접 반환합니다.
+
+The `global-not-found.js` 파일은 앱의 일반 렌더링을 우회합니다. 즉, 404 페이지에 필요한 전역 스타일, 글꼴 또는 기타 종속성을 가져와야 합니다.
+
+> **알아두면 좋은 정보**: 전역 스타일의 작은 버전과 간단한 글꼴 모음을 사용하면 이 페이지의 성능이 향상될 수 있습니다.
+
+`global-not-found.js`은 `layout.js` 및 `not-found.js`의 조합을 사용하여 404 페이지를 구축할 수 없는 경우에 유용합니다. 이는 두 가지 경우에 발생할 수 있습니다.
+
+- 앱에 여러 루트 레이아웃(예: `app/(admin)/layout.tsx` 및 `app/(shop)/layout.tsx`)이 있으므로 전역 404를 구성할 단일 레이아웃이 없습니다.
+- 루트 레이아웃은 최상위 동적 세그먼트(예: `app/[country]/layout.tsx`)를 사용하여 정의되므로 일관된 404 페이지를 구성하기가 더 어려워집니다.
+
+이를 활성화하려면 `globalNotFound`에 `next.config.ts` 플래그를 추가하세요.
+
+```tsx filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    globalNotFound: true,
+  },
+}
+
+export default nextConfig
+```
+
+그런 다음 `app` 디렉터리의 루트에 `app/global-not-found.js` 파일을 만듭니다.
+
+```tsx filename="app/global-not-found.tsx" switcher
+// Import global styles and fonts
+import './globals.css'
+import { Inter } from 'next/font/google'
+import type { Metadata } from 'next'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: '404 - Page Not Found',
+  description: 'The page you are looking for does not exist.',
+}
+
+export default function GlobalNotFound() {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>
+        <h1>404 - Page Not Found</h1>
+        <p>This page does not exist.</p>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/global-not-found.js" switcher
+// Import global styles and fonts
+import './globals.css'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: '404 - Page Not Found',
+  description: 'The page you are looking for does not exist.',
+}
+
+export default function GlobalNotFound() {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>
+        <h1>404 - Page Not Found</h1>
+        <p>This page does not exist.</p>
+      </body>
+    </html>
+  )
+}
+```
+
+Unlike `not-found.js`과 달리 이 파일은 `<html>` 및 `<body>` 태그를 포함하여 전체 HTML 문서를 반환해야 합니다.
+
+## 참조
+
+### 소품
+
+`not-found.js` 또는 `global-not-found.js` 구성 요소는 소품을 허용하지 않습니다.
+
+> **알아두면 좋은 정보**: 예상되는 `notFound()` 오류를 잡는 것 외에도 루트 `app/not-found.js` 및 `app/global-not-found.js` 파일은 전체 애플리케이션에 대해 일치하지 않는 모든 URL를 처리합니다. 이는 앱에서 처리하지 않는 URL를 방문하는 사용자에게 내보낸 UI가 표시된다는 의미입니다.
+
+## 예
+
+### 데이터 가져오기
+
+기본적으로 `not-found`은 서버 구성 요소입니다. `async`로 표시하여 데이터를 가져오고 표시할 수 있습니다.
+
+```tsx filename="app/not-found.tsx" switcher
+import Link from 'next/link'
+import { headers } from 'next/headers'
+
+export default async function NotFound() {
+  const headersList = await headers()
+  const domain = headersList.get('host')
+  const data = await getSiteData(domain)
+  return (
+    <div>
+      <h2>Not Found: {data.name}</h2>
+      <p>Could not find requested resource</p>
+      <p>
+        View <Link href="/blog">all posts</Link>
+      </p>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/not-found.jsx" switcher
+import Link from 'next/link'
+import { headers } from 'next/headers'
+
+export default async function NotFound() {
+  const headersList = await headers()
+  const domain = headersList.get('host')
+  const data = await getSiteData(domain)
+  return (
+    <div>
+      <h2>Not Found: {data.name}</h2>
+      <p>Could not find requested resource</p>
+      <p>
+        View <Link href="/blog">all posts</Link>
+      </p>
+    </div>
+  )
+}
+```
+
+경로에 따라 콘텐츠를 표시하기 위해 `usePathname`과 같은 클라이언트 구성 요소 후크를 사용해야 하는 경우 대신 클라이언트 측에서 데이터를 가져와야 합니다.
+
+### 메타데이터
+
+For `global-not-found.js`의 경우 `metadata` 개체 또는 [`generateMetadata`](../functions/generate-metadata.mdx) 함수를 내보내 `<title>`, `<meta>` 및 404 페이지의 기타 헤드 태그를 사용자 정의할 수 있습니다.
+
+> **알면 좋은 점**: Next.js는 `<meta name="robots" content="noindex" />` 페이지를 포함하여 404 상태 코드를 반환하는 페이지에 `global-not-found.js`을 자동으로 삽입합니다.
+
+```tsx filename="app/global-not-found.tsx" switcher
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Not Found',
+  description: 'The page you are looking for does not exist.',
+}
+
+export default function GlobalNotFound() {
+  return (
+    <html lang="en">
+      <body>
+        <div>
+          <h1>Not Found</h1>
+          <p>The page you are looking for does not exist.</p>
+        </div>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/global-not-found.js" switcher
+export const metadata = {
+  title: 'Not Found',
+  description: 'The page you are looking for does not exist.',
+}
+
+export default function GlobalNotFound() {
+  return (
+    <html lang="en">
+      <body>
+        <div>
+          <h1>Not Found</h1>
+          <p>The page you are looking for does not exist.</p>
+        </div>
+      </body>
+    </html>
+  )
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.4.0` | `global-not-found.js` introduced (experimental).    |`v13.3.0` | Root `app/not-found` handles global unmatched URLs. |`v13.0.0` | `not-found` introduced.                             |

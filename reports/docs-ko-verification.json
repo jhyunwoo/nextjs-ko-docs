@@ -1,0 +1,1605 @@
+{
+  "summary": {
+    "total": 231,
+    "pass": 173,
+    "warn": 2,
+    "fail": 56,
+    "issueTypes": [
+      [
+        "Inline code changed between source and target.",
+        56
+      ],
+      [
+        "Code fences changed between source and target.",
+        45
+      ],
+      [
+        "Unable to normalize target MDX for validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`",
+        1
+      ],
+      [
+        "Unable to parse target MDX for wrapper validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`",
+        1
+      ]
+    ]
+  },
+  "rows": [
+    {
+      "file": "docs-ko/app/api-reference/cli/create-next-app.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/cli/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/cli/next.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/font.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: define your variable fonts, const inter, const lora, variable font, custom local font where"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/form.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/image.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: the image, the following, internal path string, absolute external, configured with"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/link.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/components/script.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/eslint.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: bash package, pnpm add, eslint eslint, yarn add, dev eslint eslint"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/adapterPath.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/allowedDevOrigins.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/appDir.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/assetPrefix.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/authInterrupts.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/basePath.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/browserDebugInfoInTerminal.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/cacheComponents.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/cacheHandlers.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/cacheLife.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/compress.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/crossOrigin.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/cssChunking.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/devIndicators.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/distDir.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/env.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/expireTime.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/exportPathMap.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/generateBuildId.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/generateEtags.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/headers.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/htmlLimitedBots.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/httpAgentOptions.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/images.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/incrementalCacheHandlerPath.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/inlineCss.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/isolatedDevBuild.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/logging.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/mdxRs.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/onDemandEntries.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/optimizePackageImports.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/output.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/pageExtensions.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/poweredByHeader.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/productionBrowserSourceMaps.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/proxyClientMaxBodySize.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/reactCompiler.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/reactMaxHeadersLength.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/reactStrictMode.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/redirects.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/rewrites.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/sassOptions.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/serverActions.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/serverComponentsHmrCache.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/serverExternalPackages.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/staleTimes.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/staticGeneration.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/taint.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/trailingSlash.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/transpilePackages.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/turbopack.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/turbopackFileSystemCache.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/typedRoutes.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/typescript.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/urlImports.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/useLightningcss.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/viewTransition.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/webVitalsAttribution.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/next-config-js/webpack.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/config/typescript.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: json filename"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/use-cache-private.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/use-cache-remote.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/use-cache.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/use-client.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/directives/use-server.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/edge.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/default.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/dynamic-routes.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/error.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/forbidden.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/instrumentation-client.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/instrumentation.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/intercepting-routes.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/layout.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/loading.mdx",
+      "status": "WARN",
+      "fails": [],
+      "warns": [
+        "Potential English residue detected: hello world"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/mdx-components.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/app-icons.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/manifest.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/opengraph-image.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/robots.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/metadata/sitemap.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/not-found.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/page.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/parallel-routes.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/proxy.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: the incoming request, cookies from the request using the, let cookie, the response using the, const response"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/public-folder.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/route-groups.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/route-segment-config.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: tsx filename"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/route.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/src-folder.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/template.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/file-conventions/unauthorized.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/after.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: and inject the accessor that   will use, the value"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/cacheLife.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/cacheTag.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/connection.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/cookies.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/draft-mode.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/fetch.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/forbidden.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/generate-image-metadata.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/generate-metadata.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/generate-sitemaps.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/generate-static-params.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: the first, build time, posts besides the top, statically generated for, use cache"
+      ]
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/generate-viewport.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/headers.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/image-response.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/next-request.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/next-response.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/not-found.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/permanentRedirect.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/redirect.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/refresh.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/revalidatePath.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/revalidateTag.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/unauthorized.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/unstable_cache.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/unstable_noStore.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/unstable_rethrow.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/updateTag.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-link-status.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-params.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-pathname.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-report-web-vitals.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-router.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-search-params.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-selected-layout-segment.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/use-selected-layout-segments.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/functions/userAgent.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/api-reference/turbopack.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/cache-components.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/caching-and-revalidating.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/css.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/deploying.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/error-handling.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/fetching-data.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/fonts.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/images.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/installation.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/layouts-and-pages.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/linking-and-navigating.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/metadata-and-og-images.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/project-structure.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/proxy.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/route-handlers.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/server-and-client-components.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/updating-data.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/getting-started/upgrading.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/glossary.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/analytics.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/authentication.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/backend-for-frontend.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/caching.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/ci-build-caching.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/content-security-policy.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/css-in-js.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/custom-server.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/data-security.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/debugging.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/draft-mode.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/environment-variables.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/forms.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/incremental-static-regeneration.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/instrumentation.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/internationalization.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/json-ld.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/lazy-loading.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/local-development.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: too broad, will match   too, only scans the, npm run dev"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/mcp.mdx",
+      "status": "WARN",
+      "fails": [],
+      "warns": [
+        "Potential English residue detected: help you fix the errors, the page, first check what errors exist, current state, the project"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/mdx.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: file allows you, provide custom   components, component you want, including inline styles, components from other libraries"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/memory-usage.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/migrating/app-router-migration.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: use client, this directive should, the file, before any imports, const res"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/migrating/from-create-react-app.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/migrating/from-vite.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/migrating/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/multi-tenant.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/multi-zones.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: frontends that separate, large application, domain into smaller   applications that each serve, useful when there are collections, pages unrelated"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/open-telemetry.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/package-bundling.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/prefetching.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/production-checklist.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/progressive-web-apps.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/public-static-pages.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/redirecting.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/sass.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/scripts.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/self-hosting.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/single-page-applications.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/static-exports.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/tailwind-v3-css.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/testing/cypress.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/testing/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/testing/jest.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Unable to normalize target MDX for validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`",
+        "Unable to parse target MDX for wrapper validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`",
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: next dev, next build, next start, npm run test, yarn test"
+      ]
+    },
+    {
+      "file": "docs-ko/app/guides/testing/playwright.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/testing/vitest.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/third-party-libraries.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/upgrading/codemods.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/upgrading/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/upgrading/version-14.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/upgrading/version-15.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/upgrading/version-16.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/guides/videos.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/app/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/architecture/accessibility.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/architecture/fast-refresh.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/architecture/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/architecture/nextjs-compiler.mdx",
+      "status": "FAIL",
+      "fails": [
+        "Code fences changed between source and target.",
+        "Inline code changed between source and target."
+      ],
+      "warns": [
+        "Potential English residue detected: disabled when build type, option only works when, allows you, define the format, the resulting label"
+      ]
+    },
+    {
+      "file": "docs-ko/architecture/supported-browsers.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/community/contribution-guide.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/community/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/community/rspack.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    },
+    {
+      "file": "docs-ko/index.mdx",
+      "status": "PASS",
+      "fails": [],
+      "warns": []
+    }
+  ]
+}

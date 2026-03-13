@@ -1,0 +1,219 @@
+---
+title: 패키지 번들링 최적화
+nav_title: 패키지 번들링
+description: Turbopack용 Next.js 번들 분석기와 Webpack용 `@next/bundle-analyzer` 플러그인을
+  사용하여 애플리케이션의 서버 및 클라이언트 번들을 분석하고 최적화하는 방법을 알아보세요.
+related:
+  description: 프로덕션을 위한 애플리케이션 최적화에 대해 자세히 알아보세요.
+  links:
+    - app/guides/production-checklist
+---
+
+번들링은 애플리케이션 코드와 해당 종속성을 클라이언트와 서버에 최적화된 출력 파일로 결합하는 프로세스입니다. 번들은 더 빠르게 로드되고, JavaScript 실행 시간을 줄이고, [핵심 웹 바이탈](https://web.dev/articles/vitals)을 개선하고, 서버 콜드 스타트 ​​시간을 낮춥니다.
+
+Next.js는 코드 분할, 트리 쉐이킹 및 기타 기술을 통해 번들을 자동으로 최적화합니다. 그러나 번들을 수동으로 최적화해야 하는 경우도 있습니다.
+
+애플리케이션 번들을 분석하는 데는 두 가지 도구가 있습니다.
+
+- [Next.js Turbopack용 번들 분석기(실험적)](#nextjs-bundle-analyzer-experimental)
+- [`@next/bundle-analyzer` 플러그인](#nextbundle-analyzer-for-webpack)
+
+이 가이드는 각 도구를 사용하는 방법과 [대형 번들을 최적화](#optimizing-large-bundles)하는 방법을 안내합니다.
+
+## Next.js 번들 분석기(실험적)
+
+> v16.1 이상에서 사용 가능합니다. [전용 GitHub 토론](https://github.com/vercel/next.js/discussions/86731)에서 피드백을 공유하고 [turbopack-bundle-analyzer-demo.vercel.sh](https://turbopack-bundle-analyzer-demo.vercel.sh/)에서 데모를 볼 수 있습니다.
+
+Next.js 번들 분석기는 Turbopack의 모듈 그래프와 통합되었습니다. 정확한 가져오기 추적을 통해 서버 및 클라이언트 모듈을 검사할 수 있으므로 대규모 종속성을 더 쉽게 찾을 수 있습니다. 대화형 번들 분석기 데모를 열어 모듈 그래프를 살펴보세요.
+
+### 1단계: Turbopack 번들 분석기 실행
+
+시작하려면 다음 명령을 실행하고 브라우저에서 대화형 보기를 엽니다.
+
+```bash filename="Terminal"
+npx next experimental-analyze
+```
+
+### 2단계: 모듈 필터링 및 검사
+
+UI 내에서 경로, 환경(클라이언트 또는 서버) 및 유형(JavaScript, CSS, JSON)별로 필터링하거나 파일별로 검색할 수 있습니다.
+
+<Video caption="Next.js 번들 분석기 UI 연습" src="/videos/bundle-analyzer.mp4" width={1708} height={1080} />
+
+### 3단계: 가져오기 체인을 사용하여 모듈 추적
+
+트리맵은 각 모듈을 직사각형으로 표시합니다. 모듈의 크기는 직사각형의 면적으로 표시됩니다.
+
+모듈을 클릭하여 크기를 확인하고, 전체 가져오기 체인을 검사하고, 애플리케이션에서 모듈이 사용되는 위치를 정확히 확인하세요.
+
+<Image caption="Next.js 번들 분석기 가져오기 체인 보기" srcLight="/docs/light/bundle-analyzer.png" srcDark="/docs/dark/bundle-analyzer.png" width={1600} height={874} />
+
+### 4단계: 공유 또는 비교를 위해 디스크에 출력 쓰기
+
+팀원과 분석을 공유하거나 최적화 전/후의 번들 크기를 비교하려는 경우 대화형 보기를 건너뛰고 `--output` 플래그를 사용하여 분석을 정적 파일로 저장할 수 있습니다.
+
+```bash filename="Terminal"
+npx next experimental-analyze --output
+```
+
+이 명령은 출력을 `.next/diagnostics/analyze`에 씁니다. 이 디렉터리를 다른 곳에 복사하여 결과를 비교할 수 있습니다.
+
+```bash filename="Terminal"
+cp -r .next/diagnostics/analyze ./analyze-before-refactor
+```
+
+> 번들 분석기에 더 많은 옵션을 사용할 수 있습니다. 전체 목록은 Next.js CLI 참조 문서를 참조하세요.
+
+## `@next/bundle-analyzer` for Webpack
+
+The [`@next/bundle-analyzer`](https://www.npmjs.com/package/@next/bundle-analyzer)는 애플리케이션 번들의 크기를 관리하는 데 도움이 되는 플러그인입니다. 각 패키지의 크기와 해당 종속성에 대한 시각적 보고서를 생성합니다. 이 정보를 사용하여 코드를 대규모 종속성 제거, 분할 또는 [지연 로드](lazy-loading.mdx)할 수 있습니다.
+
+### 1단계: 설치다음 명령을 실행하여 플러그인을 설치합니다.
+
+그런 다음 번들 분석기의 설정을 에 추가하세요.
+
+```bash
+npm i @next/bundle-analyzer
+# or
+yarn add @next/bundle-analyzer
+# or
+pnpm add @next/bundle-analyzer
+```
+
+번들을 분석하려면 다음 명령을 실행하십시오.`next.config.js`.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {}
+
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
+module.exports = withBundleAnalyzer(nextConfig)
+```
+
+### 내보내기가 많은 패키지
+
+수백 개의 모듈(예: 아이콘 및 유틸리티 라이브러리)을 내보내는 패키지를 사용하는 경우  파일의  옵션을 사용하여 해당 가져오기를 해결하는 방법을 최적화할 수 있습니다. 이 옵션은  사용하는 모듈만 로드하는 동시에 많은 명명된 내보내기가 포함된 import 문을 작성하는 편리함을 제공합니다.
+
+```bash
+ANALYZE=true npm run build
+# or
+ANALYZE=true yarn build
+# or
+ANALYZE=true pnpm build
+```
+
+대규모 클라이언트 번들이 발생하는 일반적인 원인은 클라이언트 구성 요소에서 비용이 많이 드는 렌더링 작업을 수행하는 것입니다. 이는 구문 강조, 차트 렌더링 또는 마크다운 구문 분석과 같이 데이터를 UI로 변환하기 위해서만 존재하는 라이브러리에서 자주 발생합니다.
+
+## Optimizing large bundles
+
+해당 작업에 브라우저 API나 사용자 상호 작용이 필요하지 않은 경우 서버 구성 요소에서 실행할 수 있습니다.
+
+### 특정 패키지를 번들링에서 제외하기
+
+서버 구성 요소 및 경로 처리기 내부로 가져온 패키지는 Next.js에 의해 자동으로 번들됩니다.[`optimizePackageImports`](../api-reference/config/next-config-js/optimizePackageImports.mdx) option in your `next.config.js` file. This option will only load the modules you *actually* use, while still giving you the convenience of writing import statements with many named exports.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    optimizePackageImports: ['icon-library'],
+  },
+}
+
+module.exports = nextConfig
+```
+
+> **Good to know:** Next.js also optimizes some libraries automatically, thus they do not need to be included in the `optimizePackageImports` list. See the [full list](../api-reference/config/next-config-js/optimizePackageImports.mdx) of supported packages.
+
+### Heavy client workloads
+
+A common cause of large client bundles is doing expensive rendering work in Client Components. This often happens with libraries that exist only to transform data into UI, such as syntax highlighting, chart rendering, or markdown parsing.
+
+If that work does not require browser APIs or user interaction, it can be run in a Server Component.
+
+In this example, a prism based highlighter runs in a Client Component. Even though the final output is just a `<code>` block, the entire highlighting library is bundled into the client JavaScript bundle:
+
+```tsx filename="app/blog/[slug]/page.tsx"
+'use client'
+
+import Highlight from 'prism-react-renderer'
+import theme from 'prism-react-renderer/themes/github'
+
+export default function Page() {
+  const code = `export function hello() {
+    console.log("hi")
+  }`
+
+  return (
+    <article>
+      <h1>Blog Post Title</h1>
+
+      {/* The prism package and its tokenization logic are shipped to the client */}
+      <Highlight code={code} language="tsx" theme={theme}>
+        {({ className, style, tokens, getLineProps, getTokenProps }) => (
+          <pre className={className} style={style}>
+            <code>
+              {tokens.map((line, i) => (
+                <div key={i} {...getLineProps({ line })}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </code>
+          </pre>
+        )}
+      </Highlight>
+    </article>
+  )
+}
+```
+
+This increases bundle size because the client must download and execute the highlighting library, even though the result is static HTML.
+
+Instead, move the highlighting logic to a Server Component and render the final HTML on the server. The client will only receive the rendered markup.
+
+```tsx filename="app/blog/[slug]/page.tsx"
+import { codeToHtml } from 'shiki'
+
+export default async function Page() {
+  const code = `export function hello() {
+    console.log("hi")
+  }`
+
+  // The Shiki package runs on the server and is never bundled for the client.
+  const highlightedHtml = await codeToHtml(code, {
+    lang: 'tsx',
+    theme: 'github-dark',
+  })
+
+  return (
+    <article>
+      <h1>Blog Post Title</h1>
+
+      {/* Client receives plain markup */}
+      <pre>
+        <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+      </pre>
+    </article>
+  )
+}
+```
+
+### Opting specific packages out of bundling
+
+Packages imported inside Server Components and Route Handlers are automatically bundled by Next.js.
+
+You can opt specific packages out of bundling using the [`serverExternalPackages`](../api-reference/config/next-config-js/serverExternalPackages.mdx) option in your `next.config.js`.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  serverExternalPackages: ['package-name'],
+}
+
+module.exports = nextConfig
+```

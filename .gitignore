@@ -1,0 +1,8 @@
+.DS_Store
+.next
+out
+node_modules
+.cache
+.playwright-cli
+output
+tsconfig.tsbuildinfo

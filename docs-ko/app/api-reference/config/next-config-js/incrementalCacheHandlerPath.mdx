@@ -1,0 +1,72 @@
+---
+title: 사용자 정의 Next.js 캐시 핸들러
+nav_title: 캐시 핸들러
+description: Redis, Memcached 등과 같은 외부 서비스를 사용하려면 데이터를 저장하고 재검증하는 데 사용되는 Next.js 캐시를 구성하세요.
+---
+
+캐시된 페이지와 데이터를 내구성 있는 저장소에 유지하거나 Next.js 애플리케이션의 여러 컨테이너 또는 인스턴스에서 캐시를 공유하려는 경우 Next.js 캐시 위치를 구성할 수 있습니다.
+
+> **알아두면 좋은 정보**: `cacheHandler`(단수) 구성은 ISR 및 경로 핸들러 응답 저장 및 재검증과 같은 서버 캐시 작업을 위해 Next.js에서 특별히 사용됩니다. **않습니다**. `'use cache'` 지시문의 경우 대신 `'use cache'` directives, use [`cacheHandlers`](cacheHandlers.mdx)(복수형)을 사용하세요.
+
+```js filename="next.config.js"
+module.exports = {
+  cacheHandler: require.resolve('./cache-handler.js'),
+  cacheMaxMemorySize: 0, // disable default in-memory caching
+}
+```
+
+View an example of a [사용자 정의 캐시 핸들러](../../../guides/self-hosting.mdx#configuring-caching)의 예를 보고 구현에 대해 자세히 알아보세요.
+
+## API 참조
+
+캐시 처리기는 `get`, `set`, `revalidateTag` 및 `resetRequestCache` 메서드를 구현할 수 있습니다.
+
+### `get()`
+
+| 매개변수 | 유형 | 설명 |`key`     | `string` | The key to the cached value. |
+
+| --------- | -------- | --------------- |
+| `null` |  | 캐시된 값의 키입니다. |
+
+### `set()`
+
+| 매개변수 | 유형 | 설명 |`key`     | `string`       | The key to store the data under. |
+| `data`    | Data or `null` | The data to be cached.           |
+| `ctx`     | `{ tags: [] }` | The cache tags provided.         |
+
+| --------- | -------------- | -------------------------------- |
+| `Promise<void>` |  | 데이터를 저장할 키입니다. |
+
+### `revalidateTag()`
+
+| 매개변수 | 유형 | 설명 |`tag`     | `string` or `string[]` | The cache tags to revalidate. |
+
+| --------- | --------- | ---------------- |
+| `Promise<void>` | [revalidating data](../../../guides/incremental-static-regeneration.mdx) or the [`revalidateTag()`](../../functions/revalidateTag.mdx) function. 또는  | 재검증할 캐시 태그입니다. |
+
+### `resetRequestCache()`
+
+이 메서드는 다음 요청 전에 단일 요청에 대한 임시 메모리 내 캐시를 재설정합니다.
+
+Returns `void`을 반환합니다.
+
+**알아두면 좋은 점:**
+
+- `revalidatePath`는 캐시 태그 위에 있는 편의 레이어입니다. `revalidatePath`을 호출하면 `revalidateTag` 함수가 호출되며, 경로를 기반으로 캐시 키에 태그를 지정하려는 경우 선택할 수 있습니다.
+
+## 플랫폼 지원
+
+| 배포 옵션 | 지원됨 |[Node.js server](../../../getting-started/deploying.mdx#nodejs-server) | Yes               |
+| [Docker container](../../../getting-started/deploying.mdx#docker)      | Yes               |
+| [Static export](../../../getting-started/deploying.mdx#static-export)  | No                |
+| [Adapters](../../../getting-started/deploying.mdx#adapters)            | Platform-specific |
+
+| ------------------------------------------------------ | ----------------- |
+| [Node.js 서버](../../../guides/self-hosting.mdx#caching-and-isr) | 예 |
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v14.1.0` | Renamed to `cacheHandler` and became stable.                 |
+| `v13.4.0` | `incrementalCacheHandlerPath` support for `revalidateTag`.   |
+| `v13.4.0` | `incrementalCacheHandlerPath` support for standalone output. |
+| `v12.2.0` | Experimental `incrementalCacheHandlerPath` added.            |

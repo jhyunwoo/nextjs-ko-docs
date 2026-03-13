@@ -1,0 +1,65 @@
+---
+title: 불안정_다시 던지기
+description: 불안정한_rethrow 함수에 대한 API 참조입니다.
+version: unstable
+---
+
+`unstable_rethrow`는 애플리케이션 코드에서 발생한 오류를 처리하려고 할 때 Next.js에서 발생한 내부 오류를 포착하는 것을 방지하는 데 사용할 수 있습니다.
+
+예를 들어 `notFound` 함수를 호출하면 내부 Next.js 오류가 발생하고 [`not-found.js`](../file-conventions/not-found.mdx) 구성 요소가 렌더링됩니다. 그러나 `try` 문의 `try/catch` 블록 내에서 사용하면 오류가 포착되어 `not-found.js`이 렌더링되지 않습니다.
+
+```tsx filename="@/app/ui/component.tsx"
+import { notFound } from 'next/navigation'
+
+export default async function Page() {
+  try {
+    const post = await fetch('https://.../posts/1').then((res) => {
+      if (res.status === 404) notFound()
+      if (!res.ok) throw new Error(res.statusText)
+      return res.json()
+    })
+  } catch (err) {
+    console.error(err)
+  }
+}
+```
+
+You can use `unstable_rethrow` API를 사용하여 내부 오류를 다시 발생시키고 예상되는 동작을 계속할 수 있습니다.
+
+```tsx filename="@/app/ui/component.tsx"
+import { notFound, unstable_rethrow } from 'next/navigation'
+
+export default async function Page() {
+  try {
+    const post = await fetch('https://.../posts/1').then((res) => {
+      if (res.status === 404) notFound()
+      if (!res.ok) throw new Error(res.statusText)
+      return res.json()
+    })
+  } catch (err) {
+    unstable_rethrow(err)
+    console.error(err)
+  }
+}
+```
+
+다음 Next.js API는 Next.js 자체에서 다시 발생하고 처리해야 하는 오류 발생에 의존합니다.
+
+- [`notFound()`](not-found.mdx)
+- [`redirect()`](../../guides/redirecting.mdx#redirect-function)
+- [`permanentRedirect()`](../../guides/redirecting.mdx#permanentredirect-function)
+
+경로 세그먼트가 정적이 아닌 이상 오류를 발생시키도록 표시된 경우 동적 API 호출도 유사하게 개발자가 포착할 수 없는 오류를 발생시킵니다. PPR(부분 사전 렌더링)도 이 동작에 영향을 미칩니다. 이러한 API는 다음과 같습니다.
+
+- [`cookies`](cookies.mdx)
+- [`headers`](headers.mdx)
+- [`searchParams`](../file-conventions/page.mdx#searchparams-optional)
+- `fetch(..., { cache: 'no-store' })`
+- `fetch(..., { next: { revalidate: 0 } })`
+
+> **알면 좋은 점**:
+>
+> - 이 메소드는 catch 블록의 맨 위에서 호출되어야 하며 오류 객체를 유일한 인수로 전달해야 합니다. Promise의 `.catch` 핸들러 내에서도 사용할 수 있습니다.
+> - 예외를 발생시키고 `unstable_rethrow` 사용을 피할 수 있습니다.**caller** handle the exception.
+> - 발견된 예외에 애플리케이션 오류와 프레임워크 제어 예외(예: `unstable_rethrow` 또는 `redirect()`)가 모두 포함될 수 있는 경우 `notFound()`만 사용하세요.
+> - 모든 리소스 정리(예: 간격 지우기, 타이머 등)는 `unstable_rethrow` 호출 이전이나 `finally` 블록 내에서 발생해야 합니다.

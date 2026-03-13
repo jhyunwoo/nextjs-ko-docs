@@ -1,0 +1,59 @@
+---
+title: 영구 리디렉션
+description: PermanentRedirect 함수에 대한 API 참조입니다.
+related:
+  links:
+    - app/api-reference/functions/redirect
+---
+
+The `permanentRedirect` 함수를 사용하면 사용자를 다른 URL로 리디렉션할 수 있습니다. `permanentRedirect`은(는) 서버 구성 요소, 클라이언트 구성 요소, [경로 처리기](../file-conventions/route.mdx) 및 [서버 기능](../../getting-started/updating-data.mdx)에서 사용할 수 있습니다.
+
+스트리밍 컨텍스트에서 사용될 경우 메타 태그를 삽입하여 클라이언트 측에서 리디렉션을 내보냅니다. 서버 작업에 사용되면 호출자에게 303 HTTP 리디렉션 응답을 제공합니다. 그렇지 않으면 호출자에게 308(영구) HTTP 리디렉션 응답을 제공합니다.
+
+리소스가 없으면 [`notFound` 함수](not-found.mdx)를 대신 사용할 수 있습니다.
+
+> **알아두면 좋은 정보**: 308(영구) 대신 307(임시) HTTP 리디렉션을 반환하려는 경우 [`redirect` 함수](redirect.mdx)를 대신 사용할 수 있습니다.
+
+## 매개변수
+
+The `permanentRedirect` 함수는 두 가지 인수를 허용합니다.
+
+```js
+permanentRedirect(path, type)
+```
+
+| 매개변수 | 유형 | 설명 |`path`    | `string`                                                      | The URL to redirect to. Can be a relative or absolute path. |`type`    | `'replace'` (default) or `'push'` (default in Server Actions) | The type of redirect to perform.                            |
+
+| `permanentRedirect`    | `push` (default) or [Server Actions](../../getting-started/updating-data.mdx) and `replace` (default in Server Actions) | The type of redirect to perform.                            |`type` parameter.
+
+| --------- | ------------------------------------------------ | ---------------------------------------------- |`type` parameter has no effect when used in Server Components.
+
+## 반품
+
+`permanentRedirect`은 값을 반환하지 않습니다.
+
+## 예
+
+Invoking the `permanentRedirect()` 함수를 호출하면 `NEXT_REDIRECT` 오류가 발생하고 오류가 발생한 경로 세그먼트의 렌더링이 종료됩니다.
+
+```jsx filename="app/team/[id]/page.js"
+import { permanentRedirect } from 'next/navigation'
+
+async function fetchTeam(id) {
+  const res = await fetch('https://...')
+  if (!res.ok) return undefined
+  return res.json()
+}
+
+export default async function Profile({ params }) {
+  const { id } = await params
+  const team = await fetchTeam(id)
+  if (!team) {
+    permanentRedirect('/login')
+  }
+
+  // ...
+}
+```
+
+> **알면 좋은 점**: `permanentRedirect`은 TypeScript `return permanentRedirect()`을 사용할 필요가 없습니다.[`never`](https://www.typescriptlang.org/docs/handbook/2/functions.html#never) type.

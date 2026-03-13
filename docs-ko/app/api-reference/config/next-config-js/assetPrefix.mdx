@@ -1,0 +1,51 @@
+---
+title: 자산 접두어
+description: AssetPrefix 구성 옵션을 사용하여 CDN을 구성하는 방법을 알아보세요.
+---
+
+> **주의**: [Vercel에 배포](../../../getting-started/deploying.mdx)는 Next.js 프로젝트에 대한 글로벌 CDN를 자동으로 구성합니다.
+> 자산 접두어를 수동으로 설정할 필요가 없습니다.
+
+> **알면 좋은 점**: Next.js 9.5 이상에서는 사용자 정의 가능한 [기본 경로](basePath.mdx)에 대한 지원이 추가되었습니다.
+> `/docs`과 같은 하위 경로에서 애플리케이션을 호스팅하는 데 적합합니다.
+> 이 사용 사례에는 사용자 정의 자산 접두어를 사용하지 않는 것이 좋습니다.
+
+## CDN 설정
+
+To set up a [CDN](https://en.wikipedia.org/wiki/Content_delivery_network)을 설정하려면 자산 접두어를 설정하고 Next.js가 호스팅되는 도메인을 확인하도록 CDN 원본을 구성하면 됩니다.
+
+Open `next.config.mjs`을 열고 `assetPrefix` 구성을 추가합니다.[phase](index.mdx#async-configuration):
+
+```js filename="next.config.mjs"
+// @ts-check
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants'
+
+export default (phase) => {
+  const isDev = phase === PHASE_DEVELOPMENT_SERVER
+  /**
+   * @type {import('next').NextConfig}
+   */
+  const nextConfig = {
+    assetPrefix: isDev ? undefined : 'https://cdn.mydomain.com',
+  }
+  return nextConfig
+}
+```
+
+Next.js는 `/_next/` 경로(`.next/static/` 폴더)에서 로드하는 JavaScript 및 CSS 파일에 대한 자산 접두어를 자동으로 사용합니다. 예를 들어 위 구성을 사용하면 JS 청크에 대한 다음 요청이 발생합니다.
+
+```
+/_next/static/chunks/4b9b41aaa062cbbfeff4add70f256968c51ece5d.4d708494b3aed70c04f0.js
+```
+
+대신에 다음과 같이 될 것입니다:
+
+```
+https://cdn.mydomain.com/_next/static/chunks/4b9b41aaa062cbbfeff4add70f256968c51ece5d.4d708494b3aed70c04f0.js
+```
+
+특정 CDN에 파일을 업로드하기 위한 정확한 구성은 선택한 CDN에 따라 다릅니다. CDN에서 호스팅해야 하는 유일한 폴더는 위의 URL 요청에 표시된 대로 `.next/static/`로 업로드되어야 하는 `_next/static/`의 콘텐츠입니다. **Do not upload the rest of your `.next/` 폴더의 나머지 부분을 업로드하지 마세요**. 서버 코드와 기타 구성을 공개적으로 노출해서는 안 됩니다.
+
+While `assetPrefix`은 `_next/static`에 대한 요청을 처리하지만 다음 경로에는 영향을 미치지 않습니다.
+
+- Files in the [public](../../file-conventions/public-folder.mdx) 폴더에 있는 파일 CDN를 통해 해당 자산을 제공하려면 접두사를 직접 도입해야 합니다.

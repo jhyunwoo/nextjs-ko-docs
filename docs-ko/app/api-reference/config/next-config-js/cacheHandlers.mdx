@@ -1,0 +1,413 @@
+---
+title: 캐시 핸들러
+description: Next.js에서 캐시 지시문을 사용하도록 사용자 정의 캐시 처리기를 구성합니다.
+related:
+  title: 관련된
+  description: 관련 API 참조를 확인하세요.
+  links:
+    - app/api-reference/directives/use-cache
+    - app/api-reference/directives/use-cache-remote
+    - app/api-reference/directives/use-cache-private
+    - app/api-reference/config/next-config-js/cacheLife
+---
+
+The `cacheHandlers` 구성을 사용하면 [`'use cache'`](../../directives/use-cache.mdx) 및 [`'use cache: remote'`](../../directives/use-cache-remote.mdx)에 대한 사용자 정의 캐시 저장소 구현을 정의할 수 있습니다. 이를 통해 캐시된 구성 요소와 기능을 외부 서비스에 저장하거나 캐싱 동작을 사용자 지정할 수 있습니다. [`'use cache: private'`](../../directives/use-cache-private.mdx)은 구성할 수 없습니다.
+
+## 사용자 정의 캐시 핸들러를 사용해야 하는 경우
+
+**대부분의 애플리케이션에는 사용자 정의 캐시 핸들러가 필요하지 않습니다.** 기본 인메모리 캐시는 일반적인 사용 사례에서 잘 작동합니다.
+
+사용자 지정 캐시 처리기는 여러 인스턴스에서 캐시를 공유하거나 캐시가 저장되는 위치를 변경해야 하는 고급 시나리오에 사용됩니다. 예를 들어 외부 저장소(예: 키-값 저장소)에 대해 사용자 지정 `remote` 처리기를 구성한 다음 메모리 내 캐싱을 위해 코드에서 `'use cache'`을 사용하고 외부 저장소에 `'use cache: remote'`을 사용하여 동일한 애플리케이션 내에서 다양한 캐싱 전략을 허용할 수 있습니다.
+
+**인스턴스 간 캐시 공유**
+
+기본 메모리 내 캐시는 각 Next.js 프로세스에 격리됩니다. 여러 서버나 컨테이너를 실행하는 경우 각 인스턴스에는 다른 인스턴스와 공유되지 않고 다시 시작 시 손실되는 자체 캐시가 있습니다.
+
+사용자 지정 핸들러를 사용하면 모든 Next.js 인스턴스가 액세스할 수 있는 공유 스토리지 시스템(예: Redis, Memcached 또는 DynamoDB)과 통합할 수 있습니다.
+
+**저장소 유형 변경 중**
+
+기본 메모리 내 접근 방식과 다르게 캐시를 저장하고 싶을 수도 있습니다. 디스크, 데이터베이스 또는 외부 캐싱 서비스에 캐시를 저장하는 사용자 지정 처리기를 구현할 수 있습니다. 이유는 다음과 같습니다: 재시작 시 지속성, 메모리 사용량 감소 또는 기존 인프라와의 통합.
+
+## 사용법
+
+사용자 정의 캐시 핸들러를 구성하려면 다음을 수행하십시오.
+
+1. 별도의 파일에 캐시 핸들러를 정의합니다. 구현 세부정보는 [예](#examples)를 참조하세요.
+1. 다음 구성 파일에서 파일 경로를 참조하세요.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheHandlers: {
+    default: require.resolve('./cache-handlers/default-handler.js'),
+    remote: require.resolve('./cache-handlers/remote-handler.js'),
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+module.exports = {
+  cacheHandlers: {
+    default: require.resolve('./cache-handlers/default-handler.js'),
+    remote: require.resolve('./cache-handlers/remote-handler.js'),
+  },
+}
+```
+
+### 핸들러 유형
+
+- **`default`**: `'use cache'` 지시문에서 사용됩니다.
+- **`remote`**: `'use cache: remote'` 지시문에서 사용됩니다.
+
+If you don't configure `cacheHandlers`을 구성하지 않으면 Next.js는 `default` 및 `remote` 모두에 대해 메모리 내 LRU(Least Recent Used) 캐시를 사용합니다. [기본 구현](https://github.com/vercel/next.js/blob/canary/packages/next/src/server/lib/cache-handlers/default.ts)을 참조로 볼 수 있습니다.
+
+추가로 명명된 핸들러(예: `sessions`, `analytics`)를 정의하고 `'use cache: <name>'`을 사용하여 참조할 수도 있습니다.
+
+Note that `'use cache: private'`은 캐시 처리기를 사용하지 않으며 사용자 정의할 수 없습니다.
+
+## API 참조
+
+캐시 처리기는 다음 메서드를 사용하여 [`CacheHandler`](https://github.com/vercel/next.js/blob/canary/packages/next/src/server/lib/cache-handlers/types.ts) 인터페이스를 구현해야 합니다.
+
+### `get()`
+
+지정된 캐시 키에 대한 캐시 항목을 검색합니다.
+
+```ts
+get(cacheKey: string, softTags: string[]): Promise<CacheEntry | undefined>
+```
+
+| 매개변수 | 유형 | 설명 |`cacheKey` | `string`   | The unique key for the cache entry.                          |`softTags` | `string[]` | Tags to check for staleness (used in some cache strategies). |
+
+| `CacheEntry` | `undefined` | Tags to check for staleness (used in some cache strategies). |
+
+| ---------- | ---------- | ---------------------------------- |`get` method should retrieve the cache entry from storage, check if it has expired based on the `revalidate` time, and return `undefined` for missing or expired entries.
+
+```js
+const cacheHandler = {
+  async get(cacheKey, softTags) {
+    const entry = cache.get(cacheKey)
+    if (!entry) return undefined
+
+    // Check if expired
+    const now = Date.now()
+    if (now > entry.timestamp + entry.revalidate * 1000) {
+      return undefined
+    }
+
+    return entry
+  },
+}
+```
+
+### `set()`
+
+주어진 캐시 키에 대한 캐시 항목을 저장합니다.
+
+```ts
+set(cacheKey: string, pendingEntry: Promise<CacheEntry>): Promise<void>
+```
+
+| 매개변수 | 유형 | 설명 |`cacheKey`     | `string`              | The unique key to store the entry under.    |`pendingEntry` | `Promise<CacheEntry>` | A promise that resolves to the cache entry. |
+
+|  |  | A promise that resolves to the cache entry. |
+
+| -------------- | -------- | ------------------------------ |`Promise<void>`.
+
+|  |  | 항목을 저장할 고유 키입니다.    |`set` method must await the `pendingEntry` promise before storing it, since the cache entry may still be generating when this method is called. Once resolved, store the entry in your cache system.
+
+```js
+const cacheHandler = {
+  async set(cacheKey, pendingEntry) {
+    // Wait for the entry to be ready
+    const entry = await pendingEntry
+
+    // Store in your cache system
+    cache.set(cacheKey, entry)
+  },
+}
+```
+
+### `refreshTags()`
+
+외부 태그 서비스와 동기화하기 위한 새 요청을 시작하기 전에 주기적으로 호출됩니다.
+
+```ts
+refreshTags(): Promise<void>
+```
+
+이는 여러 인스턴스나 서비스에서 캐시 무효화를 조정하는 경우 유용합니다. 메모리 내 캐시의 경우 이는 작동하지 않을 수 있습니다.
+
+Returns `Promise<void>`을 반환합니다.
+
+메모리 내 캐시의 경우 이는 작동하지 않을 수 있습니다. 분산 캐시의 경우 이를 사용하여 요청을 처리하기 전에 외부 서비스 또는 데이터베이스의 태그 상태를 동기화합니다.
+
+```js
+const cacheHandler = {
+  async refreshTags() {
+    // For in-memory cache, no action needed
+    // For distributed cache, sync tag state from external service
+  },
+}
+```
+
+### `getExpiration()`
+
+태그 세트에 대한 최대 재검증 타임스탬프를 가져옵니다.
+
+```ts
+getExpiration(tags: string[]): Promise<number>
+```
+
+| 매개변수 | 유형 | 설명 |`tags`    | `string[]` | Array of tags to check expiration for. |
+
+| --------- | ---------- | ------------------------- |
+
+- `0` if none of the tags were ever revalidated
+- 가장 최근 재검증을 나타내는 타임스탬프(밀리초)
+- `Infinity` 메서드에서 소프트 태그를 확인해야 함을 나타내는 `get` method instead
+
+태그 재검증 타임스탬프를 추적하지 않는 경우 `0`을 반환하세요. 그렇지 않으면 제공된 모든 태그에서 가장 최근의 재검증 타임스탬프를 찾으세요. `Infinity` 메서드에서 소프트 태그 확인을 처리하려는 경우 `get`을 반환합니다.
+
+```js
+const cacheHandler = {
+  async getExpiration(tags) {
+    // Return 0 if not tracking tag revalidation
+    return 0
+
+    // Or return the most recent revalidation timestamp
+    // return Math.max(...tags.map(tag => tagTimestamps.get(tag) || 0));
+  },
+}
+```
+
+### `updateTags()`
+
+| 매개변수 | 유형 | 설명 |
+
+```ts
+updateTags(tags: string[], durations?: { expire?: number }): Promise<void>
+```
+
+| Parameter   | Type                  | Description                              |`tags`      | `string[]`            | Array of tags to update.                 |
+| `durations` | `{ expire?: number }` | Optional expiration duration in seconds. |
+
+| ----------- | --------------------- | ---------------------------------------- |
+|       |             | Array of tags to update.                 |
+
+| `Promise<void>` |  | Optional expiration duration in seconds. | 개체의 구조는 다음과 같습니다.
+
+| 부동산 | 유형 | 설명 |
+
+```js
+const cacheHandler = {
+  async updateTags(tags, durations) {
+    // Invalidate all cache entries with matching tags
+    for (const [key, entry] of cache.entries()) {
+      if (entry.tags.some((tag) => tags.includes(tag))) {
+        cache.delete(key)
+      }
+    }
+  },
+}
+```
+
+## 플랫폼 지원| 배포 옵션 | 지원됨 |
+
+| ------------------------------------------------------ | ----------------- |[`CacheEntry`](https://github.com/vercel/next.js/blob/canary/packages/next/src/server/lib/cache-handlers/types.ts) object has the following structure:
+
+```ts
+interface CacheEntry {
+  value: ReadableStream<Uint8Array>
+  tags: string[]
+  stale: number
+  timestamp: number
+  expire: number
+  revalidate: number
+}
+```
+
+| `value`      | `ReadableStream<Uint8Array>` | The cached data as a stream.                                 |`tags`       | `string[]`                   | Cache tags (excluding soft tags).                            |
+| `stale`      | `number`                     | Duration in seconds for client-side staleness.               |
+| `timestamp`  | `number`                     | When the entry was created (timestamp in milliseconds).      |
+| `expire`     | `number`                     | How long the entry is allowed to be used (in seconds).       |
+| `revalidate` | `number`                     | How long until the entry should be revalidated (in seconds). |
+
+> **Good to know**:
+>
+> - The `value` is a [`ReadableStream`](https://developer.mozilla.org/docs/Web/API/ReadableStream). Use [`.tee()`](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) if you need to read and store the stream data.
+> - If the stream errors with partial data, your handler must decide whether to keep the partial cache or discard it.
+
+## 버전 기록
+
+### Basic in-memory cache handler
+
+| 버전 | 변경사항 |`Map` for storage. This example demonstrates the core concepts, but for a production-ready implementation with LRU eviction, error handling, and tag management, see the [default cache handler](https://github.com/vercel/next.js/blob/canary/packages/next/src/server/lib/cache-handlers/default.ts).
+
+```js filename="cache-handlers/memory-handler.js"
+const cache = new Map()
+const pendingSets = new Map()
+
+module.exports = {
+  async get(cacheKey, softTags) {
+    // Wait for any pending set operation to complete
+    const pendingPromise = pendingSets.get(cacheKey)
+    if (pendingPromise) {
+      await pendingPromise
+    }
+
+    const entry = cache.get(cacheKey)
+    if (!entry) {
+      return undefined
+    }
+
+    // Check if entry has expired
+    const now = Date.now()
+    if (now > entry.timestamp + entry.revalidate * 1000) {
+      return undefined
+    }
+
+    return entry
+  },
+
+  async set(cacheKey, pendingEntry) {
+    // Create a promise to track this set operation
+    let resolvePending
+    const pendingPromise = new Promise((resolve) => {
+      resolvePending = resolve
+    })
+    pendingSets.set(cacheKey, pendingPromise)
+
+    try {
+      // Wait for the entry to be ready
+      const entry = await pendingEntry
+
+      // Store the entry in the cache
+      cache.set(cacheKey, entry)
+    } finally {
+      resolvePending()
+      pendingSets.delete(cacheKey)
+    }
+  },
+
+  async refreshTags() {
+    // No-op for in-memory cache
+  },
+
+  async getExpiration(tags) {
+    // Return 0 to indicate no tags have been revalidated
+    return 0
+  },
+
+  async updateTags(tags, durations) {
+    // Implement tag-based invalidation
+    for (const [key, entry] of cache.entries()) {
+      if (entry.tags.some((tag) => tags.includes(tag))) {
+        cache.delete(key)
+      }
+    }
+  },
+}
+```
+
+### External storage pattern
+
+| --------- | -------------- |
+
+```js filename="cache-handlers/redis-handler.js"
+const { createClient } = require('redis')
+
+const client = createClient({ url: process.env.REDIS_URL })
+client.connect()
+
+module.exports = {
+  async get(cacheKey, softTags) {
+    // Retrieve from Redis
+    const stored = await client.get(cacheKey)
+    if (!stored) return undefined
+
+    // Deserialize the entry
+    const data = JSON.parse(stored)
+
+    // Reconstruct the ReadableStream from stored data
+    return {
+      value: new ReadableStream({
+        start(controller) {
+          controller.enqueue(Buffer.from(data.value, 'base64'))
+          controller.close()
+        },
+      }),
+      tags: data.tags,
+      stale: data.stale,
+      timestamp: data.timestamp,
+      expire: data.expire,
+      revalidate: data.revalidate,
+    }
+  },
+
+  async set(cacheKey, pendingEntry) {
+    const entry = await pendingEntry
+
+    // Read the stream to get the data
+    const reader = entry.value.getReader()
+    const chunks = []
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    // Combine chunks and serialize for Redis storage
+    const data = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)))
+
+    await client.set(
+      cacheKey,
+      JSON.stringify({
+        value: data.toString('base64'),
+        tags: entry.tags,
+        stale: entry.stale,
+        timestamp: entry.timestamp,
+        expire: entry.expire,
+        revalidate: entry.revalidate,
+      }),
+      { EX: entry.expire } // Use Redis TTL for automatic expiration
+    )
+  },
+
+  async refreshTags() {
+    // No-op for basic Redis implementation
+    // Could sync with external tag service if needed
+  },
+
+  async getExpiration(tags) {
+    // Return 0 to indicate no tags have been revalidated
+    // Could query Redis for tag expiration timestamps if tracking them
+    return 0
+  },
+
+  async updateTags(tags, durations) {
+    // Implement tag-based invalidation if needed
+    // Could iterate over keys with matching tags and delete them
+  },
+}
+```
+
+## Platform Support
+
+| Deployment Option                                                   | Supported         |[Node.js server](../../../getting-started/deploying.mdx#nodejs-server) | Yes               |
+| [Docker container](../../../getting-started/deploying.mdx#docker)      | Yes               |
+| [Static export](../../../getting-started/deploying.mdx#static-export)  | No                |
+| [Adapters](../../../getting-started/deploying.mdx#adapters)            | Platform-specific |
+
+## Version History
+
+| Version   | Changes                     |`v16.0.0` | `cacheHandlers` introduced. |

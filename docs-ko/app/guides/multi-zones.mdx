@@ -1,0 +1,130 @@
+---
+title: 다중 영역 및 Next.js를 사용하여 마이크로 프런트엔드를 구축하는 방법
+nav_title: 다중 구역
+description: 단일 도메인 아래에 여러 Next.js 앱을 배포하기 위해 Next.js 다중 영역을 사용하여 마이크로 프런트엔드를
+  구축하는 방법을 알아보세요.
+---
+
+<details open>
+  <summary>Examples</summary>
+
+  - [With Zones](https://github.com/vercel/next.js/tree/canary/examples/with-zones)
+</details>
+
+Multi-Zones are an approach to micro-frontends that separate a large application on a domain into smaller Next.js applications that each serve a set of paths. This is useful when there are collections of pages unrelated to the other pages in the application. By moving those pages to a separate zone (i.e., a separate application), you can reduce the size of each application which improves build times and removes code that is only necessary for one of the zones. Since applications are decoupled, Multi-Zones also allows other applications on the domain to use their own choice of framework.
+
+For example, let's say you have the following set of pages that you would like to split up:
+
+- `/blog/*` for all blog posts
+- `/dashboard/*` for all pages when the user is logged-in to the dashboard
+- `/*` for the rest of your website not covered by other zones
+
+With Multi-Zones support, you can create three applications that all are served on the same domain and look the same to the user, but you can develop and deploy each of the applications independently.
+
+<Image alt="3개 구역: A, B, C. 서로 다른 구역의 경로 간 하드 탐색과 동일한 구역 내의 경로 간 소프트 탐색을 표시합니다." srcLight="/docs/light/multi-zones.png" srcDark="/docs/dark/multi-zones.png" width="1600" height="750" />
+
+동일한 영역에 있는 페이지 간을 탐색하면 페이지를 다시 로드할 필요가 없는 탐색인 소프트 탐색이 수행됩니다. 예를 들어, 이 다이어그램에서 `/`에서 `/products`로 이동하는 것은 소프트 탐색입니다.
+
+한 영역의 페이지에서 다른 영역의 페이지로 이동(예: `/`에서 `/dashboard`으로)하면 하드 탐색이 수행되어 현재 페이지의 리소스를 언로드하고 새 페이지의 리소스를 로드합니다. 자주 함께 방문하는 페이지는 하드 탐색을 피하기 위해 동일한 영역에 있어야 합니다.
+
+## 영역을 정의하는 방법
+
+영역은 다른 영역의 페이지 및 정적 파일과의 충돌을 방지하기 위해 [assetPrefix](../api-reference/config/next-config-js/assetPrefix.mdx)도 구성하는 일반적인 Next.js 애플리케이션입니다.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  assetPrefix: '/blog-static',
+}
+```
+
+Next.js 자산(예: JavaScript 및 CSS)에는 다른 영역의 자산과 충돌하지 않도록 `assetPrefix`라는 접두사가 붙습니다. 이러한 자산은 각 영역에 대해 `/assetPrefix/_next/...`에서 제공됩니다.
+
+보다 구체적인 다른 영역으로 라우팅되지 않는 모든 경로를 처리하는 기본 애플리케이션에는 `assetPrefix`이 필요하지 않습니다.
+
+Next.js 15 이전 버전에서는 정적 자산을 처리하기 위해 추가 재작성이 필요할 수도 있습니다. Next.js 15에서는 더 이상 필요하지 않습니다.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  assetPrefix: '/blog-static',
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/blog-static/_next/:path+',
+          destination: '/_next/:path+',
+        },
+      ],
+    }
+  },
+}
+```
+
+## 요청을 올바른 영역으로 라우팅하는 방법
+
+다중 영역 설정을 사용하면 경로가 다른 애플리케이션에서 제공되므로 올바른 영역으로 경로를 라우팅해야 합니다. 이를 수행하기 위해 모든 HTTP 프록시를 사용할 수 있지만 Next.js 애플리케이션 중 하나를 사용하여 전체 도메인에 대한 요청을 라우팅할 수도 있습니다.
+
+Next.js 애플리케이션을 사용하여 올바른 영역으로 라우팅하려면 [`rewrites`](../api-reference/config/next-config-js/rewrites.mdx)을 사용할 수 있습니다. 다른 영역에서 제공되는 각 경로에 대해 해당 경로를 다른 영역의 도메인으로 보내는 재작성 규칙을 추가하고 정적 자산에 대한 요청도 재작성해야 합니다. 예를 들면:
+
+```js filename="next.config.js"
+async rewrites() {
+    return [
+        {
+            source: '/blog',
+            destination: `${process.env.BLOG_DOMAIN}/blog`,
+        },
+        {
+            source: '/blog/:path+',
+            destination: `${process.env.BLOG_DOMAIN}/blog/:path+`,
+        },
+        {
+            source: '/blog-static/:path+',
+            destination: `${process.env.BLOG_DOMAIN}/blog-static/:path+`,
+        }
+    ];
+}
+```
+
+`destination`은 구성표 및 도메인을 포함하여 영역에서 제공되는 URL가어야 합니다. 이는 영역의 프로덕션 도메인을 가리켜야 하지만 로컬 개발에서 요청을 `localhost`로 라우팅하는 데 사용될 수도 있습니다.
+
+> **알아두면 좋은 정보**: URL 경로는 영역별로 고유해야 합니다. 예를 들어 `/blog`을 서비스하려는 두 영역은 라우팅 충돌을 발생시킵니다.
+
+### 프록시를 사용하여 요청 라우팅
+
+요청에 대한 지연 시간 오버헤드를 최소화하려면 [`rewrites`](../api-reference/config/next-config-js/rewrites.mdx)을 통해 요청을 라우팅하는 것이 좋지만 라우팅 시 동적 결정이 필요한 경우 프록시를 사용할 수도 있습니다. 예를 들어, 마이그레이션 중에 경로를 라우팅해야 하는 위치를 결정하기 위해 기능 플래그를 사용하는 경우 프록시를 사용할 수 있습니다.
+
+```js filename="proxy.js"
+export async function proxy(request) {
+  const { pathname, search } = req.nextUrl;
+  if (pathname === '/your-path' && myFeatureFlag.isEnabled()) {
+    return NextResponse.rewrite(`${rewriteDomain}${pathname}${search});
+  }
+}
+```
+
+## 존 간 연결다른 영역의 경로에 대한 링크는 Next.js  구성 요소 대신  태그를 사용해야 합니다. 이는 Next.js가  구성 요소의 상대 경로로 프리페치 및 소프트 탐색을 시도하기 때문이며 이는 영역 간에 작동하지 않습니다.
+
+다양한 영역을 구성하는 Next.js 애플리케이션은 모든 저장소에 있을 수 있습니다. 그러나 코드를 보다 쉽게 ​​공유하려면 이러한 영역을 `a` tag instead of the Next.js [`<Link>`](https://nextjs.org/docs/pages/api-reference/components/link)에 배치하는 것이 편리한 경우가 많습니다. 다른 저장소에 있는 영역의 경우 공개 또는 비공개 NPM 패키지를 사용하여 코드를 공유할 수도 있습니다.`<Link>` component, which will not work across zones.
+
+## 서버 작업
+
+다중 영역과 함께 [서버 작업](https://en.wikipedia.org/wiki/Monorepo)을 사용하는 경우 사용자 대상 도메인이 여러 애플리케이션을 제공할 수 있으므로 사용자 대상 원본을 명시적으로 허용해야 합니다.  파일에 다음 줄을 추가합니다.
+
+자세한 내용은 를 참조하세요.
+
+## Server Actions
+
+When using [Server Actions](../getting-started/updating-data.mdx) with Multi-Zones, you must explicitly allow the user-facing origin since your user facing domain may serve multiple applications. In your `next.config.js` file, add the following lines:
+
+```js filename="next.config.js"
+const nextConfig = {
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['your-production-domain.com'],
+    },
+  },
+}
+```
+
+See [`serverActions.allowedOrigins`](../api-reference/config/next-config-js/serverActions.mdx#allowedorigins) for more information.

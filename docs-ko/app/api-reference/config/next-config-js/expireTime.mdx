@@ -1,0 +1,19 @@
+---
+title: 만료시간
+description: ISR이 활성화된 페이지에 대한 재검증 중 오래된 만료 시간을 사용자 정의합니다.
+---
+
+ISR 지원 페이지의 `stale-while-revalidate` 헤더에서 CDN가 사용할 사용자 정의 `Cache-Control` 만료 시간을 지정할 수 있습니다.
+
+Open `next.config.js`을 열고 `expireTime` 구성을 추가합니다.
+
+```js filename="next.config.js"
+module.exports = {
+  // one hour in seconds
+  expireTime: 3600,
+}
+```
+
+이제 `Cache-Control` 헤더를 보낼 때 만료 시간은 특정 재검증 기간에 따라 계산됩니다.
+
+예를 들어, 경로 재검증이 15분이고 만료 시간이 1시간인 경우 생성된 `Cache-Control` 헤더는 `s-maxage=900, stale-while-revalidate=2700`이 되어 구성된 만료 시간보다 15분 적은 시간 동안 오래된 상태를 유지할 수 있습니다.

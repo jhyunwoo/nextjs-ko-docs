@@ -1,0 +1,152 @@
+---
+title: useReportWebVitals
+description: useReportWebVitals 함수에 대한 API 참조입니다.
+---
+
+The `useReportWebVitals` 후크를 사용하면 [핵심 웹 바이탈](https://web.dev/vitals/)을 보고할 수 있으며 분석 서비스와 함께 사용할 수 있습니다.
+
+New functions passed to `useReportWebVitals`에 전달된 새 함수는 해당 지점까지 사용 가능한 측정항목으로 호출됩니다. 중복된 데이터 보고를 방지하려면 콜백 함수 참조가 변경되지 않는지 확인하세요(아래 코드 예제 참조).
+
+```jsx filename="app/_components/web-vitals.js"
+'use client'
+
+import { useReportWebVitals } from 'next/web-vitals'
+
+const logWebVitals = (metric) => {
+  console.log(metric)
+}
+
+export function WebVitals() {
+  useReportWebVitals(logWebVitals)
+
+  return null
+}
+```
+
+```jsx filename="app/layout.js"
+import { WebVitals } from './_components/web-vitals'
+
+export default function Layout({ children }) {
+  return (
+    <html>
+      <body>
+        <WebVitals />
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+> Since the `useReportWebVitals` 후크에는 `'use client'` 지시어가 필요하므로 가장 성능이 좋은 접근 방식은 루트 레이아웃이 가져오는 별도의 구성 요소를 만드는 것입니다. 이는 클라이언트 경계를 `WebVitals` 구성 요소로만 제한합니다.
+
+## useReportWebVitals
+
+후크의 인수로 전달된 `metric` 개체는 다음과 같은 여러 속성으로 구성됩니다.
+
+- `id`: 현재 페이지 로드 컨텍스트에서 측정항목에 대한 고유 식별자
+- `name`: 성능 지표의 이름입니다. 가능한 값에는 웹 애플리케이션과 관련된 [웹 바이탈](#web-vitals) 지표(TTFB, FCP, LCP, FID, CLS)의 이름이 포함됩니다.
+- `delta`: 메트릭의 현재 값과 이전 값 간의 차이입니다. 값은 일반적으로 밀리초 단위이며 시간에 따른 측정항목 값의 변화를 나타냅니다.
+- `entries`: 지표와 연결된 [성능 항목](https://developer.mozilla.org/docs/Web/API/PerformanceEntry)의 배열입니다. 이러한 항목은 측정 단위와 관련된 성능 이벤트에 대한 자세한 정보를 제공합니다.
+- `navigationType`: 지표 수집을 트리거한 [탐색 유형](https://developer.mozilla.org/docs/Web/API/PerformanceNavigationTiming/type)을 나타냅니다. 가능한 값은 `"navigate"`, `"reload"`, `"back_forward"` 및 `"prerender"`입니다.
+- `rating`: 성능 평가를 제공하는 메트릭 값의 정성적 등급입니다. 가능한 값은 `"good"`, `"needs-improvement"` 및 `"poor"`입니다. 등급은 일반적으로 허용 가능한 성능 또는 최적이 아닌 성능을 나타내는 사전 정의된 임계값과 메트릭 값을 비교하여 결정됩니다.
+- `value`: 성능 항목의 실제 값 또는 기간(일반적으로 밀리초 단위)입니다. 값은 메트릭으로 추적되는 성능 측면의 정량적 측정값을 제공합니다. 값의 출처는 측정되는 특정 지표에 따라 다르며 다양한 [성능 API](https://developer.mozilla.org/docs/Web/API/Performance_API)에서 나올 수 있습니다.
+
+## 웹 바이탈
+
+[웹 바이탈](https://web.dev/vitals/)은 사용자 확보를 목표로 하는 유용한 측정항목 집합입니다.
+웹페이지 경험. 다음 웹 바이탈이 모두 포함됩니다.
+
+- [첫 번째 바이트까지의 시간](https://developer.mozilla.org/docs/Glossary/Time_to_first_byte)(TTFB)
+- [첫 번째 만족스러운 페인트](https://developer.mozilla.org/docs/Glossary/First_contentful_paint)(FCP)
+- [콘텐츠가 포함된 최대 페인트](https://web.dev/lcp/)(LCP)
+- [첫 번째 입력 지연](https://web.dev/fid/)(FID)
+- [누적 레이아웃 이동](https://web.dev/cls/)(CLS)
+- [다음 페인트와의 상호작용](https://web.dev/inp/) (INP)
+
+You can handle all the results of these metrics using the `name` 속성을 사용하여 이러한 측정항목의 모든 결과를 처리할 수 있습니다.
+
+```tsx filename="app/components/web-vitals.tsx" switcher
+'use client'
+
+import { useReportWebVitals } from 'next/web-vitals'
+
+type ReportWebVitalsCallback = Parameters<typeof useReportWebVitals>[0]
+
+const handleWebVitals: ReportWebVitalsCallback = (metric) => {
+  switch (metric.name) {
+    case 'FCP': {
+      // handle FCP results
+    }
+    case 'LCP': {
+      // handle LCP results
+    }
+    // ...
+  }
+}
+
+export function WebVitals() {
+  useReportWebVitals(handleWebVitals)
+}
+```
+
+```jsx filename="app/components/web-vitals.js" switcher
+'use client'
+
+import { useReportWebVitals } from 'next/web-vitals'
+
+const handleWebVitals = (metric) => {
+  switch (metric.name) {
+    case 'FCP': {
+      // handle FCP results
+    }
+    case 'LCP': {
+      // handle LCP results
+    }
+    // ...
+  }
+}
+
+export function WebVitals() {
+  useReportWebVitals(handleWebVitals)
+}
+```
+
+## 결과를 외부 시스템으로 보내기
+
+측정하고 추적하기 위해 결과를 모든 엔드포인트로 보낼 수 있습니다.
+사이트의 실제 사용자 성과. 예를 들면:
+
+```js
+function postWebVitals(metrics) {
+  const body = JSON.stringify(metric)
+  const url = 'https://example.com/analytics'
+
+  // Use `navigator.sendBeacon()` if available, falling back to `fetch()`.
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(url, body)
+  } else {
+    fetch(url, { body, method: 'POST', keepalive: true })
+  }
+}
+
+useReportWebVitals(postWebVitals)
+```
+
+> **알아두면 좋은 정보**: [Google Analytics](https://analytics.google.com/analytics/web/)를 사용하는 경우
+> `id` 값을 사용하면 지표 분포를 수동으로 구성할 수 있습니다(백분위수 계산,
+> 등)
+
+> ```js
+> useReportWebVitals(metric => {
+>   // Use `window.gtag` if you initialized Google Analytics as this example:
+>   // https://github.com/vercel/next.js/blob/canary/examples/with-google-analytics
+>   window.gtag('event', metric.name, {
+>     value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value), // values must be integers
+>     event_label: metric.id, // id unique to current page load
+>     non_interaction: true, // avoids affecting bounce rate.
+>   });
+> }
+> ```
+>
+> Read more about [sending results to Google Analytics](https://github.com/GoogleChrome/web-vitals#send-the-results-to-google-analytics).

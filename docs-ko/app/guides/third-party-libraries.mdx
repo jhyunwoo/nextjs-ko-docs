@@ -1,0 +1,288 @@
+---
+title: 타사 라이브러리를 최적화하는 방법
+nav_title: 타사 라이브러리
+description: "`@next/third-party` 패키지를 사용하여 애플리케이션에서 타사 라이브러리의 성능을 최적화하세요."
+---
+
+**`@next/third-parties`** is a library that provides a collection of components and utilities that improve the performance and developer experience of loading popular third-party libraries in your Next.js application.\*\*는 Next.js 애플리케이션에서 인기 있는 타사 라이브러리를 로드하는 성능과 개발자 경험을 향상시키는 구성 요소 및 유틸리티 컬렉션을 제공하는 라이브러리입니다.
+
+All third-party integrations provided by `@next/third-parties`에서 제공하는 모든 타사 통합은 성능과 사용 편의성을 위해 최적화되었습니다.
+
+## 시작하기
+
+시작하려면 `@next/third-parties` 라이브러리를 설치하세요.
+
+```bash filename="Terminal"
+npm install @next/third-parties@latest next@latest
+```
+
+{/* To do: Remove this paragraph once package becomes stable */}
+
+`@next/third-parties`은 현재 활발하게 개발 중인 **실험적** 라이브러리입니다. 더 많은 타사 통합을 추가하는 동안 **최신** 또는 **canary** 플래그와 함께 설치하는 것이 좋습니다.
+
+## Google 제3자
+
+Google에서 지원되는 모든 타사 라이브러리는 `@next/third-parties/google`에서 가져올 수 있습니다.
+
+### Google 태그 관리자
+
+The `GoogleTagManager` 구성요소를 사용하여 [Google 태그 관리자](https://developers.google.com/tag-platform/tag-manager) 컨테이너를 페이지에 인스턴스화할 수 있습니다. 기본적으로 페이지에서 하이드레이션이 발생한 후 원본 인라인 스크립트를 가져옵니다.
+
+모든 경로에 대해 Google 태그 관리자를 로드하려면 루트 레이아웃에 구성요소를 직접 포함하고 GTM 컨테이너 ID를 전달하세요.
+
+```tsx filename="app/layout.tsx" switcher
+import { GoogleTagManager } from '@next/third-parties/google'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <GoogleTagManager gtmId="GTM-XYZ" />
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { GoogleTagManager } from '@next/third-parties/google'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <GoogleTagManager gtmId="GTM-XYZ" />
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+단일 경로에 대해 Google 태그 관리자를 로드하려면 페이지 파일에 구성요소를 포함하세요.
+
+```jsx filename="app/page.js"
+import { GoogleTagManager } from '@next/third-parties/google'
+
+export default function Page() {
+  return <GoogleTagManager gtmId="GTM-XYZ" />
+}
+```
+
+#### 이벤트 보내기
+
+The `sendGTMEvent` 함수는 이벤트를 전송하여 페이지에서 사용자 상호 작용을 추적하는 데 사용할 수 있습니다.
+`dataLayer` 개체를 사용합니다. 이 기능이 작동하려면 `<GoogleTagManager />` 구성요소가 있어야 합니다.
+상위 레이아웃, 페이지 또는 구성 요소에 포함되거나 동일한 파일에 직접 포함됩니다.
+
+```jsx filename="app/page.js"
+'use client'
+
+import { sendGTMEvent } from '@next/third-parties/google'
+
+export function EventButton() {
+  return (
+    <div>
+      <button
+        onClick={() => sendGTMEvent({ event: 'buttonClicked', value: 'xyz' })}
+      >
+        Send Event
+      </button>
+    </div>
+  )
+}
+```
+
+태그 관리자 \[개발자]를 참조하세요.
+문서]\(https://developers.google.com/tag-platform/tag-manager/datalayer)에 대해 알아보세요.
+함수에 전달될 수 있는 다양한 변수와 이벤트.[developer
+documentation](https://developers.google.com/tag-platform/tag-manager/datalayer) to learn about the
+different variables and events that can be passed into the function.
+
+#### 서버 측 태그 지정
+
+서버 측 태그 관리자를 사용하고 태그 서버에서 `gtm.js` 스크립트를 제공하는 경우 다음을 수행할 수 있습니다.
+`gtmScriptUrl` 옵션을 사용하여 스크립트의 URL를 지정합니다.
+
+#### 옵션
+
+Google 태그 관리자에 전달하는 옵션입니다. 전체 옵션 목록을 보려면 [Google 태그 관리자
+문서](https://developers.google.com/tag-platform/tag-manager/datalayer).| 이름 | 유형 | 설명 |
+
+| --------------- | ---------- | ----------------------------------------------------------- |`gtmId`         | Required\* | Your GTM container ID. Usually starts with `GTM-`.                       |`gtmScriptUrl`  | Optional\* | GTM script URL. Defaults to `https://www.googletagmanager.com/gtm.js`.   |
+| `dataLayer`     | Optional   | Data layer object to instantiate the container with.                     |
+| `dataLayerName` | Optional   | Name of the data layer. Defaults to `dataLayer`.                         |
+| `auth`          | Optional   | Value of authentication parameter (`gtm_auth`) for environment snippets. |
+| `preview`       | Optional   | Value of preview parameter (`gtm_preview`) for environment snippets.     |
+
+| `gtmId`  | Optional\* | GTM script URL. Defaults to `gtmScriptUrl`.   |
+| [Google tag gateway for advertisers](https://developers.google.com/tag-platform/tag-manager/gateway/setup-guide?setup=manual).     | Optional   | Data layer object to instantiate the container with.                     |
+
+### 구글애널리틱스
+
+The `GoogleAnalytics` 구성 요소를 사용하여 [Google Analytics
+4](https://developers.google.com/analytics/devguides/collection/ga4)를 Google 태그를 통해 페이지에 추가
+(`gtag.js`). 기본적으로 페이지에서 하이드레이션이 발생한 후 원본 스크립트를 가져옵니다.
+
+> **권장사항**: Google 태그 관리자가 이미 애플리케이션에 포함되어 있는 경우 다음을 수행할 수 있습니다.
+> Google Analytics를 별도로 포함하지 않고 이를 이용하여 직접 Google Analytics를 구성합니다.
+> 구성 요소. 다음을 참조하세요.
+> [문서](https://developers.google.com/analytics/devguides/collection/ga4/tag-options#what-is-gtm)
+> 태그 관리자와 `gtag.js`의 차이점에 대해 자세히 알아보세요.
+
+모든 경로에 대해 Google Analytics를 로드하려면 루트 레이아웃에 구성 요소를 직접 포함하고 전달하십시오.
+측정 ID:
+
+```tsx filename="app/layout.tsx" switcher
+import { GoogleAnalytics } from '@next/third-parties/google'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+      <GoogleAnalytics gaId="G-XYZ" />
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { GoogleAnalytics } from '@next/third-parties/google'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+      <GoogleAnalytics gaId="G-XYZ" />
+    </html>
+  )
+}
+```
+
+단일 경로에 대해 Google Analytics를 로드하려면 페이지 파일에 구성 요소를 포함하십시오.
+
+```jsx filename="app/page.js"
+import { GoogleAnalytics } from '@next/third-parties/google'
+
+export default function Page() {
+  return <GoogleAnalytics gaId="G-XYZ" />
+}
+```
+
+#### 이벤트 보내기
+
+The `sendGAEvent` 함수는 이벤트를 전송하여 페이지에서의 사용자 상호 작용을 측정하는 데 사용할 수 있습니다.
+`dataLayer` 개체를 사용합니다. 이 기능이 작동하려면 `<GoogleAnalytics />` 구성요소가 있어야 합니다.
+상위 레이아웃, 페이지 또는 구성 요소에 포함되거나 동일한 파일에 직접 포함됩니다.
+
+```jsx filename="app/page.js"
+'use client'
+
+import { sendGAEvent } from '@next/third-parties/google'
+
+export function EventButton() {
+  return (
+    <div>
+      <button
+        onClick={() => sendGAEvent('event', 'buttonClicked', { value: 'xyz' })}
+      >
+        Send Event
+      </button>
+    </div>
+  )
+}
+```
+
+Google Analytics \[개발자]를 참조하세요.
+문서]\(https://developers.google.com/analytics/devguides/collection/ga4/event-parameters) 학습
+이벤트 매개변수에 대해 자세히 알아보세요.[developer
+documentation](https://developers.google.com/analytics/devguides/collection/ga4/event-parameters) to learn
+more about event parameters.
+
+#### 페이지뷰 추적
+
+Google Analytics는 브라우저 기록 상태가 변경되면 자동으로 페이지뷰를 추적합니다. 이는 다음을 의미합니다.
+Next.js 경로 간의 클라이언트 측 탐색은 구성 없이 페이지 조회 데이터를 전송합니다.
+
+클라이언트 측 탐색이 올바르게 측정되고 있는지 확인하려면 [*“향상된
+측정”*](https://support.google.com/analytics/answer/9216061#enable_disable) 속성은
+관리자 패널에서 활성화되어 있으며 *'브라우저 기록 이벤트에 따른 페이지 변경'* 확인란이
+선택되었습니다.> : 페이지 조회 이벤트를 수동으로 전송하기로 결정한 경우 기본값을 비활성화해야 합니다.
+
+> **Note**: If you decide to manually send pageview events, make sure to disable the default
+> pageview measurement to avoid having duplicate data. Refer to the Google Analytics [developer
+> documentation](https://developers.google.com/analytics/devguides/collection/ga4/views?client_type=gtag#manual_pageviews)
+> to learn more.
+
+#### 옵션
+
+Options to pass to the `<GoogleAnalytics>` 구성 요소에 전달하는 옵션입니다.
+
+| 이름 | 유형 | 설명 |`gaId`          | Required | Your [measurement ID](https://support.google.com/analytics/answer/12270356). Usually starts with `G-`. |`dataLayerName` | Optional | Name of the data layer. Defaults to `dataLayer`.                                                       |`nonce`         | Optional | A [nonce](content-security-policy.mdx#nonces).                                            |
+
+### Google 지도 삽입
+
+The `GoogleMapsEmbed` 구성요소를 사용하여 [Google 지도
+페이지에](https://developers.google.com/maps/documentation/embed/embedding-map)를 삽입하세요. 작성자:
+기본적으로 `loading` 속성을 사용하여 접힌 부분 아래에 삽입을 지연 로드합니다.
+
+```jsx filename="app/page.js"
+import { GoogleMapsEmbed } from '@next/third-parties/google'
+
+export default function Page() {
+  return (
+    <GoogleMapsEmbed
+      apiKey="XYZ"
+      height={200}
+      width="100%"
+      mode="place"
+      q="Brooklyn+Bridge,New+York,NY"
+    />
+  )
+}
+```
+
+#### 옵션
+
+Google 지도 삽입으로 전달하는 옵션입니다. 전체 옵션 목록을 보려면 [Google 지도 삽입
+문서](https://developers.google.com/maps/documentation/embed/embedding-map).| 이름 | 유형 | 설명 |
+
+| ----------------- | -------- | ------------------------------------------------------------------------- |`apiKey`          | Required | Your api key.                                                                                       |`mode`            | Required | [Map mode](https://developers.google.com/maps/documentation/embed/embedding-map#choosing_map_modes) |
+| `height`          | Optional | Height of the embed. Defaults to `auto`.                                                            |
+| `width`           | Optional | Width of the embed. Defaults to `auto`.                                                             |
+| `style`           | Optional | Pass styles to the iframe.                                                                          |
+| `allowfullscreen` | Optional | Property to allow certain map parts to go full screen.                                              |
+| `loading`         | Optional | Defaults to lazy. Consider changing if you know your embed will be above the fold.                  |
+| `q`               | Optional | Defines map marker location. *This may be required depending on the map mode*.                      |
+| `center`          | Optional | Defines the center of the map view.                                                                 |
+| `zoom`            | Optional | Sets initial zoom level of the map.                                                                 |
+| `maptype`         | Optional | Defines type of map tiles to load.                                                                  |
+| `language`        | Optional | Defines the language to use for UI elements and for the display of labels on map tiles.             |
+| `region`          | Optional | Defines the appropriate borders and labels to display, based on geo-political sensitivities.        |
+
+### YouTube 삽입
+
+The `YouTubeEmbed` 구성요소를 사용하여 YouTube 삽입을 로드하고 표시할 수 있습니다. 이 구성요소가 로드됩니다.
+아래에서 [`lite-youtube-embed`](https://github.com/paulirish/lite-youtube-embed)를 사용하면 더 빠릅니다.
+후드.
+
+```jsx filename="app/page.js"
+import { YouTubeEmbed } from '@next/third-parties/google'
+
+export default function Page() {
+  return <YouTubeEmbed videoid="ogfYd705cRs" height={400} params="controls=0" />
+}
+```
+
+#### 옵션| 이름 | 유형 | 설명 |
+
+| ----------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |`videoid`   | Required | YouTube video id.                                                                                                                                                                                            |`width`     | Optional | Width of the video container. Defaults to `auto`                                                                                                                                                             |
+| `height`    | Optional | Height of the video container. Defaults to `auto`                                                                                                                                                            |
+| `playlabel` | Optional | A visually hidden label for the play button for accessibility.                                                                                                                                               |
+| `params`    | Optional | The video player params defined [here](https://developers.google.com/youtube/player_parameters#Parameters). <br /> Params are passed as a query param string. <br /> Eg: `params="controls=0&start=10&end=30"` |
+| `style`     | Optional | Used to apply styles to the video container.                                                                                                                                                                 |

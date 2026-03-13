@@ -1,0 +1,47 @@
+---
+title: 최적화패키지가져오기
+description: OptimizePackageImports Next.js 구성 옵션에 대한 API 참조
+version: experimental
+---
+
+일부 패키지는 수백 또는 수천 개의 모듈을 내보낼 수 있으며, 이로 인해 개발 및 프로덕션에서 성능 문제가 발생할 수 있습니다.
+
+`experimental.optimizePackageImports`에 패키지를 추가하면 실제로 사용하고 있는 모듈만 로드하는 동시에 많은 명명된 내보내기가 포함된 가져오기 문을 편리하게 작성할 수 있습니다.
+
+```js filename="next.config.js"
+module.exports = {
+  experimental: {
+    optimizePackageImports: ['package-name'],
+  },
+}
+```
+
+다음 라이브러리는 기본적으로 최적화되어 있습니다.
+
+- `lucide-react`
+- `date-fns`
+- `lodash-es`
+- `ramda`
+- `antd`
+- `react-bootstrap`
+- `ahooks`
+- `@ant-design/icons`
+- `@headlessui/react`
+- `@headlessui-float/react`
+- `@heroicons/react/20/solid`
+- `@heroicons/react/24/solid`
+- `@heroicons/react/24/outline`
+- `@visx/visx`
+- `@tremor/react`
+- `rxjs`
+- `@mui/material`
+- `@mui/icons-material`
+- `recharts`
+- `react-use`
+- `@material-ui/core`
+- `@material-ui/icons`
+- `@tabler/icons-react`
+- `mui-core`
+- `react-icons/*`
+- `effect`
+- `@effect/*`

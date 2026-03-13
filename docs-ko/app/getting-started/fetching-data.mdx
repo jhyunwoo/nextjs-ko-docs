@@ -1,0 +1,633 @@
+---
+title: 데이터 가져오기
+description: 데이터를 가져오고 데이터에 의존하는 콘텐츠를 스트리밍하는 방법을 알아보세요.
+related:
+  title: API 참조
+  description: API 참조를 읽고 이 페이지에 언급된 기능에 대해 자세히 알아보세요.
+  links:
+    - app/guides/data-security
+    - app/api-reference/functions/fetch
+    - app/api-reference/file-conventions/loading
+    - app/api-reference/config/next-config-js/logging
+    - app/api-reference/config/next-config-js/taint
+---
+
+이 페이지에서는 [서버 및 클라이언트 구성 요소](server-and-client-components.mdx)에서 데이터를 가져오는 방법과 데이터에 의존하는 구성 요소를 [스트리밍](#streaming)하는 방법을 안내합니다.
+
+## 데이터를 가져오는 중
+
+### 서버 구성요소
+
+다음과 같은 비동기 I/O를 사용하여 서버 구성 요소에서 데이터를 가져올 수 있습니다.
+
+1. The [`fetch` API](#with-the-fetch-api)
+1. An [ORM 또는 데이터베이스](#with-an-orm-or-database)
+1. Reading from the filesystem using Node.js APIs like `fs`
+
+#### With the `fetch` API 사용
+
+To fetch data with the `fetch` API를 사용하여 데이터를 가져오려면 구성 요소를 비동기 함수로 전환하고 `fetch` 호출을 기다립니다. 예를 들면:
+
+```tsx filename="app/blog/page.tsx" switcher
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+> **알아두면 좋은 점:**
+>
+> - `fetch` 응답은 기본적으로 캐시되지 않습니다. 그러나 Next.js는 경로를 [사전 렌더링](../guides/caching.mdx#static-rendering)하고 출력은 성능 향상을 위해 캐시됩니다. [동적 렌더링](../guides/caching.mdx#dynamic-rendering)을 선택하려면 `{ cache: 'no-store' }` 옵션을 사용하세요. [`fetch` API 참조](../api-reference/functions/fetch.mdx)를 참조하세요.
+> - 개발 중에 더 나은 가시성과 디버깅을 위해 `fetch` 호출을 기록할 수 있습니다. [`logging` API 참조](../api-reference/config/next-config-js/logging.mdx)를 확인하세요.
+
+#### ORM 또는 데이터베이스 사용
+
+서버 구성 요소는 서버에서 렌더링되므로 ORM 또는 데이터베이스 클라이언트를 사용하여 데이터베이스 쿼리를 안전하게 만들 수 있습니다. 구성 요소를 비동기 함수로 바꾸고 호출을 기다립니다.
+
+```tsx filename="app/blog/page.tsx" switcher
+import { db, posts } from '@/lib/db'
+
+export default async function Page() {
+  const allPosts = await db.select().from(posts)
+  return (
+    <ul>
+      {allPosts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+import { db, posts } from '@/lib/db'
+
+export default async function Page() {
+  const allPosts = await db.select().from(posts)
+  return (
+    <ul>
+      {allPosts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### 클라이언트 구성요소
+
+다음을 사용하여 클라이언트 구성 요소에서 데이터를 가져오는 방법에는 두 가지가 있습니다.
+
+1. React의 [`use` 후크](https://react.dev/reference/react/use)
+1. A community library like [SWR](https://swr.vercel.app/) 또는 [React 쿼리](https://tanstack.com/query/latest)
+
+#### Streaming data with the `use` 후크를 사용하여 데이터 스트리밍
+
+React의 [`use` 후크](https://react.dev/reference/react/use)를 사용하여 서버에서 클라이언트로 데이터를 [스트리밍](#streaming)할 수 있습니다. 서버 구성 요소에서 데이터를 가져오는 것으로 시작하고 Promise를 클라이언트 구성 요소에 소품으로 전달합니다.
+
+```tsx filename="app/blog/page.tsx" switcher
+import Posts from '@/app/ui/posts'
+import { Suspense } from 'react'
+
+export default function Page() {
+  // Don't await the data fetching function
+  const posts = getPosts()
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Posts posts={posts} />
+    </Suspense>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+import Posts from '@/app/ui/posts'
+import { Suspense } from 'react'
+
+export default function Page() {
+  // Don't await the data fetching function
+  const posts = getPosts()
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Posts posts={posts} />
+    </Suspense>
+  )
+}
+```
+
+그런 다음 클라이언트 구성 요소에서 `use` 후크를 사용하여 약속을 읽습니다.
+
+```tsx filename="app/ui/posts.tsx" switcher
+'use client'
+import { use } from 'react'
+
+export default function Posts({
+  posts,
+}: {
+  posts: Promise<{ id: string; title: string }[]>
+}) {
+  const allPosts = use(posts)
+
+  return (
+    <ul>
+      {allPosts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/ui/posts.js" switcher
+'use client'
+import { use } from 'react'
+
+export default function Posts({ posts }) {
+  const allPosts = use(posts)
+
+  return (
+    <ul>
+      {allPosts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+위의 예에서 `<Posts>` 구성 요소는 [`<Suspense>` 경계](https://react.dev/reference/react/Suspense)로 래핑됩니다. 이는 Promise가 해결되는 동안 fallback가 표시된다는 의미입니다. [스트리밍](#streaming)에 대해 자세히 알아보세요.
+
+#### 커뮤니티 도서관
+
+You can use a community library like [SWR](https://swr.vercel.app/) 또는 [React 쿼리](https://tanstack.com/query/latest)와 같은 커뮤니티 라이브러리를 사용하여 클라이언트 구성 요소에서 데이터를 가져올 수 있습니다. 이러한 라이브러리에는 캐싱, 스트리밍 및 기타 기능에 대한 고유한 의미가 있습니다. 예를 들어 SWR의 경우:
+
+```tsx filename="app/blog/page.tsx" switcher
+'use client'
+import useSWR from 'swr'
+
+const fetcher = (url) => fetch(url).then((r) => r.json())
+
+export default function BlogPage() {
+  const { data, error, isLoading } = useSWR(
+    'https://api.vercel.app/blog',
+    fetcher
+  )
+
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <ul>
+      {data.map((post: { id: string; title: string }) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+'use client'
+
+import useSWR from 'swr'
+
+const fetcher = (url) => fetch(url).then((r) => r.json())
+
+export default function BlogPage() {
+  const { data, error, isLoading } = useSWR(
+    'https://api.vercel.app/blog',
+    fetcher
+  )
+
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <ul>
+      {data.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## 요청 중복 제거 및 데이터 캐시
+
+One way to deduplicate `fetch` 요청을 중복 제거하는 한 가지 방법은 [메모 요청](../guides/caching.mdx#request-memoization)을 사용하는 것입니다. 이 메커니즘을 사용하면 동일한 URL 및 옵션이 포함된 `fetch` 또는 `GET`을 사용하는 `HEAD` 호출이 하나의 요청으로 결합됩니다. 이는 자동으로 발생하며 중단 신호를 [선택 해제](../guides/caching.mdx#opting-out)할 수 있습니다.`fetch`.
+
+요청 메모이제이션의 범위는 요청 수명으로 제한됩니다.
+
+You can also deduplicate `fetch` 옵션에서 [데이터 캐시](../guides/caching.mdx#data-cache)를 사용하여 `cache: 'force-cache'` 요청을 중복 제거할 수도 있습니다.`fetch` options.
+
+데이터 캐시를 사용하면 현재 렌더 패스와 수신 요청 전반에 걸쳐 데이터를 공유할 수 있습니다.
+
+If you are *않고* ORM가나 데이터베이스를 직접 사용하는 경우 `fetch`, and instead using an ORM or database directly, you can wrap your data access with the [React `cache`](https://react.dev/reference/react/cache) 함수를 사용하여 데이터 액세스를 래핑할 수 있습니다.
+
+```tsx filename="app/lib/data.ts" switcher
+import { cache } from 'react'
+import { db, posts, eq } from '@/lib/db'
+
+export const getPost = cache(async (id: string) => {
+  const post = await db.query.posts.findFirst({
+    where: eq(posts.id, parseInt(id)),
+  })
+})
+```
+
+```jsx filename="app/lib/data.js" switcher
+import { cache } from 'react'
+import { db, posts, eq } from '@/lib/db'
+import { notFound } from 'next/navigation'
+
+export const getPost = cache(async (id) => {
+  const post = await db.query.posts.findFirst({
+    where: eq(posts.id, parseInt(id)),
+  })
+})
+```
+
+## 스트리밍
+
+> **경고:** 아래 내용은 [`cacheComponents` 구성 옵션](../api-reference/config/next-config-js/cacheComponents.mdx)이 애플리케이션에서 활성화되어 있다고 가정합니다. 플래그는 Next.js 15 카나리아에 도입되었습니다.
+
+서버 구성 요소에서 데이터를 가져오면 각 요청에 대해 서버에서 데이터를 가져오고 렌더링합니다. 데이터 요청 속도가 느린 경우 모든 데이터를 가져올 때까지 전체 경로의 렌더링이 차단됩니다.
+
+초기 로드 시간과 사용자 경험을 개선하려면 스트리밍을 사용하여 페이지의 HTML를 더 작은 청크로 나누고 점진적으로 해당 청크를 서버에서 클라이언트로 보낼 수 있습니다.
+
+<Image alt="스트리밍을 통한 서버 렌더링 작동 방식" srcLight="/docs/light/server-rendering-with-streaming.png" srcDark="/docs/dark/server-rendering-with-streaming.png" width="1600" height="785" />
+
+애플리케이션에서 스트리밍을 활용할 수 있는 방법에는 두 가지가 있습니다.
+
+1. Wrapping a page with a [`loading.js` 파일](#with-loadingjs)
+1. Wrapping a component with [`<Suspense>`](#with-suspense)
+
+### With `loading.js`
+
+페이지와 동일한 폴더에 `loading.js` 파일을 생성하여 데이터를 가져오는 동안 **전체 페이지**를 스트리밍할 수 있습니다. 예를 들어 `app/blog/page.js`을 스트리밍하려면 `app/blog` 폴더 내에 파일을 추가하세요.
+
+<Image alt="loading.js 파일이 포함된 블로그 폴더 구조" srcLight="/docs/light/loading-file.png" srcDark="/docs/dark/loading-file.png" width="1600" height="525" />
+
+```tsx filename="app/blog/loading.tsx" switcher
+export default function Loading() {
+  // Define the Loading UI here
+  return <div>Loading...</div>
+}
+```
+
+```jsx filename="app/blog/loading.js" switcher
+export default function Loading() {
+  // Define the Loading UI here
+  return <div>Loading...</div>
+}
+```
+
+탐색 시 페이지가 렌더링되는 동안 사용자는 레이아웃과 [로드 상태](#creating-meaningful-loading-states)를 즉시 확인할 수 있습니다. 렌더링이 완료되면 새 콘텐츠가 자동으로 교체됩니다.
+
+<Image alt="UI 로딩" srcLight="/docs/light/loading-ui.png" srcDark="/docs/dark/loading-ui.png" width="1600" height="691" />
+
+이면에서 `loading.js`은 `layout.js` 내에 중첩되며 `page.js` 파일과 그 아래의 모든 하위 항목을 `<Suspense>` 경계에 자동으로 래핑합니다.
+
+<Image alt="loading.js 개요" srcLight="/docs/light/loading-overview.png" srcDark="/docs/dark/loading-overview.png" width="1600" height="768" />
+
+이 접근 방식은 경로 세그먼트(레이아웃 및 페이지)에 적합하지만 보다 세부적인 스트리밍을 위해서는 `<Suspense>`을 사용할 수 있습니다.
+
+### With `<Suspense>`
+
+`<Suspense>` allows you to be more granular about what parts of the page to stream. For example, you can immediately show any page content that falls outside of the `<Suspense>` boundary, and stream in the list of blog posts inside the boundary.
+
+```tsx filename="app/blog/page.tsx" switcher
+import { Suspense } from 'react'
+import BlogList from '@/components/BlogList'
+import BlogListSkeleton from '@/components/BlogListSkeleton'
+
+export default function BlogPage() {
+  return (
+    <div>
+      {/* This content will be sent to the client immediately */}
+      <header>
+        <h1>Welcome to the Blog</h1>
+        <p>Read the latest posts below.</p>
+      </header>
+      <main>
+        {/* If there's any dynamic content inside this boundary, it will be streamed in */}
+        <Suspense fallback={<BlogListSkeleton />}>
+          <BlogList />
+        </Suspense>
+      </main>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+import { Suspense } from 'react'
+import BlogList from '@/components/BlogList'
+import BlogListSkeleton from '@/components/BlogListSkeleton'
+
+export default function BlogPage() {
+  return (
+    <div>
+      {/* This content will be sent to the client immediately */}
+      <header>
+        <h1>Welcome to the Blog</h1>
+        <p>Read the latest posts below.</p>
+      </header>
+      <main>
+        {/* If there's any dynamic content inside this boundary, it will be streamed in */}
+        <Suspense fallback={<BlogListSkeleton />}>
+          <BlogList />
+        </Suspense>
+      </main>
+    </div>
+  )
+}
+```
+
+### 병렬 데이터 가져오기
+
+병렬 데이터 가져오기는 경로의 데이터 요청이 적극적으로 시작되고 동시에 시작될 때 발생합니다.
+
+기본적으로 [레이아웃 및 페이지](https://react.dev/learn/react-developer-tools)는 병렬로 렌더링됩니다. 따라서 각 세그먼트는 가능한 한 빨리 데이터 가져오기를 시작합니다.
+
+## Examples
+
+### 데이터 미리 로드 중
+
+차단 요청 위에서 열심히 호출하는 유틸리티 함수를 생성하여 데이터를 미리 로드할 수 있습니다. 은  함수를 기반으로 조건부로 렌더링됩니다. 전에 을 호출하여  데이터 종속성을 즉시 시작할 수 있습니다. 이 렌더링될 때 해당 데이터는 이미 가져온 상태입니다.
+
+또한 React의 `<Playlists>` can only fetch data after `<Artist>` completes because it needs the `artistID`: 및 를 사용하여 재사용 가능한 유틸리티 함수를 생성할 수 있습니다. 이 접근 방식을 사용하면 데이터 가져오기 기능을 캐시하고 해당 기능이 서버에서만 실행되도록 할 수 있습니다.
+
+```tsx filename="app/artist/[username]/page.tsx" switcher
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+  // Get artist information
+  const artist = await getArtist(username)
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      {/* Show fallback UI while the Playlists component is loading */}
+      <Suspense fallback={<div>Loading...</div>}>
+        {/* Pass the artist ID to the Playlists component */}
+        <Playlists artistID={artist.id} />
+      </Suspense>
+    </>
+  )
+}
+
+async function Playlists({ artistID }: { artistID: string }) {
+  // Use the artist ID to fetch playlists
+  const playlists = await getArtistPlaylists(artistID)
+
+  return (
+    <ul>
+      {playlists.map((playlist) => (
+        <li key={playlist.id}>{playlist.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/artist/[username]/page.js" switcher
+export default async function Page({ params }) {
+  const { username } = await params
+  // Get artist information
+  const artist = await getArtist(username)
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      {/* Show fallback UI while the Playlists component is loading */}
+      <Suspense fallback={<div>Loading...</div>}>
+        {/* Pass the artist ID to the Playlists component */}
+        <Playlists artistID={artist.id} />
+      </Suspense>
+    </>
+  )
+}
+
+async function Playlists({ artistID }) {
+  // Use the artist ID to fetch playlists
+  const playlists = await getArtistPlaylists(artistID)
+
+  return (
+    <ul>
+      {playlists.map((playlist) => (
+        <li key={playlist.id}>{playlist.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+In this example, `<Suspense>` allows the playlists to stream in after the artist data loads. However, the page still waits for the artist data before displaying anything. To prevent this, you can wrap the entire page component in a `<Suspense>` boundary (for example, using a [`loading.js` file](#with-loadingjs)) to show a loading state immediately.
+
+Ensure your data source can resolve the first request quickly, as it blocks everything else. If you can't optimize the request further, consider [caching](#deduplicate-requests-and-cache-data) the result if the data changes infrequently.
+
+### Parallel data fetching
+
+Parallel data fetching happens when data requests in a route are eagerly initiated and start at the same time.
+
+By default, [layouts and pages](layouts-and-pages.mdx) are rendered in parallel. So each segment starts fetching data as soon as possible.
+
+However, within *any* component, multiple `async`/`await` requests can still be sequential if placed after the other. For example, `getAlbums` will be blocked until `getArtist` is resolved:
+
+```tsx filename="app/artist/[username]/page.tsx" switcher
+import { getArtist, getAlbums } from '@/app/lib/data'
+
+export default async function Page({ params }) {
+  // These requests will be sequential
+  const { username } = await params
+  const artist = await getArtist(username)
+  const albums = await getAlbums(username)
+  return <div>{artist.name}</div>
+}
+```
+
+Start multiple requests by calling `fetch`, then await them with [`Promise.all`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all). Requests begin as soon as `fetch` is called.
+
+```tsx filename="app/artist/[username]/page.tsx" highlight={3,8,24} switcher
+import Albums from './albums'
+
+async function getArtist(username: string) {
+  const res = await fetch(`https://api.example.com/artist/${username}`)
+  return res.json()
+}
+
+async function getAlbums(username: string) {
+  const res = await fetch(`https://api.example.com/artist/${username}/albums`)
+  return res.json()
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+
+  // Initiate requests
+  const artistData = getArtist(username)
+  const albumsData = getAlbums(username)
+
+  const [artist, albums] = await Promise.all([artistData, albumsData])
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      <Albums list={albums} />
+    </>
+  )
+}
+```
+
+```jsx filename="app/artist/[username]/page.js" highlight={3,8,20} switcher
+import Albums from './albums'
+
+async function getArtist(username) {
+  const res = await fetch(`https://api.example.com/artist/${username}`)
+  return res.json()
+}
+
+async function getAlbums(username) {
+  const res = await fetch(`https://api.example.com/artist/${username}/albums`)
+  return res.json()
+}
+
+export default async function Page({ params }) {
+  const { username } = await params
+
+  // Initiate requests
+  const artistData = getArtist(username)
+  const albumsData = getAlbums(username)
+
+  const [artist, albums] = await Promise.all([artistData, albumsData])
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      <Albums list={albums} />
+    </>
+  )
+}
+```
+
+> **Good to know:** If one request fails when using `Promise.all`, the entire operation will fail. To handle this, you can use the [`Promise.allSettled`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled) method instead.
+
+### Preloading data
+
+You can preload data by creating a utility function that you eagerly call above blocking requests. `<Item>` conditionally renders based on the `checkIsAvailable()` function.
+
+You can call `preload()` before `checkIsAvailable()` to eagerly initiate `<Item/>` data dependencies. By the time `<Item/>` is rendered, its data has already been fetched.
+
+```tsx filename="app/item/[id]/page.tsx" switcher
+import { getItem, checkIsAvailable } from '@/lib/data'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  // starting loading item data
+  preload(id)
+  // perform another asynchronous task
+  const isAvailable = await checkIsAvailable()
+
+  return isAvailable ? <Item id={id} /> : null
+}
+
+const preload = (id: string) => {
+  // void evaluates the given expression and returns undefined
+  // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/void
+  void getItem(id)
+}
+
+export async function Item({ id }: { id: string }) {
+  const result = await getItem(id)
+  // ...
+}
+```
+
+```jsx filename="app/item/[id]/page.js" switcher
+import { getItem, checkIsAvailable } from '@/lib/data'
+
+export default async function Page({ params }) {
+  const { id } = await params
+  // starting loading item data
+  preload(id)
+  // perform another asynchronous task
+  const isAvailable = await checkIsAvailable()
+
+  return isAvailable ? <Item id={id} /> : null
+}
+
+const preload = (id) => {
+  // void evaluates the given expression and returns undefined
+  // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/void
+  void getItem(id)
+}
+
+export async function Item({ id }) {
+  const result = await getItem(id)
+  // ...
+```
+
+Additionally, you can use React's [`cache` function](https://react.dev/reference/react/cache) and the [`server-only` package](https://www.npmjs.com/package/server-only) to create a reusable utility function. This approach allows you to cache the data fetching function and ensure that it's only executed on the server.
+
+```ts filename="utils/get-item.ts" switcher
+import { cache } from 'react'
+import 'server-only'
+import { getItem } from '@/lib/data'
+
+export const preload = (id: string) => {
+  void getItem(id)
+}
+
+export const getItem = cache(async (id: string) => {
+  // ...
+})
+```
+
+```js filename="utils/get-item.js" switcher
+import { cache } from 'react'
+import 'server-only'
+import { getItem } from '@/lib/data'
+
+export const preload = (id) => {
+  void getItem(id)
+}
+
+export const getItem = cache(async (id) => {
+  // ...
+})
+```

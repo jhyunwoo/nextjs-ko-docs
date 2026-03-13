@@ -1,0 +1,69 @@
+---
+title: useParams
+description: useParams 후크에 대한 API 참조입니다.
+---
+
+`useParams`은 현재 URL에 의해 채워진 경로의 **클라이언트 구성 요소** 후크입니다.[dynamic params](../file-conventions/dynamic-routes.mdx) filled in by the current URL.
+
+```tsx filename="app/example-client-component.tsx" switcher
+'use client'
+
+import { useParams } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const params = useParams<{ tag: string; item: string }>()
+
+  // Route -> /shop/[tag]/[item]
+  // URL -> /shop/shoes/nike-air-max-97
+  // `params` -> { tag: 'shoes', item: 'nike-air-max-97' }
+  console.log(params)
+
+  return '...'
+}
+```
+
+```jsx filename="app/example-client-component.js" switcher
+'use client'
+
+import { useParams } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const params = useParams()
+
+  // Route -> /shop/[tag]/[item]
+  // URL -> /shop/shoes/nike-air-max-97
+  // `params` -> { tag: 'shoes', item: 'nike-air-max-97' }
+  console.log(params)
+
+  return '...'
+}
+```
+
+## 매개변수
+
+```tsx
+const params = useParams()
+```
+
+`useParams`은 매개변수를 사용하지 않습니다.
+
+## 반품
+
+`useParams`는 현재 경로가 채워진 [동적 매개변수](../file-conventions/dynamic-routes.mdx)를 포함하는 객체를 반환합니다.
+
+- 개체의 각 속성은 활성 동적 세그먼트입니다.
+- 속성 이름은 세그먼트의 이름이고, 속성 값은 세그먼트가 채워지는 값입니다.
+- 속성 값은 `string` 또는 `string`의 배열이 됩니다.[type of dynamic segment](../file-conventions/dynamic-routes.mdx).
+- 경로에 동적 매개변수가 없으면 `useParams`은 빈 객체를 반환합니다.
+- 페이지 라우터에서 사용되는 경우 `useParams`은 초기 렌더링 시 `null`을 반환하고 라우터가 준비되면 위의 규칙에 따라 속성을 업데이트합니다.
+
+예를 들면:
+
+| 경로 | URL | `useParams()` |`app/shop/page.js`              | `/shop`     | `{}`                      |
+| `app/shop/[slug]/page.js`       | `/shop/1`   | `{ slug: '1' }`           |
+| `app/shop/[tag]/[item]/page.js` | `/shop/1/2` | `{ tag: '1', item: '2' }` |
+| `app/shop/[...slug]/page.js`    | `/shop/1/2` | `{ slug: ['1', '2'] }`    |
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v13.3.0` | `useParams` introduced. |

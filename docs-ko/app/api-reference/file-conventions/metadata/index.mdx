@@ -1,0 +1,16 @@
+---
+title: 메타데이터 파일 API 참조
+nav_title: 메타데이터 파일
+description: 메타데이터 파일 규칙에 대한 API 문서입니다.
+---
+
+문서의 이 섹션에서는 **메타데이터 파일 규칙**을 다룹니다. 경로 세그먼트에 특수 메타데이터 파일을 추가하여 파일 기반 메타데이터를 정의할 수 있습니다.
+
+각 파일 규칙은 정적 파일(예: `opengraph-image.jpg`) 또는 코드를 사용하여 파일을 생성하는 동적 변형(예: `opengraph-image.js`)을 사용하여 정의할 수 있습니다.
+
+파일이 정의되면 Next.js는 자동으로 파일을 제공하고(캐싱을 위한 프로덕션 해시 포함) 관련 헤드 요소를 자산의 URL, 파일 유형 및 이미지 크기와 같은 올바른 메타데이터로 업데이트합니다.
+
+> **알면 좋은 점**:
+>
+> - Special Route Handlers like [`sitemap.ts`](sitemap.mdx), [`opengraph-image.tsx`](opengraph-image.mdx), [`icon.tsx`](app-icons.mdx) 및 기타 [메타데이터 파일](index.mdx)과 같은 특수 경로 처리기 기본적으로 캐시됩니다.
+> - If using along with [`proxy.ts`](../proxy.mdx)와 함께 사용하는 경우 메타데이터 파일을 제외하도록 [매처를 구성](../proxy.mdx#matcher)하세요.

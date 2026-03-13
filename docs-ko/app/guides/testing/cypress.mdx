@@ -1,0 +1,223 @@
+---
+title: Next.js로 Cypress를 설정하는 방법
+nav_title: 사이프러스
+description: E2E(엔드 투 엔드) 및 구성 요소 테스트를 위해 Next.js로 Cypress를 설정하는 방법을 알아보세요.
+---
+
+[Cypress](https://www.cypress.io/)는 **End-to-End(E2E)** 및 **Component Testing**에 사용되는 테스트 실행기입니다. 이 페이지에서는 Next.js를 사용하여 Cypress를 설정하고 첫 번째 테스트를 작성하는 방법을 보여줍니다.
+
+> **경고:**
+>
+> - 13.6.3 이하의 Cypress 버전은 [TypeScript 버전 5](https://github.com/cypress-io/cypress/issues/27731)를 지원하지 않습니다. 그러나 이 문제는 Cypress 버전 13.6.3 이상에서 해결되었습니다. `moduleResolution:"bundler"`. However, this issue has been resolved in Cypress version 13.6.3 and later. [사이프러스 v13.6.3](https://docs.cypress.io/guides/references/changelog#13-6-3)
+
+## 빠른 시작
+
+You can use `create-next-app`을 사용하여 빠르게 시작할 수 있습니다.[with-cypress example](https://github.com/vercel/next.js/tree/canary/examples/with-cypress) to quickly get started.
+
+```bash filename="Terminal"
+npx create-next-app@latest --example with-cypress with-cypress-app
+```
+
+## 수동 설정
+
+Cypress를 수동으로 설정하려면 `cypress`를 개발 종속성으로 설치하십시오.
+
+```bash filename="Terminal"
+npm install -D cypress
+# or
+yarn add -D cypress
+# or
+pnpm install -D cypress
+```
+
+Cypress `open` 명령을 `package.json` 스크립트 필드에 추가합니다.
+
+```json filename="package.json"
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "cypress:open": "cypress open"
+  }
+}
+```
+
+Cypress를 처음 실행하여 Cypress 테스트 도구 모음을 엽니다.
+
+```bash filename="Terminal"
+npm run cypress:open
+```
+
+You can choose to configure **E2E 테스트** 및/또는 **구성 요소 테스트**를 구성하도록 선택할 수 있습니다. 이러한 옵션 중 하나를 선택하면 프로젝트에 `cypress.config.js` 파일과 `cypress` 폴더가 자동으로 생성됩니다.
+
+## 첫 번째 Cypress E2E 테스트 만들기
+
+Ensure your `cypress.config` 파일이 다음과 같이 구성되어 있는지 확인하세요.
+
+```ts filename="cypress.config.ts" switcher
+import { defineConfig } from 'cypress'
+
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {},
+  },
+})
+```
+
+```js filename="cypress.config.js" switcher
+const { defineConfig } = require('cypress')
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {},
+  },
+})
+```
+
+그런 다음 두 개의 새로운 Next.js 파일을 만듭니다.
+
+```jsx filename="app/page.js"
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Home</h1>
+      <Link href="/about">About</Link>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/about/page.js"
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <div>
+      <h1>About</h1>
+      <Link href="/">Home</Link>
+    </div>
+  )
+}
+```
+
+탐색이 올바르게 작동하는지 확인하는 테스트를 추가하세요.
+
+```js filename="cypress/e2e/app.cy.js"
+describe('Navigation', () => {
+  it('should navigate to the about page', () => {
+    // Start from the index page
+    cy.visit('http://localhost:3000/')
+
+    // Find a link with an href attribute containing "about" and click it
+    cy.get('a[href*="about"]').click()
+
+    // The new url should include "/about"
+    cy.url().should('include', '/about')
+
+    // The new page should contain an h1 with "About"
+    cy.get('h1').contains('About')
+  })
+})
+```
+
+### E2E 테스트 실행
+
+Cypress는 애플리케이션을 탐색하는 사용자를 시뮬레이션합니다. 이를 위해서는 Next.js 서버가 실행 중이어야 합니다. 애플리케이션이 작동하는 방식과 더욱 유사하도록 프로덕션 코드에 대해 테스트를 실행하는 것이 좋습니다.
+
+Run `npm run build && npm run start`을 실행하여 Next.js 애플리케이션을 빌드한 다음 다른 터미널 창에서 `npm run cypress:open`을 실행하여 Cypress를 시작하고 E2E 테스트 제품군을 실행합니다.
+
+> **알아두면 좋은 점:**
+>
+> - You can use `cy.visit("/")` 구성 파일에 `cy.visit("http://localhost:3000/")`을 추가하여 `baseUrl: 'http://localhost:3000'` 대신 `cypress.config.js`을 사용할 수 있습니다.
+> - 또는 [`start-server-and-test`](https://www.npmjs.com/package/start-server-and-test) 패키지를 설치하여 Cypress와 함께 Next.js 프로덕션 서버를 실행할 수 있습니다. 설치 후 `"test": "start-server-and-test start http://localhost:3000 cypress"` 스크립트 필드에 `package.json`을 추가하세요. 새로운 변경 후에는 애플리케이션을 다시 빌드하는 것을 잊지 마세요.
+
+## 첫 번째 Cypress 구성 요소 테스트 만들기
+
+구성 요소 테스트는 전체 애플리케이션을 번들로 묶거나 서버를 시작하지 않고도 특정 구성 요소를 빌드하고 마운트합니다.
+
+Cypress 앱에서 **구성 요소 테스트**를 선택한 다음 프런트 엔드 프레임워크로 **Next.js**를 선택합니다. 프로젝트에 `cypress/component` 폴더가 생성되고 `cypress.config.js` 파일이 업데이트되어 구성 요소 테스트가 활성화됩니다.
+
+Ensure your `cypress.config` 파일이 다음과 같이 구성되어 있는지 확인하세요.
+
+```ts filename="cypress.config.ts" switcher
+import { defineConfig } from 'cypress'
+
+export default defineConfig({
+  component: {
+    devServer: {
+      framework: 'next',
+      bundler: 'webpack',
+    },
+  },
+})
+```
+
+```js filename="cypress.config.js" switcher
+const { defineConfig } = require('cypress')
+
+module.exports = defineConfig({
+  component: {
+    devServer: {
+      framework: 'next',
+      bundler: 'webpack',
+    },
+  },
+})
+```
+
+이전 섹션과 동일한 구성 요소를 가정하고 구성 요소가 예상 출력을 렌더링하는지 확인하는 테스트를 추가합니다.
+
+```tsx filename="cypress/component/about.cy.tsx"
+import Page from '../../app/page'
+
+describe('<Page />', () => {
+  it('should render and display expected content', () => {
+    // Mount the React component for the Home page
+    cy.mount(<Page />)
+
+    // The new page should contain an h1 with "Home"
+    cy.get('h1').contains('Home')
+
+    // Validate that a link with the expected URL is present
+    // Following the link is better suited to an E2E test
+    cy.get('a[href="/about"]').should('be.visible')
+  })
+})
+```
+
+> **알면 좋은 점**:
+>
+> - Cypress는 현재 `async` 서버 구성 요소에 대한 구성 요소 테스트를 지원하지 않습니다. E2E 테스트를 사용하는 것이 좋습니다.
+> - 구성 요소 테스트에는 Next.js 서버가 필요하지 않으므로 사용 가능한 서버에 의존하는 `<Image />`과 같은 기능은 기본적으로 작동하지 않을 수 있습니다.
+
+### 구성요소 테스트 실행
+
+터미널에서 `npm run cypress:open`을 실행하여 Cypress를 시작하고 구성 요소 테스트 제품군을 실행하세요.
+
+## 지속적 통합(CI)
+
+대화형 테스트 외에도 CI 환경에 더 적합한 `cypress run` 명령을 사용하여 Cypress를 헤드리스로 실행할 수도 있습니다.
+
+```json filename="package.json"
+{
+  "scripts": {
+    //...
+    "e2e": "start-server-and-test dev http://localhost:3000 \"cypress open --e2e\"",
+    "e2e:headless": "start-server-and-test dev http://localhost:3000 \"cypress run --e2e\"",
+    "component": "cypress open --component",
+    "component:headless": "cypress run --component"
+  }
+}
+```
+
+다음 리소스에서 Cypress 및 지속적 통합에 대해 자세히 알아볼 수 있습니다.
+
+- [Next.js(Cypress 예시 사용)](https://github.com/vercel/next.js/tree/canary/examples/with-cypress)
+- [Cypress 지속적 통합 문서](https://docs.cypress.io/guides/continuous-integration/introduction)
+- [Cypress GitHub 작업 가이드](https://on.cypress.io/github-actions)
+- [공식 Cypress GitHub 작업](https://github.com/cypress-io/github-action)
+- [사이프러스 Discord](https://discord.com/invite/cypress)

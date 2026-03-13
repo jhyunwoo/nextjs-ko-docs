@@ -1,0 +1,209 @@
+---
+title: 이미지응답
+description: ImageResponse 생성자에 대한 API 참조입니다.
+---
+
+The `ImageResponse` 생성자를 사용하면 JSX 및 CSS를 사용하여 동적 이미지를 생성할 수 있습니다. 이는 오픈 그래프 이미지, Twitter 카드 등과 같은 소셜 미디어 이미지를 생성하는 데 유용합니다.
+
+## 참조
+
+### 매개변수
+
+The following parameters are available for `ImageResponse`에는 다음 매개변수를 사용할 수 있습니다.
+
+```jsx
+import { ImageResponse } from 'next/og'
+
+new ImageResponse(
+  element: ReactElement,
+  options: {
+    width?: number = 1200
+    height?: number = 630
+    emoji?: 'twemoji' | 'blobmoji' | 'noto' | 'openmoji' = 'twemoji',
+    fonts?: {
+      name: string,
+      data: ArrayBuffer,
+      weight: number,
+      style: 'normal' | 'italic'
+    }[]
+    debug?: boolean = false
+
+    // Options that will be passed to the HTTP response
+    status?: number = 200
+    statusText?: string
+    headers?: Record<string, string>
+  },
+)
+```
+
+> 예시는 [Vercel OG 플레이그라운드](https://og-playground.vercel.app/)에서 확인하실 수 있습니다.
+
+### 지원되는 HTML 및 CSS 기능
+
+`ImageResponse`은 flexbox 및 절대 위치 지정, 사용자 정의 글꼴, 텍스트 줄 바꿈, 가운데 맞춤 및 중첩 이미지를 포함한 일반적인 CSS 속성을 지원합니다.
+
+지원되는 HTML 및 CSS 기능 목록은 [Satori 설명서](https://github.com/vercel/satori#css)를 참조하세요.
+
+## 행동
+
+- `ImageResponse`은 [@vercel/og](https://vercel.com/docs/concepts/functions/edge-functions/og-image-generation), [Satori](https://github.com/vercel/satori) 및 Resvg를 사용하여 HTML 및 CSS를 PNG로 변환합니다.
+- Flexbox와 CSS 속성의 하위 집합만 지원됩니다. 고급 레이아웃(예: `display: grid`)은 작동하지 않습니다.
+- 최대 번들 크기는 `500KB`입니다. 번들 크기에는 JSX, CSS, 글꼴, 이미지 및 기타 자산이 포함됩니다. 제한을 초과하는 경우 자산의 크기를 줄이거나 런타임에 가져오는 것을 고려하세요.
+- Only `ttf`, `otf` 및 `woff` 글꼴 형식만 지원됩니다. 글꼴 구문 분석 속도를 최대화하려면 `ttf`보다 `otf` 또는 `woff`이 선호됩니다.
+
+## 예
+
+### 경로 처리기
+
+`ImageResponse`은 요청 시 동적으로 이미지를 생성하기 위해 경로 핸들러에서 사용될 수 있습니다.
+
+```js filename="app/api/route.js"
+import { ImageResponse } from 'next/og'
+
+export async function GET() {
+  try {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'white',
+            padding: '40px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 60,
+              fontWeight: 'bold',
+              color: 'black',
+              textAlign: 'center',
+            }}
+          >
+            Welcome to My Site
+          </div>
+          <div
+            style={{
+              fontSize: 30,
+              color: '#666',
+              marginTop: '20px',
+            }}
+          >
+            Generated with Next.js ImageResponse
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    )
+  } catch (e) {
+    console.log(`${e.message}`)
+    return new Response(`Failed to generate the image`, {
+      status: 500,
+    })
+  }
+}
+```
+
+### 파일 기반 메타데이터
+
+You can use `ImageResponse`을 사용하여 빌드 시 또는 요청 시 동적으로 오픈 그래프 이미지를 생성할 수 있습니다.[`opengraph-image.tsx`](../file-conventions/metadata/opengraph-image.mdx) file to generate Open Graph images at build time or dynamically at request time.
+
+```tsx filename="app/opengraph-image.tsx"
+import { ImageResponse } from 'next/og'
+
+// Image metadata
+export const alt = 'My site'
+export const size = {
+  width: 1200,
+  height: 630,
+}
+
+export const contentType = 'image/png'
+
+// Image generation
+export default async function Image() {
+  return new ImageResponse(
+    (
+      // ImageResponse JSX element
+      <div
+        style={{
+          fontSize: 128,
+          background: 'white',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        My site
+      </div>
+    ),
+    // ImageResponse options
+    {
+      // For convenience, we can re-use the exported opengraph-image
+      // size config to also set the ImageResponse's width and height.
+      ...size,
+    }
+  )
+}
+```
+
+### 사용자 정의 글꼴
+
+옵션에 `ImageResponse` 배열을 제공하여 `fonts`에서 사용자 정의 글꼴을 사용할 수 있습니다.
+
+```tsx filename="app/opengraph-image.tsx"
+import { ImageResponse } from 'next/og'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
+// Image metadata
+export const alt = 'My site'
+export const size = {
+  width: 1200,
+  height: 630,
+}
+
+export const contentType = 'image/png'
+
+// Image generation
+export default async function Image() {
+  // Font loading, process.cwd() is Next.js project directory
+  const interSemiBold = await readFile(
+    join(process.cwd(), 'assets/Inter-SemiBold.ttf')
+  )
+
+  return new ImageResponse(
+    (
+      // ...
+    ),
+    // ImageResponse options
+    {
+      // For convenience, we can re-use the exported opengraph-image
+      // size config to also set the ImageResponse's width and height.
+      ...size,
+      fonts: [
+        {
+          name: 'Inter',
+          data: interSemiBold,
+          style: 'normal',
+          weight: 400,
+        },
+      ],
+    }
+  )
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v14.0.0` | `ImageResponse` moved from `next/server` to `next/og` |`v13.3.0` | `ImageResponse` can be imported from `next/server`.   |
+| `v13.0.0` | `ImageResponse` introduced via `@vercel/og` package.  |

@@ -1,0 +1,48 @@
+---
+title: 금지된 .js
+description: 금지된.js 특수 파일에 대한 API 참조입니다.
+related:
+  links:
+    - app/api-reference/functions/forbidden
+version: experimental
+---
+
+The **forbidden** 파일은 인증 중에 [`forbidden`](../functions/forbidden.mdx) 함수가 호출될 때 UI를 렌더링하는 데 사용됩니다. UI를 사용자 정의할 수 있을 뿐만 아니라 Next.js는 `403` 상태 코드를 반환합니다.
+
+```tsx filename="app/forbidden.tsx" switcher
+import Link from 'next/link'
+
+export default function Forbidden() {
+  return (
+    <div>
+      <h2>Forbidden</h2>
+      <p>You are not authorized to access this resource.</p>
+      <Link href="/">Return Home</Link>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/forbidden.jsx" switcher
+import Link from 'next/link'
+
+export default function Forbidden() {
+  return (
+    <div>
+      <h2>Forbidden</h2>
+      <p>You are not authorized to access this resource.</p>
+      <Link href="/">Return Home</Link>
+    </div>
+  )
+}
+```
+
+## 참조
+
+### 소품
+
+`forbidden.js` 구성 요소는 소품을 허용하지 않습니다.
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.1.0` | `forbidden.js` introduced. |

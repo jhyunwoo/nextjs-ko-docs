@@ -1,0 +1,57 @@
+---
+title: default.js
+description: default.js 파일에 대한 API 참조입니다.
+related:
+  title: 병렬 경로에 대해 자세히 알아보기
+  links:
+    - app/api-reference/file-conventions/parallel-routes
+---
+
+The `default.js` 파일은 전체 페이지 로드 후 Next.js가 [슬롯](parallel-routes.mdx) 활성 상태를 복구할 수 없는 경우 [병렬 경로](parallel-routes.mdx#slots) 내에서 대체를 렌더링하는 데 사용됩니다.
+
+During [소프트 탐색](../../getting-started/linking-and-navigating.mdx#client-side-transitions) 중에 Next.js는 각 슬롯의 활성 *상태*(하위 페이지)를 추적합니다. 그러나 하드 탐색(전체 페이지 로드)의 경우 Next.js는 활성 상태를 복구할 수 없습니다. 이 경우 현재 URL와 일치하지 않는 하위 페이지에 대해 `default.js` 파일이 렌더링될 수 있습니다.
+
+다음 폴더 구조를 고려하세요. `@team` 슬롯에는 `settings` 페이지가 있지만 `@analytics`에는 없습니다.
+
+<Image alt="평행 경로 일치하지 않는 경로" srcLight="/docs/light/parallel-routes-unmatched-routes.png" srcDark="/docs/dark/parallel-routes-unmatched-routes.png" width="1600" height="930" />
+
+When navigating to `/settings`로 이동하면 `@team` 슬롯은 `settings` 슬롯에 대해 현재 활성 페이지를 유지하면서 `@analytics` 페이지를 렌더링합니다.
+
+새로 고침 시 Next.js는 `default.js`에 대해 `@analytics`을 렌더링합니다. `default.js`이 존재하지 않으면 명명된 슬롯(`@team`, `@analytics` 등)에 대해 오류가 반환되고 계속하려면 `default.js`을 정의해야 합니다. 이러한 상황에서 404를 반환하는 이전 동작을 유지하려면 다음을 포함하는 `default.js`을 생성할 수 있습니다.
+
+```tsx filename="app/@team/default.js"
+import { notFound } from 'next/navigation'
+
+export default function Default() {
+  notFound()
+}
+```
+
+또한 `children`은 암시적 슬롯이므로 Next.js가 상위 페이지의 활성 상태를 복구할 수 없는 경우 `default.js`에 대한 대체를 렌더링하려면 `children` 파일도 생성해야 합니다. `default.js` 슬롯에 대해 `children`을 생성하지 않으면 경로에 대해 404 페이지가 반환됩니다.
+
+## 참조
+
+### `params`(선택 사항)
+
+루트 세그먼트부터 슬롯의 하위 페이지까지 [동적 경로 매개변수](dynamic-routes.mdx)를 포함하는 객체로 확인되는 Promise입니다. 예를 들면:
+
+```tsx filename="app/[artist]/@sidebar/default.js" switcher
+export default async function Default({
+  params,
+}: {
+  params: Promise<{ artist: string }>
+}) {
+  const { artist } = await params
+}
+```
+
+```jsx filename="app/[artist]/@sidebar/default.js" switcher
+export default async function Default({ params }) {
+  const { artist } = await params
+}
+```
+
+| 예 | URL | `params` |`app/[artist]/@sidebar/default.js`         | `/zack`      | `Promise<{ artist: 'zack' }>`                |`app/[artist]/[album]/@sidebar/default.js` | `/zack/next` | `Promise<{ artist: 'zack', album: 'next' }>` |
+
+- Since the `params` 소품은 약속이기 때문입니다. 값에 액세스하려면 `async/await` 또는 React의 [`use`](https://react.dev/reference/react/use) 함수를 사용해야 합니다.
+  - 버전 14 이하에서는 `params`가 동기식 prop가었습니다. 이전 버전과의 호환성을 돕기 위해 Next.js 15에서 동기적으로 계속 액세스할 수 있지만 이 동작은 향후 더 이상 사용되지 않습니다.

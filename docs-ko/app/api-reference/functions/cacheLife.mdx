@@ -1,0 +1,478 @@
+---
+title: 캐시라이프
+description: 캐시된 함수나 구성요소에 대한 캐시 만료 시간을 설정하기 위해 캐시라이프 함수를 사용하는 방법을 알아보세요.
+related:
+  title: 관련된
+  description: 관련 API 참조를 확인하세요.
+  links:
+    - app/api-reference/config/next-config-js/cacheComponents
+    - app/api-reference/directives/use-cache
+    - app/api-reference/functions/revalidateTag
+    - app/api-reference/functions/cacheTag
+---
+
+The `cacheLife` 함수는 함수나 구성 요소의 캐시 수명을 설정하는 데 사용됩니다. 이는 [`use cache`](../directives/use-cache.mdx) 지시어와 함께 함수 또는 구성 요소의 범위 내에서 사용해야 합니다.
+
+## 사용법
+
+### 기본 설정
+
+To use `cacheLife`을 사용하려면 먼저 [`cacheComponents` 플래그](../config/next-config-js/cacheComponents.mdx)를 활성화하세요.`next.config.js` file:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+const nextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+`cacheLife`에는 `use cache` 지시문이 필요하며, 이 지시문은 파일 수준이나 비동기 함수 또는 구성 요소의 상단에 배치되어야 합니다.
+
+> **알면 좋은 점**:
+>
+> - 사용되는 경우 `cacheLife` 지시어가 파일 수준에 있는 경우에도 `use cache`는 출력이 캐시되는 함수 내에 배치되어야 합니다.
+> - 함수 호출당 하나의 `cacheLife` 호출만 실행해야 합니다. 다양한 제어 흐름 분기에서 `cacheLife`을 호출할 수 있지만 실행당 하나만 실행되도록 해야 합니다. [조건부 캐시 수명](#conditional-cache-lifetimes) 예시를 참조하세요.
+
+### 사전 설정된 프로필 사용
+
+Next.js는 일반적인 캐싱 요구 사항을 충족하는 사전 설정된 캐시 프로필을 제공합니다. 각 프로필은 세 가지 요소의 균형을 유지합니다.
+
+- 사용자가 업데이트를 확인하지 않고 캐시된 콘텐츠를 보는 기간(클라이언트 측)
+- 서버에 새로운 콘텐츠가 생성되는 빈도
+- 오래된 콘텐츠가 완전히 만료된 경우
+
+콘텐츠가 변경되는 빈도에 따라 프로필을 선택하세요.
+
+- **`seconds`** - 실시간 데이터(주가, 실시간 점수)
+- **`minutes`** - 자주 업데이트됩니다(소셜 피드, 뉴스)
+- **`hours`** - 다양한 일일 업데이트(제품 재고, 날씨)
+- **`days`** - 일일 업데이트(블로그 게시물, 기사)
+- **`weeks`** - 주간 업데이트(팟캐스트, 뉴스레터)
+- **`max`** - 거의 변경되지 않음(법률 페이지, 보관된 콘텐츠)
+
+Import `cacheLife`을 가져오고 프로필 이름을 전달합니다.
+
+```tsx filename="app/blog/page.tsx" highlight={1,5}
+'use cache'
+import { cacheLife } from 'next/cache'
+
+export default async function BlogPage() {
+  cacheLife('days') // Blog content updated daily
+
+  const posts = await getBlogPosts()
+  return <div>{/* render posts */}</div>
+}
+```
+
+프로필 이름은 Next.js에 전체 함수의 출력을 캐시하는 방법을 알려줍니다. `cacheLife`을 호출하지 않으면 `default` 프로필이 사용됩니다. 타이밍 세부정보는 [사전 설정된 캐시 프로필](#preset-cache-profiles)을 참조하세요.
+
+## 참조
+
+### 캐시 프로필 속성
+
+캐시 프로필은 세 가지 타이밍 속성을 통해 캐싱 동작을 제어합니다.
+
+- **[`stale`](#stale)**: 클라이언트가 서버 확인 없이 캐시된 데이터를 사용할 수 있는 기간
+- **[`revalidate`](#revalidate)**: 이 시간 이후 다음 요청은 백그라운드 새로 고침을 트리거합니다.
+- **[`expire`](#expire)**: 요청이 없는 이 시간이 지나면 다음 요청은 새로운 콘텐츠를 기다립니다.
+
+#### `stale`
+
+**클라이언트 측:** 클라이언트가 서버를 확인하지 않고 캐시된 데이터를 사용할 수 있는 기간입니다.
+
+이 시간 동안 클라이언트측 라우터는 네트워크 요청 없이 캐시된 콘텐츠를 즉시 표시합니다. 이 기간이 만료된 후 라우터는 다음 탐색이나 요청 시 서버를 확인해야 합니다. 이는 클라이언트 캐시에서 즉각적인 페이지 로드를 제공하지만 데이터가 오래될 수 있습니다.
+
+```tsx
+cacheLife({ stale: 300 }) // 5 minutes
+```
+
+#### `revalidate`
+
+서버가 백그라운드에서 캐시된 콘텐츠를 재생성하는 빈도입니다.
+
+- 이 기간 이후에 요청이 도착하면 서버는 다음을 수행합니다.
+  1. 캐시된 버전을 즉시 제공합니다(가능한 경우).
+  1. 백그라운드에서 콘텐츠를 재생성합니다.
+  1. 새로운 콘텐츠로 캐시를 업데이트합니다.
+- Similar to [증분적 정적 재생(ISR)](../../guides/incremental-static-regeneration.mdx)
+
+```tsx
+cacheLife({ revalidate: 900 }) // 15 minutes
+```
+
+#### `expire`
+
+서버가 캐시된 콘텐츠를 다시 생성해야 하기까지의 최대 시간입니다.
+
+- 트래픽이 없는 이 기간이 지나면 서버는 다음 요청에서 콘텐츠를 동기적으로 재생성합니다.
+- When you set both `revalidate` 및 `expire`을 모두 설정하는 경우 `expire`은 `revalidate`보다 길어야 합니다. Next.js는 이를 검증하고 잘못된 구성에 대해 오류를 발생시킵니다.
+
+```tsx
+cacheLife({ expire: 3600 }) // 1 hour
+```
+
+### 사전 설정된 캐시 프로필
+
+프로필을 지정하지 않으면 Next.js는 `default` 프로필을 사용합니다. 캐싱 동작을 명확하게 하려면 프로필을 명시적으로 설정하는 것이 좋습니다.
+
+| **프로필** | **사용 사례** | `stale` | `revalidate` | `expire` |`default`   | Standard content                       | 5 minutes  | 15 minutes   | 1 year   |`seconds`   | Real-time data                         | 30 seconds | 1 second     | 1 minute |
+| `minutes`   | Frequently updated content             | 5 minutes  | 1 minute     | 1 hour   |
+| `hours`     | Content updated multiple times per day | 5 minutes  | 1 hour       | 1 day    |
+| `days`      | Content updated daily                  | 5 minutes  | 1 day        | 1 week   |
+| `weeks`     | Content updated weekly                 | 5 minutes  | 1 week       | 30 days  |
+| `max`       | Stable content that rarely changes     | 5 minutes  | 30 days      | 1 year   |
+
+### 사용자 정의 캐시 프로필
+
+Define reusable cache profiles in your `next.config.ts` 파일에서 재사용 가능한 캐시 프로필을 정의합니다.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    biweekly: {
+      stale: 60 * 60 * 24 * 14, // 14 days
+      revalidate: 60 * 60 * 24, // 1 day
+      expire: 60 * 60 * 24 * 14, // 14 days
+    },
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+const nextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    biweekly: {
+      stale: 60 * 60 * 24 * 14, // 14 days
+      revalidate: 60 * 60 * 24, // 1 day
+      expire: 60 * 60 * 24 * 14, // 14 days
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+위의 예에서는 14일 동안 캐시하고 매일 업데이트를 확인하며 14일 후에 캐시가 만료됩니다. 그런 다음 애플리케이션 전체에서 이 프로필을 이름으로 참조할 수 있습니다.
+
+```tsx filename="app/page.tsx" highlight={5}
+'use cache'
+import { cacheLife } from 'next/cache'
+
+export default async function Page() {
+  cacheLife('biweekly')
+  return <div>Page</div>
+}
+```
+
+### 기본 캐시 프로필 재정의
+
+기본 캐시 프로필은 캐시 가능한 출력의 특정 부분이 얼마나 최신인지 또는 오래된 것인지 생각하는 유용한 방법을 제공하지만, 애플리케이션 캐싱 전략에 더 잘 맞추기 위해 다른 명명된 프로필을 선호할 수도 있습니다.
+
+기본값과 동일한 이름으로 새 구성을 생성하여 기본 명명된 캐시 프로필을 재정의할 수 있습니다.
+
+아래 예에서는 기본 `"days"` 캐시 프로필을 재정의하는 방법을 보여줍니다.
+
+```ts filename="next.config.ts"
+const nextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    // Override the 'days' profile
+    days: {
+      stale: 3600, // 1 hour
+      revalidate: 900, // 15 minutes
+      expire: 86400, // 1 day
+    },
+  },
+}
+
+export default nextConfig
+```
+
+### 인라인 캐시 프로필
+
+일회성 사례의 경우 프로필 객체를 `cacheLife`에 직접 전달하세요.
+
+```tsx filename="app/page.tsx"
+'use cache'
+import { cacheLife } from 'next/cache'
+
+export default async function Page() {
+  cacheLife({
+    stale: 3600,
+    revalidate: 900,
+    expire: 86400,
+  })
+
+  return <div>Page</div>
+}
+```
+
+인라인 프로필은 특정 기능이나 구성 요소에만 적용됩니다. 재사용 가능한 구성의 경우 `next.config.ts`에서 사용자 정의 프로필을 정의하세요.
+
+빈 개체와 함께 `cacheLife({})`을 사용하면 `default` 프로필 값이 적용됩니다.
+
+### 클라이언트 라우터 캐시 동작
+
+The `stale` 속성은 `Cache-Control` 헤더가 아닌 클라이언트 측 라우터 캐시를 제어합니다.
+
+- 서버는 `x-nextjs-stale-time` 응답 헤더를 통해 오래된 시간을 보냅니다.
+- 클라이언트 라우터는 이 값을 사용하여 재검증 시기를 결정합니다.
+- **최소 30초가 적용**됩니다.
+
+이 최소 30초는 사용자가 링크를 클릭하기 전에 미리 가져온 데이터가 만료되는 것을 방지합니다. 이는 시간 기반 만료에만 적용됩니다.
+
+서버 작업([`revalidateTag`](revalidateTag.mdx), [`revalidatePath`](revalidatePath.mdx), [`updateTag`](updateTag.mdx)에서 유효성 재검사 함수를 호출하는 경우 또는 [`refresh`](refresh.mdx)), 전체 클라이언트 캐시가 즉시 지워져 오래된 시간을 우회합니다.
+
+> **알아두면 좋은 정보**: `stale`의 `cacheLife` 속성은 [`staleTimes`](../config/next-config-js/staleTimes.mdx)과 다릅니다. `staleTimes`는 모든 경로에 영향을 미치는 전역 설정인 반면, `cacheLife`은 기능별 또는 경로별 구성을 허용합니다. `staleTimes.static`을 업데이트하면 `stale` 캐시 프로필의 `default` 값도 업데이트됩니다.
+
+## 예
+
+### 사전 설정된 프로필 사용
+
+캐싱을 구성하는 가장 간단한 방법은 사전 설정된 프로필을 사용하는 것입니다. 콘텐츠의 업데이트 패턴과 일치하는 것을 선택하세요.
+
+```tsx filename="app/blog/[slug]/page.tsx"
+import { cacheLife } from 'next/cache'
+
+export default async function BlogPost() {
+  'use cache'
+  cacheLife('days') // Blog posts updated daily
+
+  const post = await fetchBlogPost()
+  return <article>{post.content}</article>
+}
+```
+
+```tsx filename="app/products/[id]/page.tsx"
+import { cacheLife } from 'next/cache'
+
+export default async function ProductPage() {
+  'use cache'
+  cacheLife('hours') // Product data updated multiple times per day
+
+  const product = await fetchProduct()
+  return <div>{product.name}</div>
+}
+```
+
+### 특정 요구에 맞는 맞춤 프로필
+
+사전 설정 옵션이 요구 사항과 일치하지 않는 경우 사용자 정의 프로필을 정의하십시오.
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    editorial: {
+      stale: 600, // 10 minutes
+      revalidate: 3600, // 1 hour
+      expire: 86400, // 1 day
+    },
+    marketing: {
+      stale: 300, // 5 minutes
+      revalidate: 1800, // 30 minutes
+      expire: 43200, // 12 hours
+    },
+  },
+}
+
+export default nextConfig
+```
+
+그런 다음 애플리케이션 전체에서 다음 프로필을 사용합니다.
+
+```tsx filename="app/editorial/page.tsx"
+import { cacheLife } from 'next/cache'
+
+export default async function EditorialPage() {
+  'use cache'
+  cacheLife('editorial')
+  // ...
+}
+```
+
+### 고유한 사례를 위한 인라인 프로필
+
+특정 기능에 일회성 캐싱 동작이 필요한 경우 인라인 프로필을 사용합니다.
+
+```tsx filename="app/api/limited-offer/route.ts"
+import { cacheLife } from 'next/cache'
+import { getDb } from '@lib/db'
+
+async function getLimitedOffer() {
+  'use cache'
+
+  cacheLife({
+    stale: 60, // 1 minute
+    revalidate: 300, // 5 minutes
+    expire: 3600, // 1 hour
+  })
+
+  const offer = await getDb().offer.findFirst({
+    where: { type: 'limited' },
+    orderBy: { created_at: 'desc' },
+  })
+
+  return offer
+}
+
+export async function GET() {
+  const offer = await getLimitedOffer()
+
+  return Response.json(offer)
+}
+```
+
+### 개별 기능 캐싱
+
+세부적인 제어를 위해 유틸리티 기능에 캐싱을 적용합니다.
+
+```tsx filename="lib/api.ts"
+import { cacheLife } from 'next/cache'
+
+export async function getSettings() {
+  'use cache'
+  cacheLife('max') // Settings rarely change
+
+  return await fetchSettings()
+}
+```
+
+```tsx filename="lib/stats.ts"
+import { cacheLife } from 'next/cache'
+
+export async function getRealtimeStats() {
+  'use cache'
+  cacheLife('seconds') // Stats update constantly
+
+  return await fetchStats()
+}
+```
+
+### 중첩된 캐싱 동작
+
+When you nest `use cache` 지시어(다른 캐시된 함수나 구성 요소를 사용하는 캐시된 함수나 구성 요소)를 중첩하는 경우 외부 캐시의 동작은 명시적인 `cacheLife`이 있는지 여부에 따라 달라집니다.
+
+#### 명시적인 외부 캐시 라이프 사용
+
+외부 캐시는 내부 캐시 수명에 관계없이 자체 수명을 사용합니다. 외부 캐시에 도달하면 모든 중첩 데이터를 포함한 전체 출력이 반환됩니다. 명시적인 `cacheLife`은 내부 수명보다 길든 짧든 항상 우선합니다.
+
+```tsx filename="app/dashboard/page.tsx"
+import { cacheLife } from 'next/cache'
+import { Widget } from './widget'
+
+export default async function Dashboard() {
+  'use cache'
+  cacheLife('hours') // Outer scope sets its own lifetime
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Widget /> {/* Inner scope has 'minutes' lifetime */}
+    </div>
+  )
+}
+```
+
+#### 명시적인 외부 캐시 라이프 없이외부 캐시에서 을 호출하지 않으면  프로필을 사용합니다(재검증 15분). 수명이 짧은 내부 캐시는 외부 캐시의  수명을 줄일 수 있습니다. 수명이 더 긴 내부 캐시는 기본값 이상으로 확장할 수 없습니다.
+
+If you don't call `cacheLife` in the outer cache, it uses the `default` profile (15 min revalidate). Inner caches with shorter lifetimes can reduce the outer cache's `default` lifetime. Inner caches with longer lifetimes cannot extend it beyond the default. 명시적인 수명 값을 사용하면 캐시된 함수나 구성 요소를 검사하고 중첩된 캐시를 추적하지 않고도 해당 동작을 즉시 알 수 있습니다. 명시적인 수명 값이 없으면 동작이 내부 캐시 수명에 종속되어 추론하기가 더 어려워집니다.
+
+```tsx filename="app/dashboard/page.tsx"
+import { Widget } from './widget'
+
+export default async function Dashboard() {
+  'use cache'
+  // No cacheLife call - uses default (15 min)
+  // If Widget has 5 min → Dashboard becomes 5 min
+  // If Widget has 1 hour → Dashboard stays 15 min
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Widget />
+    </div>
+  )
+}
+```
+
+**It is recommended to specify an explicit `cacheLife`.** With explicit lifetime values, you can inspect a cached function or component and immediately know its behavior without tracing through nested caches. Without explicit lifetime values, the behavior becomes dependent on inner cache lifetimes, making it harder to reason about.
+
+### Conditional cache lifetimes
+
+예를 들어 가져온 데이터에서 캐시 수명을 읽어 런타임 시 캐시 수명을 계산하려면 `cacheLife` conditionally in different code paths to set different cache durations based on your application logic: 객체를 사용하세요.
+
+```tsx filename="lib/posts.ts" highlight={14,19}
+import { cacheLife, cacheTag } from 'next/cache'
+
+async function getPostContent(slug: string) {
+  'use cache'
+
+  const post = await fetchPost(slug)
+
+  // Tag the cache entry for targeted revalidation
+  cacheTag(`post-${slug}`)
+
+  if (!post) {
+    // Content may not be published yet or could be in draft
+    // Cache briefly to reduce database load
+    cacheLife('minutes')
+    return null
+  }
+
+  // Published content can be cached longer
+  cacheLife('days')
+
+  // Return only the necessary data to keep cache size minimal
+  return post.data
+}
+```
+
+This pattern is useful when different outcomes need different cache durations, for example, when an item is missing but is likely to be available later.
+
+#### Using dynamic cache lifetimes from data
+
+If you want to calculate cache lifetime at runtime, for example by reading it from the fetched data, use an [inline cache profile](#inline-cache-profiles) object:
+
+```tsx filename="lib/posts.ts" highlight={15,16,17}
+import { cacheLife, cacheTag } from 'next/cache'
+
+async function getPostContent(slug: string) {
+  'use cache'
+
+  const post = await fetchPost(slug)
+  cacheTag(`post-${slug}`)
+
+  if (!post) {
+    cacheLife('minutes')
+    return null
+  }
+
+  // Use cache timing from CMS data directly as an object
+  cacheLife({
+    // Ensure post.revalidateSeconds is a number in seconds
+    revalidate: post.revalidateSeconds ?? 3600,
+  })
+
+  return post.data
+}
+```

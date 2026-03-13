@@ -1,0 +1,423 @@
+---
+title: 연결 및 탐색
+description: 프리페치, 사전 렌더링, 클라이언트 측 탐색을 포함한 내장 탐색 최적화의 작동 방식과 동적 경로 및 느린 네트워크에 대한
+  탐색을 최적화하는 방법을 알아보세요.
+related:
+  links:
+    - app/api-reference/components/link
+    - app/api-reference/file-conventions/loading
+    - app/guides/prefetching
+---
+
+Next.js에서는 기본적으로 경로가 서버에서 렌더링됩니다. 이는 종종 새 경로가 표시되기 전에 클라이언트가 서버 응답을 기다려야 함을 의미합니다. Next.js에는 [프리페칭](#prefetching), [스트리밍](#streaming) 및 [클라이언트측 전환](#client-side-transitions)이 내장되어 있어 탐색 속도와 응답 속도가 빨라집니다.
+
+이 가이드에서는 Next.js에서 탐색이 작동하는 방식과 [동적 경로](#dynamic-routes-without-loadingtsx) 및 [느린 네트워크](#slow-networks)에 대해 탐색을 최적화할 수 있는 방법을 설명합니다.
+
+## 내비게이션 작동 방식
+
+Next.js에서 탐색이 작동하는 방식을 이해하려면 다음 개념을 익히는 것이 도움이 됩니다.
+
+- [서버 렌더링](#server-rendering)
+- [프리페칭](#prefetching)
+- [스트리밍](#streaming)
+- [클라이언트측 전환](#client-side-transitions)
+
+### 서버 렌더링
+
+Next.js에서 [레이아웃 및 페이지](layouts-and-pages.mdx)는 기본적으로 [React 서버 구성 요소](https://react.dev/reference/rsc/server-components)입니다. 초기 및 후속 탐색 시 [서버 구성 요소 페이로드](server-and-client-components.mdx#how-do-server-and-client-components-work-in-nextjs)가 클라이언트로 전송되기 전에 서버에서 생성됩니다.
+
+서버 렌더링에는 *언제* 발생하는지에 따라 두 가지 유형이 있습니다.
+
+- **Static Rendering (or Prerendering)** happens at build time or during [재검증](caching-and-revalidating.mdx) 중에 발생하며 결과가 캐시됩니다.
+- **동적 렌더링**은 클라이언트 요청에 대한 응답으로 요청 시 발생합니다.
+
+서버 렌더링의 단점은 새 경로가 표시되기 전에 클라이언트가 서버의 응답을 기다려야 한다는 것입니다. Next.js는 사용자가 방문할 가능성이 있는 경로를 [프리페치](#prefetching)하고 [클라이언트측 전환](#client-side-transitions)을 수행하여 이 지연을 해결합니다.
+
+> **알아두면 좋은 정보**: HTML는 초기 방문에서도 생성됩니다.
+
+### 미리 가져오는 중
+
+프리페칭은 사용자가 경로를 탐색하기 전에 백그라운드에서 경로를 로드하는 프로세스입니다. 이렇게 하면 사용자가 링크를 클릭할 때쯤에는 다음 경로를 렌더링할 데이터가 이미 클라이언트 측에서 사용 가능해지기 때문에 애플리케이션의 경로 간 탐색이 즉각적으로 느껴집니다.
+
+Next.js는 [`<Link>` 구성 요소](../api-reference/components/link.mdx)와 연결된 경로가 사용자의 뷰포트에 들어갈 때 자동으로 미리 가져옵니다.
+
+```tsx filename="app/layout.tsx" switcher
+import Link from 'next/link'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <nav>
+          {/* Prefetched when the link is hovered or enters the viewport */}
+          <Link href="/blog">Blog</Link>
+          {/* No prefetching */}
+          <a href="/contact">Contact</a>
+        </nav>
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import Link from 'next/link'
+
+export default function Layout() {
+  return (
+    <html>
+      <body>
+        <nav>
+          {/* Prefetched when the link is hovered or enters the viewport */}
+          <Link href="/blog">Blog</Link>
+          {/* No prefetching */}
+          <a href="/contact">Contact</a>
+        </nav>
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+미리 가져오는 경로의 양은 경로가 정적인지 동적인지에 따라 다릅니다.
+
+- **정적 경로**: 전체 경로가 미리 가져옵니다.
+- **동적 경로**: 프리페치를 건너뛰거나 [`loading.tsx`](../api-reference/file-conventions/loading.mdx)이 있는 경우 경로가 부분적으로 프리페치됩니다.
+
+Next.js는 동적 경로를 건너뛰거나 부분적으로 미리 가져옴으로써 사용자가 절대 방문하지 않을 경로에 대해 서버에서 불필요한 작업을 방지합니다. 그러나 탐색하기 전에 서버 응답을 기다리면 사용자에게 앱이 응답하지 않는다는 인상을 줄 수 있습니다.
+
+<Image alt="스트리밍 없이 서버 렌더링" srcLight="/docs/light/server-rendering-without-streaming.png" srcDark="/docs/dark/server-rendering-without-streaming.png" width="1600" height="748" />
+
+동적 경로에 대한 탐색 환경을 개선하려면 [스트리밍](#streaming)을 사용할 수 있습니다.
+
+### 스트리밍스트리밍을 사용하면 서버는 전체 경로가 렌더링될 때까지 기다리지 않고 준비가 되는 즉시 동적 경로의 일부를 클라이언트에 보낼 수 있습니다. 이는 페이지의 일부가 아직 로드 중이더라도 사용자가 더 빨리 내용을 볼 수 있음을 의미합니다.
+
+동적 경로의 경우 될 수 있음을 의미합니다. 즉, 공유 레이아웃과 로딩 스켈레톤을 미리 요청할 수 있습니다.
+
+스트리밍을 사용하려면 경로 폴더에 **partially prefetched**. That is, shared layouts and loading skeletons can be requested ahead of time.을 생성하세요.
+
+<Image alt="loading.js 특수 파일" srcLight="/docs/light/server-rendering-with-streaming.png" srcDark="/docs/dark/server-rendering-with-streaming.png" width="1600" height="785" />
+
+배후에서 Next.js는 `loading.tsx` 경계의  콘텐츠를 자동으로 래핑합니다. 경로가 로드되는 동안 미리 가져온 대체 UI가 표시되고, 준비되면 실제 콘텐츠로 교체됩니다.
+
+<Image alt="loading.js special file" srcLight="/docs/light/loading-special-file.png" srcDark="/docs/dark/loading-special-file.png" width="1600" height="606" />
+
+```tsx filename="app/dashboard/loading.tsx" switcher
+export default function Loading() {
+  // Add fallback UI that will be shown while the route is loading.
+  return <LoadingSkeleton />
+}
+```
+
+```jsx filename="app/dashboard/loading.js" switcher
+export default function Loading() {
+  // Add fallback UI that will be shown while the route is loading.
+  return <LoadingSkeleton />
+}
+```
+
+Behind the scenes, Next.js will automatically wrap the `page.tsx`의 이점:`<Suspense>` boundary. The prefetched fallback UI will be shown while the route is loading, and swapped for the actual content once ready.
+
+> **Good to know**: You can also use [`<Suspense>`](https://react.dev/reference/react/Suspense) to create loading UI for nested components.
+
+탐색 경험을 더욱 향상시키기 위해 Next.js는 `loading.tsx` 구성 요소를 사용하여 을 수행합니다.
+
+- 공유 레이아웃과 UI를 유지합니다.
+- 현재 페이지를 미리 가져온 로딩 상태로 바꾸거나 가능한 경우 새 페이지로 바꿉니다.
+- Improved Core Web Vitals: [TTFB](https://web.dev/articles/ttfb), [FCP](https://web.dev/articles/fcp), and [TTI](https://web.dev/articles/tti).
+
+클라이언트 측 전환은 서버 렌더링 앱을 클라이언트 렌더링 앱처럼 [프리페칭](#client-side-transitions) 및 `<Link>` component.과 함께 사용하면 동적 경로에서도 빠른 전환이 가능합니다.
+
+### Client-side transitions이 없는 동적 경로
+
+동적 경로로 이동할 때 클라이언트는 결과를 표시하기 전에 서버 응답을 기다려야 합니다. 이는 사용자에게 앱이 응답하지 않는다는 인상을 줄 수 있습니다.
+
+부분 미리 가져오기를 활성화하고, 즉각적인 탐색을 트리거하고, 경로가 렌더링되는 동안 로딩 UI를 표시하려면 동적 경로에 `<Link>`을 추가하는 것이 좋습니다.
+
+- Keeping any shared layouts and UI.
+- Replacing the current page with the prefetched loading state or a new page if available.
+
+Client-side transitions are what makes a server-rendered apps *feel* like client-rendered apps. And when paired with [prefetching](#prefetching) and [streaming](#streaming), it enables fast transitions, even for dynamic routes.을 추가하여 빌드 시 경로가 정적으로 생성되는지 확인하세요.
+
+## What can make transitions slow?
+
+느리거나 불안정한 네트워크에서는 사용자가 링크를 클릭하기 전에 미리 가져오기가 완료되지 않을 수 있습니다. 이는 정적 경로와 동적 경로 모두에 영향을 미칠 수 있습니다. 이러한 경우 *feel* slow. Here are some common causes and how to improve the user experience: 대체 항목은 아직 미리 가져오지 않았기 때문에 즉시 표시되지 않을 수 있습니다.
+
+### 프리패치 비활성화`loading.tsx`
+
+When navigating to a dynamic route, the client must wait for the server response before showing the result. This can give the users the impression that the app is not responding. 구성 요소에서  속성을 로 설정하여 프리패치를 선택 해제할 수 있습니다. 이는 대규모 링크 목록(예: 무한 스크롤 테이블)을 렌더링할 때 불필요한 리소스 사용을 방지하는 데 유용합니다.
+
+그러나 프리페치를 비활성화하면 다음과 같은 단점이 있습니다.`loading.tsx` to dynamic routes to enable partial prefetching, trigger immediate navigation, and display a loading UI while the route renders.
+
+```tsx filename="app/blog/[slug]/loading.tsx" switcher
+export default function Loading() {
+  return <LoadingSkeleton />
+}
+```
+
+```jsx filename="app/blog/[slug]/loading.js" switcher
+export default function Loading() {
+  return <LoadingSkeleton />
+}
+```
+
+> **Good to know**: In development mode, you can use the Next.js Devtools to identify if the route is static or dynamic. See [`devIndicators`](../api-reference/config/next-config-js/devIndicators.mdx) for more information.
+
+### 수분 공급이 완료되지 않았습니다`generateStaticParams`
+
+If a [dynamic segment](../api-reference/file-conventions/dynamic-routes.mdx) could be prerendered but isn't because it's missing [`generateStaticParams`](../api-reference/functions/generate-static-params.mdx), the route will fallback to dynamic rendering at request time.는 클라이언트 구성 요소이며 경로를 미리 가져오기 전에 수화되어야 합니다. 처음 방문할 때 큰 JavaScript 번들은 수화를 지연시켜 미리 가져오기가 즉시 시작되지 못하게 할 수 있습니다.
+
+React는 선택적 수화를 통해 이를 완화하며 다음을 통해 이를 더욱 개선할 수 있습니다.`generateStaticParams`:
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  // ...
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+
+export default async function Page({ params }) {
+  const { slug } = await params
+  // ...
+}
+```
+
+### Slow networks
+
+브라우저 기록 스택의 현재 항목을 바꾸는 데 사용합니다. 사용자는 이전 상태로 다시 이동할 수 없습니다. 예를 들어, 애플리케이션의 로케일을 전환하려면 다음을 수행하십시오.`loading.js` fallback may not appear immediately because it hasn't been prefetched yet.
+
+To improve perceived performance, you can use the [`useLinkStatus` hook](../api-reference/functions/use-link-status.mdx) to show immediate feedback while the transition is in progress.
+
+```tsx filename="app/ui/loading-indicator.tsx" switcher
+'use client'
+
+import { useLinkStatus } from 'next/link'
+
+export default function LoadingIndicator() {
+  const { pending } = useLinkStatus()
+  return (
+    <span aria-hidden className={`link-hint ${pending ? 'is-pending' : ''}`} />
+  )
+}
+```
+
+```jsx filename="app/ui/loading-indicator.js" switcher
+'use client'
+
+import { useLinkStatus } from 'next/link'
+
+export default function LoadingIndicator() {
+  const { pending } = useLinkStatus()
+  return (
+    <span aria-hidden className={`link-hint ${pending ? 'is-pending' : ''}`} />
+  )
+}
+```
+
+You can "debounce" the hint by adding an initial animation delay (e.g. 100ms) and starting as invisible (e.g. `opacity: 0`). This means the loading indicator will only be shown if the navigation takes longer than the specified delay. See the [`useLinkStatus` reference](../api-reference/functions/use-link-status.mdx#gracefully-handling-fast-navigation) for a CSS example.
+
+> **Good to know**: You can use other visual feedback patterns like a progress bar. View an example [here](https://github.com/vercel/react-transition-progress).
+
+### Disabling prefetching
+
+You can opt out of prefetching by setting the `prefetch` prop to `false` on the `<Link>` component. This is useful to avoid unnecessary usage of resources when rendering large lists of links (e.g. an infinite scroll table).
+
+```tsx
+<Link prefetch={false} href="/blog">
+  Blog
+</Link>
+```
+
+However, disabling prefetching comes with trade-offs:
+
+- **Static routes** will only be fetched when the user clicks the link.
+- **Dynamic routes** will need to be rendered on the server first before the client can navigate to it.
+
+To reduce resource usage without fully disabling prefetch, you can prefetch only on hover. This limits prefetching to routes the user is more *likely* to visit, rather than all links in the viewport.
+
+```tsx filename="app/ui/hover-prefetch-link.tsx" switcher
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+
+function HoverPrefetchLink({
+  href,
+  children,
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  const [active, setActive] = useState(false)
+
+  return (
+    <Link
+      href={href}
+      prefetch={active ? null : false}
+      onMouseEnter={() => setActive(true)}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/ui/hover-prefetch-link.js" switcher
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+
+function HoverPrefetchLink({ href, children }) {
+  const [active, setActive] = useState(false)
+
+  return (
+    <Link
+      href={href}
+      prefetch={active ? null : false}
+      onMouseEnter={() => setActive(true)}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+### Hydration not completed
+
+`<Link>` is a Client Component and must be hydrated before it can prefetch routes. On the initial visit, large JavaScript bundles can delay hydration, preventing prefetching from starting right away.
+
+React mitigates this with Selective Hydration and you can further improve this by:
+
+- Using the [`@next/bundle-analyzer`](../guides/package-bundling.mdx#nextbundle-analyzer-for-webpack) plugin to identify and reduce bundle size by removing large dependencies.
+- Moving logic from the client to the server where possible. See the [Server and Client Components](server-and-client-components.mdx) docs for guidance.
+
+## Examples
+
+### Native History API
+
+Next.js allows you to use the native [`window.history.pushState`](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState) and [`window.history.replaceState`](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState) methods to update the browser's history stack without reloading the page.
+
+`pushState` and `replaceState` calls integrate into the Next.js Router, allowing you to sync with [`usePathname`](../api-reference/functions/use-pathname.mdx) and [`useSearchParams`](../api-reference/functions/use-search-params.mdx).
+
+#### `window.history.pushState`
+
+Use it to add a new entry to the browser's history stack. The user can navigate back to the previous state. For example, to sort a list of products:
+
+```tsx fileName="app/ui/sort-products.tsx" switcher
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export default function SortProducts() {
+  const searchParams = useSearchParams()
+
+  function updateSorting(sortOrder: string) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('sort', sortOrder)
+    window.history.pushState(null, '', `?${params.toString()}`)
+  }
+
+  return (
+    <>
+      <button onClick={() => updateSorting('asc')}>Sort Ascending</button>
+      <button onClick={() => updateSorting('desc')}>Sort Descending</button>
+    </>
+  )
+}
+```
+
+```jsx fileName="app/ui/sort-products.js" switcher
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export default function SortProducts() {
+  const searchParams = useSearchParams()
+
+  function updateSorting(sortOrder) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('sort', sortOrder)
+    window.history.pushState(null, '', `?${params.toString()}`)
+  }
+
+  return (
+    <>
+      <button onClick={() => updateSorting('asc')}>Sort Ascending</button>
+      <button onClick={() => updateSorting('desc')}>Sort Descending</button>
+    </>
+  )
+}
+```
+
+#### `window.history.replaceState`
+
+Use it to replace the current entry on the browser's history stack. The user is not able to navigate back to the previous state. For example, to switch the application's locale:
+
+```tsx fileName="app/ui/locale-switcher.tsx" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export function LocaleSwitcher() {
+  const pathname = usePathname()
+
+  function switchLocale(locale: string) {
+    // e.g. '/en/about' or '/fr/contact'
+    const newPath = `/${locale}${pathname}`
+    window.history.replaceState(null, '', newPath)
+  }
+
+  return (
+    <>
+      <button onClick={() => switchLocale('en')}>English</button>
+      <button onClick={() => switchLocale('fr')}>French</button>
+    </>
+  )
+}
+```
+
+```jsx fileName="app/ui/locale-switcher.js" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export function LocaleSwitcher() {
+  const pathname = usePathname()
+
+  function switchLocale(locale) {
+    // e.g. '/en/about' or '/fr/contact'
+    const newPath = `/${locale}${pathname}`
+    window.history.replaceState(null, '', newPath)
+  }
+
+  return (
+    <>
+      <button onClick={() => switchLocale('en')}>English</button>
+      <button onClick={() => switchLocale('fr')}>French</button>
+    </>
+  )
+}
+```

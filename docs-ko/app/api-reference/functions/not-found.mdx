@@ -1,0 +1,37 @@
+---
+title: 찾을 수 없음
+description: notFound 함수에 대한 API 참조입니다.
+---
+
+The `notFound` 함수를 사용하면 경로 세그먼트 내에서 [`not-found file`](../file-conventions/not-found.mdx)를 렌더링하고 `<meta name="robots" content="noindex" />` 태그를 삽입할 수 있습니다.
+
+## `notFound()`
+
+Invoking the `notFound()` 함수를 호출하면 `NEXT_HTTP_ERROR_FALLBACK;404` 오류가 발생하고 오류가 발생한 경로 세그먼트의 렌더링이 종료됩니다. [**찾을 수 없음** 파일](../file-conventions/not-found.mdx)을 지정하면 세그먼트 내에서 찾을 수 없음 UI를 렌더링하여 이러한 오류를 정상적으로 처리할 수 있습니다.
+
+```jsx filename="app/user/[id]/page.js"
+import { notFound } from 'next/navigation'
+
+async function fetchUser(id) {
+  const res = await fetch('https://...')
+  if (!res.ok) return undefined
+  return res.json()
+}
+
+export default async function Profile({ params }) {
+  const { id } = await params
+  const user = await fetchUser(id)
+
+  if (!user) {
+    notFound()
+  }
+
+  // ...
+}
+```
+
+> **알면 좋은 점**: `notFound()`에서는 TypeScript `return notFound()`을 사용할 필요가 없습니다.[`never`](https://www.typescriptlang.org/docs/handbook/2/functions.html#never) type.
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v13.0.0` | `notFound` introduced. |

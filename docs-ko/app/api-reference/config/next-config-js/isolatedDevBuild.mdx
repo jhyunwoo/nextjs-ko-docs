@@ -1,0 +1,42 @@
+---
+title: 고립된DevBuild
+description: 프로덕션 빌드와의 충돌을 방지하려면 개발 서버에 격리된 빌드 출력을 사용하세요.
+version: experimental
+---
+
+실험적인 `isolatedDevBuild` 옵션은 개발 및 프로덕션 빌드 출력을 서로 다른 디렉터리로 분리합니다. 활성화되면 개발 서버(`next dev`)는 출력을 `.next/dev` 대신 `.next`에 기록하여 `next dev` 및 `next build`을 동시에 실행할 때 충돌을 방지합니다.
+
+이는 자동화된 도구(예: AI 에이전트)가 `next build`을 실행하여 개발 서버가 실행되는 동안 변경 사항을 검증하여 개발 서버가 빌드 프로세스의 변경 사항에 영향을 받지 않도록 할 때 특히 유용합니다.
+
+이 기능은 개발 및 프로덕션 출력을 별도로 유지하고 충돌을 방지하기 위해 **기본적으로 활성화**되어 있습니다.
+
+## 구성
+
+이 기능을 선택 해제하려면 구성에서 `isolatedDevBuild`을 `false`로 설정하세요.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    isolatedDevBuild: false, // defaults to true
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.mjs" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    isolatedDevBuild: false, // defaults to true
+  },
+}
+
+export default nextConfig
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v16.0.0` | `experimental.isolatedDevBuild` is introduced. |

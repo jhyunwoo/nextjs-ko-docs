@@ -1,0 +1,132 @@
+---
+title: 브라우저디버그정보인터미널
+description: 개발 중에 브라우저 콘솔 로그와 오류를 터미널로 전달하세요.
+version: experimental
+---
+
+The `experimental.browserDebugInfoInTerminal` 옵션은 브라우저에서 발생하는 콘솔 출력 및 런타임 오류를 개발 서버 터미널로 전달합니다.
+
+이 옵션은 기본적으로 비활성화되어 있습니다. 활성화되면 개발 모드에서만 작동합니다.
+
+## 사용법
+
+전달 활성화:
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: true,
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: true,
+  },
+}
+
+module.exports = nextConfig
+```
+
+### 직렬화 제한
+
+깊게 중첩된 객체/배열은 **합리적인 기본값**을 사용하여 잘립니다. 다음 제한을 조정할 수 있습니다.
+
+- **lengthLimit**: (선택 사항) 중첩된 개체/배열의 문자열화 깊이를 제한합니다. 기본값: 5
+- **edgeLimit**: (선택 사항) 개체 또는 배열당 포함할 속성 또는 요소의 최대 수입니다. 기본값: 100
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: {
+      depthLimit: 5,
+      edgeLimit: 100,
+    },
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: {
+      depthLimit: 5,
+      edgeLimit: 100,
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+### 소스 위치
+
+이 기능이 활성화되면 원본 위치가 기본적으로 포함됩니다.
+
+```tsx filename="app/page.tsx" highlight={8}
+'use client'
+
+export default function Home() {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        console.log('Hello World')
+      }}
+    >
+      Click me
+    </button>
+  )
+}
+```
+
+버튼을 클릭하면 이 메시지가 터미널에 인쇄됩니다.
+
+```bash filename="Terminal"
+[browser] Hello World (app/page.tsx:8:17)
+```
+
+이를 억제하려면 `showSourceLocation: false`을 설정하세요.
+
+- **showSourceLocation**: 가능한 경우 소스 위치 정보를 포함합니다.
+
+```ts filename="next.config.ts" switcher
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: {
+      showSourceLocation: false,
+    },
+  },
+}
+
+export default nextConfig
+```
+
+```js filename="next.config.js" switcher
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    browserDebugInfoInTerminal: {
+      showSourceLocation: false,
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+| 버전 | 변경사항 |`v15.4.0` | experimental `browserDebugInfoInTerminal` introduced |

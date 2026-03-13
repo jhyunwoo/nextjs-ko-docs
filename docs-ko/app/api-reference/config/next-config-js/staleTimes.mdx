@@ -1,0 +1,45 @@
+---
+title: staleTimes
+description: 클라이언트 라우터 캐시의 무효화 시간을 재정의하는 방법을 알아보세요.
+version: experimental
+---
+
+`staleTimes`은 [클라이언트측 라우터 캐시](../../../guides/caching.mdx#client-side-router-cache)에서 페이지 세그먼트 캐싱을 활성화하는 실험적 기능입니다.
+
+실험적인 `staleTimes` 플래그를 설정하여 이 실험적인 기능을 활성화하고 사용자 정의 재검증 시간을 제공할 수 있습니다.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+`static` 및 `dynamic` 속성은 다양한 유형의 [링크 프리페칭](../../components/link.mdx#prefetch)을 기반으로 하는 기간(초)에 해당합니다.
+
+- `dynamic` 속성은 페이지가 정적으로 생성되지도 않고 완전히 프리페치되지도 않을 때(예: `prefetch={true}` 사용) 사용됩니다.
+  - 기본값: 0초(캐시되지 않음)
+- `static` 속성은 정적으로 생성된 페이지에 사용되거나, `prefetch`의 `Link` 속성이 `true`로 설정된 경우 또는 [`router.prefetch`](../../../guides/caching.mdx#routerprefetch)을 호출할 때 사용됩니다.
+  - 기본값 : 5분
+
+> **알아두면 좋은 점:**
+>
+> - [로드 경계](../../file-conventions/loading.mdx)는 이 구성에 정의된 `static` 기간 동안 재사용 가능한 것으로 간주됩니다.
+> - 이는 [부분 렌더링](../../../getting-started/linking-and-navigating.mdx#client-side-transitions)에 영향을 미치지 않습니다. 즉, 공유 레이아웃은 탐색할 때마다 자동으로 다시 가져오는 것이 아니라 변경되는 페이지 세그먼트만 다시 가져옵니다.\*\*
+> - 레이아웃 변경을 방지하고 브라우저 스크롤 위치가 손실되는 것을 방지하기 위해 [뒤로/앞으로 캐싱](../../../guides/caching.mdx#client-side-router-cache) 동작을 변경하지 않습니다.
+
+클라이언트 라우터 캐시에 대해 [여기](../../../guides/caching.mdx#client-side-router-cache)에서 자세히 알아볼 수 있습니다.
+
+### 버전 기록
+
+| 버전 | 변경사항 |
+| --------- | -------------------------------- |
+| `v15.0.0` | `dynamic` `staleTimes` 기본값이 30초에서 0초로 변경되었습니다. |
+| `v14.2.0` | 실험적인 `staleTimes`이 도입되었습니다.                      |

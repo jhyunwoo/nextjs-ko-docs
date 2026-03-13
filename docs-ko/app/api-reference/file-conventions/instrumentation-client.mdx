@@ -1,0 +1,222 @@
+---
+title: 계측-client.js
+description: Next.js 애플리케이션의 프런트엔드 성능을 추적하고 모니터링하기 위해 클라이언트측 계측을 추가하는 방법을 알아보세요.
+---
+
+The `instrumentation-client.js|ts` 파일을 사용하면 애플리케이션이 대화형이 되기 전에 실행되는 모니터링, 분석 코드 및 기타 부작용을 추가할 수 있습니다. 이는 성능 추적, 오류 모니터링, 폴리필 또는 기타 클라이언트 측 관찰 도구를 설정하는 데 유용합니다.
+
+이를 사용하려면 파일을 애플리케이션의 **루트** 또는 `src` 폴더 안에 넣으세요.
+
+## 사용법
+
+Unlike [서버측 계측](../../guides/instrumentation.mdx)과 달리 특정 함수를 내보낼 필요가 없습니다. 파일에 직접 모니터링 코드를 작성할 수 있습니다.
+
+```ts filename="instrumentation-client.ts" switcher
+// Set up performance monitoring
+performance.mark('app-init')
+
+// Initialize analytics
+console.log('Analytics initialized')
+
+// Set up error tracking
+window.addEventListener('error', (event) => {
+  // Send to your error tracking service
+  reportError(event.error)
+})
+```
+
+```js filename="instrumentation-client.js" switcher
+// Set up performance monitoring
+performance.mark('app-init')
+
+// Initialize analytics
+console.log('Analytics initialized')
+
+// Set up error tracking
+window.addEventListener('error', (event) => {
+  // Send to your error tracking service
+  reportError(event.error)
+})
+```
+
+**오류 처리:** 강력한 모니터링을 보장하려면 계측 코드 주변에 try-catch 블록을 구현하세요. 이렇게 하면 개별 추적 오류가 다른 계측 기능에 영향을 미치는 것을 방지할 수 있습니다.
+
+## 라우터 탐색 추적
+
+탐색이 시작될 때 알림을 받도록 `onRouterTransitionStart` 함수를 내보낼 수 있습니다.
+
+```ts filename="instrumentation-client.ts" switcher
+performance.mark('app-init')
+
+export function onRouterTransitionStart(
+  url: string,
+  navigationType: 'push' | 'replace' | 'traverse'
+) {
+  console.log(`Navigation started: ${navigationType} to ${url}`)
+  performance.mark(`nav-start-${Date.now()}`)
+}
+```
+
+```js filename="instrumentation-client.js" switcher
+performance.mark('app-init')
+
+export function onRouterTransitionStart(url, navigationType) {
+  console.log(`Navigation started: ${navigationType} to ${url}`)
+  performance.mark(`nav-start-${Date.now()}`)
+}
+```
+
+The `onRouterTransitionStart` 함수는 두 개의 매개변수를 받습니다.
+
+- `url: string` - 탐색 중인 URL
+- `navigationType: 'push' | 'replace' | 'traverse'` - 탐색 유형
+
+## 성능 고려사항
+
+계측 코드를 가볍게 유지하세요.
+
+Next.js는 개발 중 초기화 시간을 모니터링하고 16ms보다 오래 걸리면 경고를 기록합니다. 이는 원활한 페이지 로딩에 영향을 미칠 수 있습니다.
+
+## 실행 타이밍
+
+The `instrumentation-client.js` 파일은 애플리케이션 수명 주기의 특정 지점에서 실행됩니다.
+
+1. **이후** HTML 문서가 로드되었습니다.
+1. **전** React 수분 공급이 시작됩니다.
+1. **이전** 사용자 상호작용이 가능합니다.
+
+이러한 타이밍은 초기 애플리케이션 수명주기 이벤트를 캡처하는 데 필요한 오류 추적, 분석 및 성능 모니터링을 설정하는 데 이상적입니다.
+
+## 예
+
+### 오류 추적
+
+React가 시작되기 전에 오류 추적을 초기화하고 더 나은 디버깅 컨텍스트를 위해 탐색 탐색 경로를 추가합니다.
+
+```ts filename="instrumentation-client.ts" switcher
+import Monitor from './lib/monitoring'
+
+Monitor.initialize()
+
+export function onRouterTransitionStart(url: string) {
+  Monitor.pushEvent({
+    message: `Navigation to ${url}`,
+    category: 'navigation',
+  })
+}
+```
+
+```js filename="instrumentation-client.js" switcher
+import Monitor from './lib/monitoring'
+
+Monitor.initialize()
+
+export function onRouterTransitionStart(url) {
+  Monitor.pushEvent({
+    message: `Navigation to ${url}`,
+    category: 'navigation',
+  })
+}
+```
+
+### 분석 추적
+
+사용자 행동 분석을 위한 상세한 메타데이터를 사용하여 분석을 초기화하고 탐색 이벤트를 추적합니다.
+
+```ts filename="instrumentation-client.ts" switcher
+import { analytics } from './lib/analytics'
+
+analytics.init()
+
+export function onRouterTransitionStart(url: string, navigationType: string) {
+  analytics.track('page_navigation', {
+    url,
+    type: navigationType,
+    timestamp: Date.now(),
+  })
+}
+```
+
+```js filename="instrumentation-client.js" switcher
+import { analytics } from './lib/analytics'
+
+analytics.init()
+
+export function onRouterTransitionStart(url, navigationType) {
+  analytics.track('page_navigation', {
+    url,
+    type: navigationType,
+    timestamp: Date.now(),
+  })
+}
+```
+
+### 성능 모니터링
+
+성능 관찰자 API 및 성능 표시를 사용하여 대화형 시간 및 탐색 성능을 추적합니다.
+
+```ts filename="instrumentation-client.ts" switcher
+const startTime = performance.now()
+
+const observer = new PerformanceObserver(
+  (list: PerformanceObserverEntryList) => {
+    for (const entry of list.getEntries()) {
+      if (entry instanceof PerformanceNavigationTiming) {
+        console.log('Time to Interactive:', entry.loadEventEnd - startTime)
+      }
+    }
+  }
+)
+
+observer.observe({ entryTypes: ['navigation'] })
+
+export function onRouterTransitionStart(url: string) {
+  performance.mark(`nav-start-${url}`)
+}
+```
+
+```js filename="instrumentation-client.js" switcher
+const startTime = performance.now()
+
+const observer = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    if (entry instanceof PerformanceNavigationTiming) {
+      console.log('Time to Interactive:', entry.loadEventEnd - startTime)
+    }
+  }
+})
+
+observer.observe({ entryTypes: ['navigation'] })
+
+export function onRouterTransitionStart(url) {
+  performance.mark(`nav-start-${url}`)
+}
+```
+
+### 폴리필
+
+애플리케이션 코드가 실행되기 전에 폴리필을 로드합니다. 즉시 로딩에는 정적 가져오기를 사용하고, 기능 감지에 따른 조건부 로딩에는 동적 가져오기를 사용하세요.
+
+```ts filename="instrumentation-client.ts" switcher
+import './lib/polyfills'
+
+if (!window.ResizeObserver) {
+  import('./lib/polyfills/resize-observer').then((mod) => {
+    window.ResizeObserver = mod.default
+  })
+}
+```
+
+```js filename="instrumentation-client.js" switcher
+import './lib/polyfills'
+
+if (!window.ResizeObserver) {
+  import('./lib/polyfills/resize-observer').then((mod) => {
+    window.ResizeObserver = mod.default
+  })
+}
+```
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.3` | `instrumentation-client` introduced |

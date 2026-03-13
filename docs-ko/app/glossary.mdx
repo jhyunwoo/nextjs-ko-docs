@@ -1,0 +1,260 @@
+---
+title: Next.js 용어집
+nav_title: 어휘
+description: Next.js에서 사용되는 일반적인 용어에 대한 용어집입니다.
+---
+
+\#A
+
+## 앱 라우터
+
+버전 13에 도입된 Next.js 라우터는 React 서버 구성 요소 위에 구축되었습니다. 파일 시스템 기반 라우팅을 사용하고 레이아웃, 중첩 라우팅, 로딩 상태, 오류 처리 등을 지원합니다. [앱 라우터 문서](index.mdx)에서 자세히 알아보세요.
+
+\#비
+
+## 빌드 시간
+
+애플리케이션이 컴파일되는 단계입니다. 빌드 시간 동안 Next.js는 코드를 프로덕션에 최적화된 파일로 변환하고, 정적 페이지를 생성하고, 배포할 자산을 준비합니다. [`next build` CLI 참조](api-reference/cli/next.mdx#next-build-options)를 확인하세요.
+
+\#C
+
+## 캐시 구성요소
+
+[`"use cache"` 지시문](api-reference/directives/use-cache.mdx)을 사용하여 구성 요소 및 기능 수준 캐싱을 활성화하는 기능입니다. 캐시 구성 요소를 사용하면 즉시 제공되는 정적 HTML 셸을 사전 렌더링하여 단일 경로 내에서 정적, 캐시 및 동적 콘텐츠를 혼합할 수 있고, 준비되면 동적 콘텐츠가 스트리밍됩니다. [`cacheLife()`](api-reference/functions/cacheLife.mdx)로 캐시 기간을 구성하고, [`cacheTag()`](api-reference/functions/cacheTag.mdx)으로 캐시된 데이터에 태그를 지정하고, [`updateTag()`](api-reference/functions/updateTag.mdx)로 요청 시 무효화합니다. [캐시 구성요소 가이드](getting-started/cache-components.mdx)에서 자세히 알아보세요.
+
+## 포괄 세그먼트
+
+`[...folder]/page.js` 구문을 사용하여 여러 URL 부분을 일치시킬 수 있는 동적 경로 세그먼트입니다. 이러한 세그먼트는 나머지 모든 URL 세그먼트를 캡처하며 문서 사이트 또는 파일 브라우저와 같은 기능을 구현하는 데 유용합니다. [동적 경로 세그먼트](api-reference/file-conventions/dynamic-routes.mdx#catch-all-segments)에서 자세히 알아보세요.
+
+## 클라이언트 번들
+
+JavaScript 번들이 브라우저로 전송되었습니다. Next.js는 [모듈 그래프](#module-graph)를 기반으로 이를 자동으로 분할하여 초기 페이로드 크기를 줄이고 각 페이지에 필요한 코드만 로드합니다.
+
+## 클라이언트 구성요소
+
+브라우저에서 실행되는 React 구성 요소입니다. Next.js에서는 클라이언트 구성 요소가 초기 페이지 생성 중에 서버에서 렌더링될 수도 있습니다. 상태, 효과, 이벤트 핸들러 및 브라우저 API를 사용할 수 있으며 파일 상단에 [`"use client"` 지시어](#use-client-directive)로 표시됩니다. [서버 및 클라이언트 구성요소](getting-started/server-and-client-components.mdx)에서 자세히 알아보세요.
+
+## 클라이언트측 탐색
+
+전체 페이지를 다시 로드하지 않고도 페이지 콘텐츠가 동적으로 업데이트되는 탐색 기술입니다. Next.js는 [`<Link>` 구성 요소](api-reference/components/link.mdx)와 함께 클라이언트 측 탐색을 사용하여 공유 레이아웃을 대화형으로 유지하고 브라우저 상태를 유지합니다. [연결 및 탐색](getting-started/linking-and-navigating.mdx#client-side-transitions)에서 자세히 알아보세요.
+
+## 코드 분할
+
+경로에 따라 애플리케이션을 더 작은 JavaScript 청크로 나누는 프로세스입니다. 모든 코드를 미리 로드하는 대신 현재 경로에 필요한 코드만 로드하여 초기 로드 시간을 줄입니다. Next.js는 경로를 기반으로 코드 분할을 자동으로 수행합니다. [패키지 번들링 가이드](guides/package-bundling.mdx)에서 자세히 알아보세요.
+
+\#디## 동적 렌더링
+
+[요청 시간 렌더링](#request-time-rendering)을 참조하세요.
+
+## 동적 경로 세그먼트
+
+요청 시 데이터에서 생성된 [경로 세그먼트](#route-segment). 폴더 이름을 대괄호(예: `[slug]`)로 묶어 생성하면 블로그 게시물이나 제품 페이지와 같은 동적 데이터에서 경로를 생성할 수 있습니다. [동적 경로 세그먼트](api-reference/file-conventions/dynamic-routes.mdx)에서 자세히 알아보세요.
+
+\#E
+
+## 환경 변수
+
+빌드 시간이나 요청 시간에 액세스할 수 있는 구성 값입니다. Next.js에서 `NEXT_PUBLIC_` 접두사가 붙은 변수는 브라우저에 노출되지만 다른 변수는 서버 측에서만 사용할 수 있습니다. [환경 변수](guides/environment-variables.mdx)에서 자세히 알아보세요.
+
+## 오류 경계
+
+하위 구성 요소 트리에서 JavaScript 오류를 포착하고 대체 UI를 표시하는 React 구성 요소입니다. Next.js에서 [`error.js` 파일](api-reference/file-conventions/error.mdx)을 생성하여 오류 경계에서 경로 세그먼트를 자동으로 래핑합니다. [오류 처리](getting-started/error-handling.mdx)에서 자세히 알아보세요.
+
+\#F
+
+## 글꼴 최적화
+
+[`next/font`](api-reference/components/font.mdx)을 사용하여 자동 글꼴 최적화. Next.js 글꼴을 자체 호스팅하고 레이아웃 변경을 제거하며 성능 모범 사례를 적용합니다. Google 글꼴 및 로컬 글꼴 파일과 함께 작동합니다. [글꼴](getting-started/fonts.mdx)에서 자세히 알아보세요.
+
+## 파일 시스템 캐싱
+
+실행 사이에 디스크에 컴파일러 아티팩트를 저장하는 Turbopack 기능으로, `next dev` 또는 `next build` 명령에 대한 작업을 줄여 컴파일 시간을 훨씬 단축합니다. [Turbopack 파일 시스템 캐싱](api-reference/config/next-config-js/turbopackFileSystemCache.mdx)에서 자세히 알아보세요.
+
+\#H
+
+## 수분 공급
+
+서버에서 렌더링된 정적 HTML를 대화형으로 만들기 위해 DOM에 이벤트 핸들러를 연결하는 React의 프로세스입니다. 하이드레이션 중에 React는 서버 렌더링 마크업을 클라이언트 측 JavaScript와 조정합니다. [서버 및 클라이언트 구성요소](getting-started/server-and-client-components.mdx#how-do-server-and-client-components-work-in-nextjs)에서 자세히 알아보세요.
+
+# 나는
+
+## 별칭 가져오기
+
+자주 사용되는 디렉토리에 대한 단축 참조를 제공하는 사용자 정의 경로 매핑입니다. 가져오기 별칭은 상대적 가져오기의 복잡성을 줄이고 코드를 더 읽기 쉽고 유지 관리하기 쉽게 만듭니다. [절대 가져오기 및 모듈 경로 별칭](getting-started/installation.mdx#set-up-absolute-imports-and-module-path-aliases)에서 자세히 알아보세요.
+
+## 증분형 정적 재생(ISR)
+
+전체 사이트를 다시 구축하지 않고도 정적 콘텐츠를 업데이트할 수 있는 기술입니다. ISR를 사용하면 트래픽이 들어올 때 백그라운드에서 페이지 유효성을 다시 검사하는 동시에 페이지별로 정적 생성을 사용할 수 있습니다. [ISR 가이드](guides/incremental-static-regeneration.mdx)에서 자세히 알아보세요.
+
+> **알아두면 좋은 정보**: Next.js에서 ISR는 [재검증](#revalidation)이라고도 합니다.
+
+## 경로 차단
+
+현재 레이아웃 내 애플리케이션의 다른 부분에서 경로를 로드할 수 있는 라우팅 패턴입니다. URL를 공유 가능하게 유지하면서 사용자가 컨텍스트를 전환하지 않고도 콘텐츠(예: 모달)를 표시하는 데 유용합니다. [경로 차단](api-reference/file-conventions/intercepting-routes.mdx)에서 자세히 알아보세요.## 이미지 최적화
+
+[`<Image>` 구성요소](api-reference/components/image.mdx)를 사용한 자동 이미지 최적화. Next.js는 필요에 따라 이미지를 최적화하고 WebP와 같은 최신 형식으로 제공하며 지연 로딩 및 반응형 크기 조정을 자동으로 처리합니다. [이미지](getting-started/images.mdx)에서 자세히 알아보세요.
+
+# 엘
+
+## 레이아웃
+
+여러 페이지에서 공유되는 UI입니다. 레이아웃은 상태를 유지하고 대화형을 유지하며 탐색 시 다시 렌더링되지 않습니다. [`layout.js` 파일](api-reference/file-conventions/layout.mdx)에서 React 구성 요소를 내보내 정의됩니다. [레이아웃 및 페이지](getting-started/layouts-and-pages.mdx)에서 자세히 알아보세요.
+
+## UI 로딩 중
+
+[경로 세그먼트](#route-segment)가 로드되는 동안 표시되는 대체 UI입니다. [`loading.js` 파일](api-reference/file-conventions/loading.mdx)을 폴더에 추가하여 생성되었습니다. 이 폴더는 자동으로 [서스펜스 경계](#suspense-boundary)에서 페이지를 래핑합니다. [UI 로딩](api-reference/file-conventions/loading.mdx)에서 자세히 알아보세요.
+
+\#엠
+
+## 모듈 그래프
+
+앱의 파일 종속성을 그래프로 보여줍니다. 각 파일(모듈)은 노드이며 가져오기/내보내기 관계가 가장자리를 형성합니다. Next.js는 이 그래프를 분석하여 최적의 번들링 및 코드 분할 전략을 결정합니다. [서버 및 클라이언트 구성요소](getting-started/server-and-client-components.mdx#reducing-js-bundle-size)에서 자세히 알아보세요.
+
+## 메타데이터
+
+제목, 설명, 오픈 그래프 이미지 등 브라우저 및 검색 엔진에서 사용하는 페이지에 대한 정보입니다. Next.js에서 레이아웃 또는 페이지 파일의 [`metadata` 내보내기](api-reference/functions/generate-metadata.mdx) 또는 [`generateMetadata` 함수](api-reference/functions/generate-metadata.mdx)를 사용하여 메타데이터를 정의합니다. [메타데이터 및 OG 이미지](getting-started/metadata-and-og-images.mdx)에서 자세히 알아보세요.
+
+## 메모
+
+렌더 패스(요청) 중에 동일한 함수를 여러 번 호출하면 함수가 한 번만 실행되도록 함수의 반환 값을 캐싱합니다. Next.js에서는 동일한 URL 및 옵션이 포함된 가져오기 요청이 자동으로 메모됩니다. [React 캐시](https://react.dev/reference/react/cache)에 대해 자세히 알아보세요.
+
+## 미들웨어
+
+[프록시](#proxy)를 참조하세요.
+
+\#엔
+
+## 찾을 수 없음
+
+경로가 존재하지 않거나 [`notFound()` 함수](api-reference/functions/not-found.mdx)가 호출될 때 표시되는 특수 구성 요소입니다. 앱 디렉토리에 [`not-found.js` 파일](api-reference/file-conventions/not-found.mdx)을 추가하여 생성됩니다. [오류 처리](getting-started/error-handling.mdx#not-found)에서 자세히 알아보세요.
+
+\#피
+
+## 개인 폴더
+
+라우팅 시스템에서 제외되는 밑줄(예: `_components`)이 앞에 붙은 폴더입니다. 이러한 폴더는 액세스 가능한 경로를 생성하지 않고 코드 구성 및 공유 유틸리티에 사용됩니다. [개인 폴더](getting-started/project-structure.mdx#private-folders)에서 자세히 알아보세요.
+
+## 페이지
+
+경로에 고유한 UI입니다. `page.js` 디렉터리 내 [`app` 파일](api-reference/file-conventions/page.mdx)에서 React 구성 요소를 내보내 정의됩니다. [레이아웃 및 페이지](getting-started/layouts-and-pages.mdx)에서 자세히 알아보세요.
+
+## 병렬 경로동일한 레이아웃 내에서 여러 페이지를 동시에 또는 조건부로 렌더링할 수 있는 패턴입니다. `@folder` 규칙에 따라 명명된 슬롯을 사용하여 생성되며 대시보드, 모달 및 복잡한 레이아웃에 유용합니다. [평행 경로](api-reference/file-conventions/parallel-routes.mdx)에서 자세히 알아보세요.
+
+## 부분 사전 렌더링(PPR)
+
+단일 경로에서 정적 렌더링과 동적 렌더링을 결합하는 렌더링 최적화입니다. 준비되면 동적 콘텐츠가 스트리밍되는 동안 정적 셸이 즉시 제공되므로 두 렌더링 전략의 장점을 모두 제공합니다. [캐시 구성요소](getting-started/cache-components.mdx)에서 자세히 알아보세요.
+
+## 미리 가져오기
+
+사용자가 경로를 탐색하기 전에 백그라운드에서 경로를 로드합니다. Next.js는 [`<Link>` 구성 요소](api-reference/components/link.mdx)와 연결된 경로가 뷰포트에 들어갈 때 자동으로 미리 가져오므로 탐색이 즉각적으로 느껴집니다. [프리페치 가이드](guides/prefetching.mdx)에서 자세히 알아보세요.
+
+## 사전 렌더링 중
+
+구성요소가 [빌드 시간](#build-time)에 렌더링되거나 [재검증](#revalidation) 중에 백그라운드에서 렌더링되는 경우. 결과는 CDN에서 캐시하고 제공할 수 있는 HTML 및 [RSC 페이로드](#rsc-payload)입니다. 사전 렌더링은 [요청 시간 API](#request-time-apis)를 사용하지 않는 구성 요소의 기본값입니다.
+
+## 프록시
+
+요청이 완료되기 전에 서버에서 코드를 실행하는 파일([`proxy.js`](api-reference/file-conventions/proxy.mdx))입니다. 로깅, 리디렉션, 재작성과 같은 서버 측 논리를 구현하는 데 사용됩니다. 이전에는 미들웨어로 알려져 있었습니다. [프록시 가이드](getting-started/proxy.mdx)에서 자세히 알아보세요.
+
+\#R
+
+## 리디렉션
+
+한 URL에서 다른 URL로 사용자를 보냅니다. Next.js에서는 [`next.config.js`](api-reference/config/next-config-js/redirects.mdx)에서 리디렉션을 구성하거나, [프록시](api-reference/file-conventions/proxy.mdx)에서 반환하거나, [`redirect()`을 사용하여 프로그래밍 방식으로 트리거할 수 있습니다. 함수](api-reference/functions/redirect.mdx). [리디렉션](guides/redirecting.mdx)에서 자세히 알아보세요.
+
+## 요청 시간
+
+사용자가 애플리케이션에 요청하는 시간입니다. 요청 시 동적 경로가 렌더링되고, 쿠키와 헤더에 액세스할 수 있으며, 요청별 데이터를 사용할 수 있습니다.
+
+## 요청 시간 API
+
+요청별 데이터에 액세스하여 구성 요소가 [요청 시간 렌더링](#request-time-rendering)을 선택하도록 하는 함수입니다. 여기에는 다음이 포함됩니다.
+
+- [`cookies()`](api-reference/functions/cookies.mdx) - 액세스 요청 쿠키
+- [`headers()`](api-reference/functions/headers.mdx) - 액세스 요청 헤더
+- [`searchParams`](api-reference/file-conventions/page.mdx#searchparams-optional) - URL 쿼리 매개변수에 액세스
+- [`draftMode()`](api-reference/functions/draft-mode.mdx) - 초안 모드 활성화 또는 확인
+
+## 요청 시간 렌더링
+
+구성요소가 [빌드 시간](#request-time)이 아닌 [요청 시간](#build-time)에 렌더링되는 경우. [요청 시간 API](#request-time-apis)를 사용하면 구성 요소가 동적이 됩니다.
+
+## 재검증캐시된 데이터를 업데이트하는 프로세스입니다. 시간 기반([`cacheLife()`](api-reference/functions/cacheLife.mdx)을 사용하여 캐시 기간 설정) 또는 주문형([`cacheTag()`](api-reference/functions/cacheTag.mdx)을 사용하여 데이터에 태그를 지정한 다음 [`updateTag()`](api-reference/functions/updateTag.mdx)을 사용하여 무효화). [캐싱 및 ​​재검증](getting-started/caching-and-revalidating.mdx)에서 자세히 알아보세요.
+
+## 재작성
+
+브라우저에서 URL를 변경하지 않고 수신 요청 경로를 다른 대상 경로에 매핑합니다. [`next.config.js`](api-reference/config/next-config-js/rewrites.mdx)에서 구성되었거나 [프록시](api-reference/file-conventions/proxy.mdx)에서 반환되었습니다. 외부 서비스 또는 레거시 URL에 대한 프록시에 유용합니다.
+
+## 경로 그룹
+
+URL 구조에 영향을 주지 않고 경로를 구성하는 방법입니다. 폴더 이름을 괄호 안에 넣어 생성된 경로 그룹(예: `(marketing)`)은 관련 경로를 구성하고 그룹별 [레이아웃](#layout)을 활성화하는 데 도움이 됩니다. [경로 그룹](api-reference/file-conventions/route-groups.mdx)에서 자세히 알아보세요.
+
+## 경로 처리기
+
+[`route.js` 파일](api-reference/file-conventions/route.mdx)에 정의된 특정 경로에 대한 HTTP 요청을 처리하는 함수입니다. 경로 처리기는 웹 요청 및 응답 API를 사용하며 `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` 및 `OPTIONS` 메소드. [경로 처리기](getting-started/route-handlers.mdx)에서 자세히 알아보세요.
+
+## 경로 구간
+
+`app` 디렉터리의 폴더에 의해 정의된 URL 경로(두 개의 슬래시 사이)의 일부입니다. 각 폴더는 URL 구조의 세그먼트를 나타냅니다. [프로젝트 구조](getting-started/project-structure.mdx)에서 자세히 알아보세요.
+
+## RSC 페이로드
+
+React 서버 구성 요소 페이로드 - 렌더링된 React 서버 구성 요소 트리의 압축 바이너리 표현입니다. 서버 구성 요소의 렌더링된 결과, 클라이언트 구성 요소의 자리 표시자 및 이들 사이에 전달되는 소품을 포함합니다. [서버 및 클라이언트 구성요소](getting-started/server-and-client-components.mdx#how-do-server-and-client-components-work-in-nextjs)에서 자세히 알아보세요.
+
+# 에스
+
+## 서버 구성 요소
+
+앱 라우터의 기본 구성 요소 유형입니다. 서버 구성 요소는 서버에서 렌더링되고 데이터를 직접 가져올 수 있으며 클라이언트 JavaScript 번들에 추가되지 않습니다. 상태 또는 브라우저 API를 사용할 수 없습니다. [서버 및 클라이언트 구성요소](getting-started/server-and-client-components.mdx)에서 자세히 알아보세요.
+
+## 서버 액션
+
+클라이언트 구성 요소에 소품으로 전달되거나 양식 작업에 바인딩되는 [서버 기능](#server-function)입니다. 서버 작업은 일반적으로 양식 제출 및 데이터 변형에 사용됩니다. [서버 작업 및 변형](getting-started/updating-data.mdx)에서 자세히 알아보세요.
+
+## 서버 기능
+
+[`"use server"` 지시문](api-reference/directives/use-server.mdx)으로 표시된 서버에서 실행되는 비동기 함수입니다. 서버 기능은 클라이언트 구성 요소에서 호출할 수 있습니다. 클라이언트 구성 요소에 소품으로 전달되거나 양식 작업에 바인딩되면 [서버 작업](#server-action)이라고 합니다. [React 서버 기능](https://react.dev/reference/rsc/server-functions)에서 자세히 알아보세요.
+
+## 정적 내보내기HTML, CSS 및 JavaScript 파일을 사용하여 완전히 정적 사이트를 생성하는 배포 모드입니다. `output: 'export'`에서 `next.config.js`을 설정하면 활성화됩니다. 정적 내보내기는 Node.js 서버 없이 모든 정적 파일 서버에서 호스팅될 수 있습니다. [정적 내보내기](guides/static-exports.mdx)에서 자세히 알아보세요.
+
+## 정적 렌더링
+
+[사전 렌더링](#prerendering)을 참조하세요.
+
+## 정적 자산
+
+처리 없이 직접 제공되는 이미지, 글꼴, 동영상, 기타 미디어 등의 파일입니다. 정적 자산은 일반적으로 `public` 디렉터리에 저장되며 상대 경로로 참조됩니다. [정적 자산](api-reference/file-conventions/public-folder.mdx)에서 자세히 알아보세요.
+
+## 정적 쉘
+
+브라우저에 즉시 제공되는 페이지의 사전 렌더링된 HTML 구조입니다. [부분 사전 렌더링](#partial-prerendering-ppr)을 사용하면 정적 셸에 정적으로 렌더링 가능한 모든 콘텐츠와 나중에 스트리밍되는 동적 콘텐츠에 대한 [일시 중지 경계](#suspense-boundary) 대체가 포함됩니다.
+
+## 스트리밍
+
+전체 페이지가 렌더링될 때까지 기다리지 않고 준비가 되면 서버가 페이지의 일부를 클라이언트에 보낼 수 있도록 하는 기술입니다. [`loading.js`](api-reference/file-conventions/loading.mdx) 또는 수동 `<Suspense>` 경계를 사용하면 자동으로 활성화됩니다. [연결 및 탐색 - 스트리밍](getting-started/linking-and-navigating.mdx#streaming)에서 자세히 알아보세요.
+
+## 서스펜스 경계
+
+비동기 콘텐츠를 래핑하고 로드되는 동안 대체 UI를 표시하는 React [`<Suspense>`](https://react.dev/reference/react/Suspense) 구성 요소입니다. Next.js에서 정지 경계는 [정적 셸](#static-shell)이 끝나고 [스트리밍](#streaming)이 시작되는 위치를 정의하여 [부분 사전 렌더링](#partial-prerendering-ppr)을 활성화합니다.
+
+# 티
+
+## Turbopack
+
+Next.js용으로 제작된 빠른 Rust 기반 번들러입니다. Turbopack는 `next dev`의 기본 번들러이며 `next build`에 사용할 수 있습니다. Webpack에 비해 훨씬 빠른 컴파일 시간을 제공합니다. [Turbopack](api-reference/turbopack.mdx)에서 자세히 알아보세요.
+
+## 나무 흔들기
+
+빌드 프로세스 중에 JavaScript 번들에서 사용되지 않는 코드를 제거하는 프로세스입니다. Next.js는 코드를 자동으로 트리 셰이크하여 번들 크기를 줄입니다. [패키지 번들링 가이드](guides/package-bundling.mdx)에서 자세히 알아보세요.
+
+\#유
+
+## `"use cache"` 지시어
+
+구성 요소나 기능을 캐시 가능으로 표시하는 지시문입니다. 파일의 모든 내보내기가 캐시 가능함을 나타내기 위해 파일 상단에 배치하거나 특정 범위를 캐시 가능으로 표시하기 위해 함수 또는 구성 요소 상단에 인라인으로 배치할 수 있습니다. [`"use cache"` 참조](api-reference/directives/use-cache.mdx)에서 자세히 알아보세요.
+
+## `"use client"` 지시어서버와 클라이언트 코드 사이의 경계를 표시하는 특수 React 지시문입니다. 가져오기 또는 기타 코드 이전에 파일 상단에 배치해야 합니다. 이는 React 구성 요소, 도우미 함수, 변수 선언 및 가져온 모든 종속성이 [클라이언트 번들](#client-bundles)에 포함되어야 함을 나타냅니다. [`"use client"` 참조](api-reference/directives/use-client.mdx)에서 자세히 알아보세요.
+
+## `"use server"` 지시어
+
+클라이언트 측 코드에서 호출할 수 있는 [서버 함수](#server-function)로 함수를 표시하는 지시문입니다. 파일의 모든 내보내기가 서버 기능임을 나타내기 위해 파일 상단에 배치하거나 특정 기능을 표시하기 위해 함수 상단에 인라인으로 배치할 수 있습니다. [`"use server"` 참조](api-reference/directives/use-server.mdx)에서 자세히 알아보세요.

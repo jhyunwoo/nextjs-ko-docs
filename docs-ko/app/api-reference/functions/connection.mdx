@@ -1,0 +1,55 @@
+---
+title: 연결
+description: 연결 기능에 대한 API 참조입니다.
+---
+
+The `connection()` 함수를 사용하면 렌더링을 계속하기 전에 들어오는 사용자 요청을 기다려야 함을 나타낼 수 있습니다.
+
+구성 요소가 [동적 API](../../guides/caching.mdx#dynamic-rendering)를 사용하지 않지만 빌드 시 정적으로 렌더링되지 않고 런타임에 동적으로 렌더링되기를 원할 때 유용합니다. 이는 일반적으로 `Math.random()` 또는 `new Date()`와 같이 렌더링 결과를 의도적으로 변경하려는 외부 정보에 액세스할 때 발생합니다.
+
+```ts filename="app/page.tsx" switcher
+import { connection } from 'next/server'
+
+export default async function Page() {
+  await connection()
+  // Everything below will be excluded from prerendering
+  const rand = Math.random()
+  return <span>{rand}</span>
+}
+```
+
+```jsx filename="app/page.js" switcher
+import { connection } from 'next/server'
+
+export default async function Page() {
+  await connection()
+  // Everything below will be excluded from prerendering
+  const rand = Math.random()
+  return <span>{rand}</span>
+}
+```
+
+## 참조
+
+### 유형
+
+```jsx
+function connection(): Promise<void>
+```
+
+### 매개변수
+
+- 이 함수는 어떤 매개변수도 허용하지 않습니다.
+
+### 반품
+
+- 이 함수는 `void` 약속을 반환합니다. 소비되어서는 안 됩니다.
+
+## 알아두면 좋은 점
+
+- `connection`은 [`unstable_noStore`](unstable_noStore.mdx)을 대체하여 Next.js의 미래에 더 잘 부합합니다.
+- 이 기능은 동적 렌더링이 필요한 경우에만 필요하며 일반적인 Dynamic API를 사용하지 않습니다.
+
+### 버전 기록
+
+| 버전 | 변경사항 |`v15.0.0`    | `connection` stabilized. |`v15.0.0-RC` | `connection` introduced. |

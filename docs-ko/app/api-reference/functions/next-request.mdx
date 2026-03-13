@@ -1,0 +1,95 @@
+---
+title: 다음요청
+description: NextRequest에 대한 API 참조입니다.
+---
+
+NextRequest는 추가 편의 메서드를 사용하여 [웹 요청 API](https://developer.mozilla.org/docs/Web/API/Request)을 확장합니다.
+
+## `cookies`
+
+요청의 [`Set-Cookie`](https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie) 헤더를 읽거나 변경합니다.
+
+### `set(name, value)`
+
+이름이 주어지면 요청에 지정된 값으로 쿠키를 설정합니다.
+
+```ts
+// Given incoming request /home
+// Set a cookie to hide the banner
+// request will have a `Set-Cookie:show-banner=false;path=/home` header
+request.cookies.set('show-banner', 'false')
+```
+
+### `get(name)`
+
+쿠키 이름이 주어지면 쿠키 값을 반환합니다. 쿠키가 발견되지 않으면 `undefined`이 반환됩니다. 여러 쿠키가 발견되면 첫 번째 쿠키가 반환됩니다.
+
+```ts
+// Given incoming request /home
+// { name: 'show-banner', value: 'false', Path: '/home' }
+request.cookies.get('show-banner')
+```
+
+### `getAll()`
+
+쿠키 이름이 주어지면 쿠키 값을 반환합니다. 이름이 지정되지 않으면 요청 시 모든 쿠키를 반환합니다.
+
+```ts
+// Given incoming request /home
+// [
+//   { name: 'experiments', value: 'new-pricing-page', Path: '/home' },
+//   { name: 'experiments', value: 'winter-launch', Path: '/home' },
+// ]
+request.cookies.getAll('experiments')
+// Alternatively, get all cookies for the request
+request.cookies.getAll()
+```
+
+### `delete(name)`
+
+쿠키 이름이 주어지면 요청에서 쿠키를 삭제합니다.
+
+```ts
+// Returns true for deleted, false is nothing is deleted
+request.cookies.delete('experiments')
+```
+
+### `has(name)`
+
+쿠키 이름이 주어지면 요청에 쿠키가 있으면 `true`를 반환합니다.
+
+```ts
+// Returns true if cookie exists, false if it does not
+request.cookies.has('experiments')
+```
+
+### `clear()`
+
+요청에서 모든 쿠키를 제거합니다.
+
+```ts
+request.cookies.clear()
+```
+
+## `nextUrl`
+
+Next.js 특정 속성을 포함한 추가 편의 메서드를 사용하여 기본 [`URL`](https://developer.mozilla.org/docs/Web/API/URL) API를 확장합니다.
+
+```ts
+// Given a request to /home, pathname is /home
+request.nextUrl.pathname
+// Given a request to /home?name=lee, searchParams is { 'name': 'lee' }
+request.nextUrl.searchParams
+```
+
+다음 옵션을 사용할 수 있습니다.
+
+| 부동산 | 유형 | 설명 |`basePath`     | `string`                | The [base path](../config/next-config-js/basePath.mdx) of the URL.                                                  |`buildId`      | `string` | `undefined` | The build identifier of the Next.js application. Can be [customized](../config/next-config-js/generateBuildId.mdx). |
+| `pathname`     | `string`                | The pathname of the URL.                                                                                                             |
+| `searchParams` | `Object`                | The search parameters of the URL.                                                                                                    |
+
+> **참고:** 페이지 라우터의 국제화 속성은 앱 라우터에서 사용할 수 없습니다. [앱 라우터를 통한 국제화](../../guides/internationalization.mdx)에 대해 자세히 알아보세요.
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v15.0.0` | `ip` and `geo` removed. |

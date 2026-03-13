@@ -1,0 +1,72 @@
+---
+title: 매니페스트.json
+description: Manifest.json 파일에 대한 API 참조입니다.
+---
+
+Add or generate a `manifest.(json|webmanifest)` 디렉터리의 [웹 매니페스트 사양](https://developer.mozilla.org/docs/Web/Manifest)과 일치하는 **root** of `app` 파일을 추가하거나 생성하여 브라우저에 웹 애플리케이션에 대한 정보를 제공합니다.
+
+## 정적 매니페스트 파일
+
+```json filename="app/manifest.json | app/manifest.webmanifest"
+{
+  "name": "My Next.js Application",
+  "short_name": "Next.js App",
+  "description": "An application built with Next.js",
+  "start_url": "/"
+  // ...
+}
+```
+
+## 매니페스트 파일 생성
+
+Add a `manifest.js` 또는 `manifest.ts` 파일을 추가하세요.[`Manifest` object](#manifest-object).
+
+> 알아두면 좋은 점: `manifest.js`은 [동적 API](../../../guides/caching.mdx#dynamic-apis) 또는 [동적 구성](../../../guides/caching.mdx#segment-config-options) 옵션을 사용하지 않는 한 기본적으로 캐시되는 특수 경로 처리기입니다.
+
+```ts filename="app/manifest.ts" switcher
+import type { MetadataRoute } from 'next'
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Next.js App',
+    short_name: 'Next.js App',
+    description: 'Next.js App',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#fff',
+    theme_color: '#fff',
+    icons: [
+      {
+        src: '/favicon.ico',
+        sizes: 'any',
+        type: 'image/x-icon',
+      },
+    ],
+  }
+}
+```
+
+```js filename="app/manifest.js" switcher
+export default function manifest() {
+  return {
+    name: 'Next.js App',
+    short_name: 'Next.js App',
+    description: 'Next.js App',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#fff',
+    theme_color: '#fff',
+    icons: [
+      {
+        src: '/favicon.ico',
+        sizes: 'any',
+        type: 'image/x-icon',
+      },
+    ],
+  }
+}
+```
+
+### 매니페스트 개체
+
+매니페스트 개체에는 새로운 웹 표준으로 인해 업데이트될 수 있는 광범위한 옵션 목록이 포함되어 있습니다. 현재 모든 옵션에 대한 자세한 내용은 `MetadataRoute.Manifest` 유형을 참조하거나 [MDN](../../config/typescript.mdx#ide-plugin) 문서를 참조하세요.[MDN](https://developer.mozilla.org/docs/Web/Manifest) docs.

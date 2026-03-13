@@ -1,0 +1,18 @@
+---
+title: 크로스오리진
+description: "'next/script'에 의해 생성된 'script' 태그에 crossOrigin 태그를 추가하려면
+  'crossOrigin' 옵션을 사용하세요."
+---
+
+Use the `crossOrigin` 옵션을 사용하여 [`crossOrigin` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin) 구성 요소에서 생성된 모든 `<script>` 태그에 [`next/script`](../../../guides/scripts.mdx)을 추가하고 원본 간 요청을 처리하는 방법을 정의합니다.
+
+```js filename="next.config.js"
+module.exports = {
+  crossOrigin: 'anonymous',
+}
+```
+
+## 옵션
+
+- `'anonymous'`: [`crossOrigin="anonymous"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin#anonymous) 속성을 추가합니다.
+- `'use-credentials'`: [`crossOrigin="use-credentials"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin#use-credentials)을 추가합니다.

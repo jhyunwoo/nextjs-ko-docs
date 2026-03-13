@@ -1,0 +1,339 @@
+---
+title: 증분 정적 재생(ISR) 구현 방법
+nav_title: ISR
+description: 증분 정적 재생성을 사용하여 런타임 시 정적 페이지를 생성하거나 업데이트하는 방법을 알아보세요.
+---
+
+<details>
+  <summary>예</summary>
+
+  - [Next.js 상업](https://vercel.com/templates/next.js/nextjs-commerce)
+  - [주문형 ISR](https://on-demand-isr.vercel.app)
+  - [Next.js 양식](https://github.com/vercel/next.js/tree/canary/examples/next-forms)
+</details>
+
+증분 정적 재생(ISR)을 통해 다음을 수행할 수 있습니다.
+
+- 전체 사이트를 재구축하지 않고 정적 콘텐츠 업데이트
+- 대부분의 요청에 대해 사전 렌더링된 정적 페이지를 제공하여 서버 로드를 줄입니다.
+- 적절한 `cache-control` 헤더가 페이지에 자동으로 추가되는지 확인하세요.
+- 긴 `next build` 번 없이 대량의 콘텐츠 페이지를 처리합니다.
+
+다음은 최소한의 예입니다.
+
+```tsx filename="app/blog/[id]/page.tsx" switcher
+interface Post {
+  id: string
+  title: string
+  content: string
+}
+
+// Next.js will invalidate the cache when a
+// request comes in, at most once every 60 seconds.
+export const revalidate = 60
+
+export async function generateStaticParams() {
+  const posts: Post[] = await fetch('https://api.vercel.app/blog').then((res) =>
+    res.json()
+  )
+  return posts.map((post) => ({
+    id: String(post.id),
+  }))
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post: Post = await fetch(`https://api.vercel.app/blog/${id}`).then(
+    (res) => res.json()
+  )
+  return (
+    <main>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </main>
+  )
+}
+```
+
+```jsx filename="app/blog/[id]/page.jsx" switcher
+// Next.js will invalidate the cache when a
+// request comes in, at most once every 60 seconds.
+export const revalidate = 60
+
+export async function generateStaticParams() {
+  const posts = await fetch('https://api.vercel.app/blog').then((res) =>
+    res.json()
+  )
+  return posts.map((post) => ({
+    id: String(post.id),
+  }))
+}
+
+export default async function Page({ params }) {
+  const { id } = await params
+  const post = await fetch(`https://api.vercel.app/blog/${id}`).then((res) =>
+    res.json()
+  )
+  return (
+    <main>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </main>
+  )
+}
+```
+
+이 예제의 작동 방식은 다음과 같습니다.
+
+1. During `next build` 동안 알려진 모든 블로그 게시물이 생성됩니다.
+1. 이 페이지(예: `/blog/1`)에 대한 모든 요청은 캐시되어 즉시 저장됩니다.
+1. 60초가 지난 후에도 다음 요청은 여전히 캐시된(현재는 오래된) 페이지를 반환합니다.
+1. 캐시가 무효화되고 페이지의 새 버전이 백그라운드에서 생성되기 시작합니다.
+1. 성공적으로 생성되면 다음 요청은 업데이트된 페이지를 반환하고 후속 요청을 위해 이를 캐시합니다.
+1. If `/blog/26`이 요청되고 존재하는 경우 페이지는 요청 시 생성됩니다. 이 동작은 다른 [dynamicParams](../api-reference/file-conventions/route-segment-config.mdx#dynamicparams) 값을 사용하여 변경할 수 있습니다. 그러나 게시물이 존재하지 않으면 404가 반환됩니다.
+
+## 참조
+
+### 경로 세그먼트 구성
+
+- [`revalidate`](../api-reference/file-conventions/route-segment-config.mdx#revalidate)
+- [`dynamicParams`](../api-reference/file-conventions/route-segment-config.mdx#dynamicparams)
+
+### 기능
+
+- [`revalidatePath`](../api-reference/functions/revalidatePath.mdx)
+- [`revalidateTag`](../api-reference/functions/revalidateTag.mdx)
+
+## 예
+
+### 시간 기반 재검증
+
+/blog의 블로그 게시물 목록을 가져와 표시합니다. 한 시간이 지난 후에도 다음 방문자는 빠른 응답을 위해 페이지의 캐시된(오래된) 버전을 즉시 받게 됩니다. 동시에 Next.js는 백그라운드에서 새로운 버전의 재생성을 트리거합니다. 새 버전이 성공적으로 생성되면 캐시된 버전이 대체되고 후속 방문자는 업데이트된 콘텐츠를 받게 됩니다.
+
+```tsx filename="app/blog/page.tsx" switcher
+interface Post {
+  id: string
+  title: string
+  content: string
+}
+
+export const revalidate = 3600 // invalidate every hour
+
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts: Post[] = await data.json()
+  return (
+    <main>
+      <h1>Blog Posts</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+export const revalidate = 3600 // invalidate every hour
+
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+  return (
+    <main>
+      <h1>Blog Posts</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+```
+
+재검증 시간을 높게 설정하는 것이 좋습니다. 예를 들어 1초가 아닌 1시간입니다. 더 높은 정밀도가 필요한 경우 주문형 재검증 사용을 고려해 보세요. 실시간 데이터가 필요한 경우 [동적 렌더링](caching.mdx#dynamic-rendering)으로 전환하는 것을 고려해 보세요.
+
+### On-demand revalidation with `revalidatePath`
+
+보다 정확한 재검증 방법을 위해 `revalidatePath` 함수를 사용하여 필요에 따라 캐시된 페이지를 무효화하세요.
+
+예를 들어 이 서버 작업은 새 게시물을 추가한 후 호출됩니다. `fetch`을 사용하거나 데이터베이스에 연결하여 서버 구성 요소에서 데이터를 검색하는 방법에 관계없이 전체 경로에 대한 캐시가 무효화됩니다. 해당 경로에 대한 다음 요청은 재생성을 트리거하고 새로운 데이터를 제공하며, 이후 후속 요청을 위해 캐시됩니다.>  은 캐시 항목을 무효화하지만 다음 요청에서 재생성이 발생합니다. 다음 요청을 기다리지 않고 즉시 캐시 항목을 다시 생성하려면 페이지 라우터  메서드를 사용할 수 있습니다. 우리는 App Router에 즉시 재생성 기능을 제공하기 위한 새로운 방법을 추가하기 위해 노력하고 있습니다.
+
+> **Note:** `revalidatePath` invalidates the cache entries but regeneration happens on the next request. If you want to eagerly regenerate the cache entry immediately instead of waiting for the next request, you can use the Pages router [`res.revalidate`](https://nextjs.org/docs/pages/guides/incremental-static-regeneration#on-demand-validation-with-resrevalidate) method. We're working on adding new methods to provide eager regeneration capabilities for the App Router.
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+export async function createPost() {
+  // Invalidate the cache for the /posts route
+  revalidatePath('/posts')
+}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+export async function createPost() {
+  // Invalidate the cache for the /posts route
+  revalidatePath('/posts')
+}
+```
+
+[데모 보기](https://on-demand-isr.vercel.app) 및 [소스 코드 탐색](https://github.com/vercel/on-demand-isr).
+
+### On-demand revalidation with `revalidateTag`
+
+대부분의 사용 사례에서는 전체 경로를 재검증하는 것이 좋습니다. 보다 세부적인 제어가 필요한 경우 `revalidateTag` 함수를 사용할 수 있습니다. 예를 들어 개별 `fetch` 호출에 태그를 지정할 수 있습니다.
+
+```tsx filename="app/blog/page.tsx" switcher
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog', {
+    next: { tags: ['posts'] },
+  })
+  const posts = await data.json()
+  // ...
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog', {
+    next: { tags: ['posts'] },
+  })
+  const posts = await data.json()
+  // ...
+}
+```
+
+ORM를 사용하거나 데이터베이스에 연결하는 경우 `unstable_cache`을 사용할 수 있습니다.
+
+```tsx filename="app/blog/page.tsx" switcher
+import { unstable_cache } from 'next/cache'
+import { db, posts } from '@/lib/db'
+
+const getCachedPosts = unstable_cache(
+  async () => {
+    return await db.select().from(posts)
+  },
+  ['posts'],
+  { revalidate: 3600, tags: ['posts'] }
+)
+
+export default async function Page() {
+  const posts = getCachedPosts()
+  // ...
+}
+```
+
+```jsx filename="app/blog/page.js" switcher
+import { unstable_cache } from 'next/cache'
+import { db, posts } from '@/lib/db'
+
+const getCachedPosts = unstable_cache(
+  async () => {
+    return await db.select().from(posts)
+  },
+  ['posts'],
+  { revalidate: 3600, tags: ['posts'] }
+)
+
+export default async function Page() {
+  const posts = getCachedPosts()
+  // ...
+}
+```
+
+그런 다음 `revalidateTag`을 사용할 수 있습니다.[Server Actions](../getting-started/updating-data.mdx) or [Route Handler](../api-reference/file-conventions/route.mdx):
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function createPost() {
+  // Invalidate all data tagged with 'posts'
+  revalidateTag('posts')
+}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function createPost() {
+  // Invalidate all data tagged with 'posts'
+  revalidateTag('posts')
+}
+```
+
+### 포착되지 않은 예외 처리
+
+데이터 재검증을 시도하는 동안 오류가 발생하면 마지막으로 성공적으로 생성된 데이터가 캐시에서 계속 제공됩니다. 다음 후속 요청에서 Next.js는 데이터 재검증을 다시 시도합니다. [오류 처리에 대해 자세히 알아보세요](../getting-started/error-handling.mdx).
+
+### 캐시 위치 맞춤설정
+
+캐시된 페이지와 데이터를 내구성 있는 저장소에 유지하거나 Next.js 애플리케이션의 여러 컨테이너 또는 인스턴스에서 캐시를 공유하려는 경우 Next.js 캐시 위치를 구성할 수 있습니다. [자세히 알아보기](self-hosting.mdx#caching-and-isr).
+
+## 문제 해결
+
+### 로컬 개발에서 캐시된 데이터 디버깅
+
+If you are using the `fetch` API를 사용하는 경우 추가 로깅을 추가하여 어떤 요청이 캐시되었는지 또는 캐시되지 않았는지 이해할 수 있습니다. [Learn more about the `logging` 옵션에 대해 자세히 알아보세요](../api-reference/config/next-config-js/logging.mdx).
+
+```jsx filename="next.config.js"
+module.exports = {
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+}
+```
+
+### 올바른 생산 동작 확인
+
+프로덕션에서 페이지가 올바르게 캐시되고 재검증되었는지 확인하려면 `next build`를 실행한 다음 `next start`을 실행하여 프로덕션 Next.js 서버를 실행하여 로컬로 테스트할 수 있습니다.
+
+이를 통해 프로덕션 환경에서 작동하는 것처럼 ISR 동작을 테스트할 수 있습니다. 추가 디버깅을 위해 `.env` 파일에 다음 환경 변수를 추가하세요.
+
+```bash filename=".env"
+NEXT_PRIVATE_DEBUG_CACHE=1
+```
+
+이렇게 하면 Next.js 서버 콘솔 로그 ISR 캐시 적중 및 누락이 발생합니다. 출력을 검사하여 `next build` 중에 생성된 페이지와 요청 시 경로에 액세스할 때 페이지가 어떻게 업데이트되는지 확인할 수 있습니다.
+
+## 주의사항- ISR는 Node.js 런타임(기본값)을 사용할 때만 지원됩니다.
+
+- ISR is only supported when using the Node.js runtime (default). 생성 시 ISR는 지원되지 않습니다.
+- 정적으로 렌더링된 경로에 여러 개의 [데이터 캐시](static-exports.mdx)에 의해 계속 유지됩니다.
+- 경로에 사용된 `fetch` 요청에 `revalidate`의 [동적으로 렌더링](caching.mdx#data-cache)됩니다.
+- 주문형 ISR 요청에 대해서는 프록시가 실행되지 않습니다. 즉, 프록시의 경로 재작성 또는 논리가 적용되지 않습니다. 정확한 경로를 재검증하고 있는지 확인하세요. 예를 들어 다시 작성된 `fetch` 대신 `revalidate`입니다.`0`, or an explicit `no-store`, the route will be [dynamically rendered](caching.mdx#dynamic-rendering).
+- Proxy won't be executed for on-demand ISR requests, meaning any path rewrites or logic in Proxy will not be applied. Ensure you are revalidating the exact path. For example, `/post/1` instead of a rewritten `/post-1`.
+
+## 플랫폼 지원
+
+| 배포 옵션 | 지원됨 |[Node.js server](../getting-started/deploying.mdx#nodejs-server) | Yes               |[Docker container](../getting-started/deploying.mdx#docker)      | Yes               |
+| [Static export](../getting-started/deploying.mdx#static-export)  | No                |
+| [Adapters](../getting-started/deploying.mdx#adapters)            | Platform-specific |
+
+| [Docker container](self-hosting.mdx#caching-and-isr)      | Yes               |
+|   | No                |
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v14.1.0` | Custom `cacheHandler` is stable.                                                    |`v13.0.0` | App Router is introduced.                                                           |
+| `v12.2.0` | Pages Router: On-Demand ISR is stable                                               |
+| `v12.0.0` | Pages Router: [Bot-aware ISR fallback](https://nextjs.org/blog/next-12#bot-aware-isr-fallback) added. |
+| `v9.5.0`  | Pages Router: [Stable ISR introduced](https://nextjs.org/blog/next-9-5).                              |

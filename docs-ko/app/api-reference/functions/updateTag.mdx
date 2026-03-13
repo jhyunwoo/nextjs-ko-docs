@@ -1,0 +1,153 @@
+---
+title: 업데이트태그
+description: updateTag 함수에 대한 API 참조입니다.
+---
+
+`updateTag`을 사용하면 [서버 작업](../../guides/caching.mdx) 내에서 특정 캐시 태그에 대해 필요에 따라 [캐시된 데이터](../../getting-started/updating-data.mdx)를 업데이트할 수 있습니다.
+
+이 기능은 사용자가 게시물 작성 등을 변경하면 오래된 데이터가 아닌 변경 사항이 UI에 즉시 표시되는 **직접 쓰기** 시나리오를 위해 설계되었습니다.
+
+## 사용법
+
+`updateTag`은 **호출**할 수 있습니다. 경로 처리기, 클라이언트 구성 요소 또는 기타 컨텍스트에서는 사용할 수 없습니다.[Server Actions](../../getting-started/updating-data.mdx). It cannot be used in Route Handlers, Client Components, or any other context.
+
+경로 처리기 또는 다른 컨텍스트에서 캐시 태그를 무효화해야 하는 경우 [`revalidateTag`](revalidateTag.mdx)를 대신 사용하세요.
+
+> **알아두면 좋은 정보**: `updateTag`는 지정된 태그에 대해 캐시된 데이터를 즉시 만료합니다. 다음 요청은 캐시에서 오래된 콘텐츠를 제공하는 대신 새로운 데이터를 가져올 때까지 기다리므로 사용자가 변경 사항을 즉시 볼 수 있습니다.
+
+## 매개변수
+
+```tsx
+updateTag(tag: string): void;
+```
+
+- `tag`: 업데이트하려는 데이터와 연결된 캐시 태그를 나타내는 문자열입니다. 256자를 초과할 수 없습니다. 이 값은 대소문자를 구분합니다.
+
+태그는 먼저 캐시된 데이터에 할당되어야 합니다. 이 작업은 두 가지 방법으로 수행할 수 있습니다.
+
+- 외부 API 요청을 캐싱하기 위해 [`next.tags`](../../guides/caching.mdx#fetch-optionsnexttags-and-revalidatetag) 옵션을 사용합니다.`fetch` for caching external API requests:
+
+```tsx
+fetch(url, { next: { tags: ['posts'] } })
+```
+
+- Using [`cacheTag`](cacheTag.mdx) 사용:`'use cache'` directive:
+
+```tsx
+import { cacheTag } from 'next/cache'
+
+async function getData() {
+  'use cache'
+  cacheTag('posts')
+  // ...
+}
+```
+
+## 반품
+
+`updateTag`은 값을 반환하지 않습니다.
+
+## revalidateTag와의 차이점
+
+While both `updateTag` 및 `revalidateTag`은 모두 캐시된 데이터를 무효화하지만 서로 다른 목적으로 사용됩니다.
+
+- **`updateTag`**:
+  - 서버 액션에서만 사용할 수 있습니다.
+  - 다음 요청은 새로운 데이터를 기다립니다(오래된 콘텐츠가 제공되지 않음).
+  - 직접 읽고 쓴 시나리오를 위해 설계됨
+
+- **`revalidateTag`**:
+  - 서버 작업 및 경로 처리기에서 사용할 수 있습니다.
+  - With `profile="max"` 사용(권장): 백그라운드에서 새로운 데이터를 가져오는 동안 캐시된 데이터를 제공합니다(재검증 중 오래된 데이터).
+  - 사용자 정의 프로필 사용: 고급 사용을 위해 모든 캐시 수명 프로필로 구성 가능
+  - 프로필 없음: `updateTag`
+
+## 예
+
+### 자체 쓰기 읽기 기능을 갖춘 서버 작업
+
+```ts filename="app/actions.ts" switcher
+'use server'
+
+import { updateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  const title = formData.get('title')
+  const content = formData.get('content')
+
+  // Create the post in your database
+  const post = await db.post.create({
+    data: { title, content },
+  })
+
+  // Invalidate cache tags so the new post is immediately visible
+  // 'posts' tag: affects any page that displays a list of posts
+  updateTag('posts')
+  // 'post-{id}' tag: affects the individual post detail page
+  updateTag(`post-${post.id}`)
+
+  // Redirect to the new post - user will see fresh data, not cached
+  redirect(`/posts/${post.id}`)
+}
+```
+
+```js filename="app/actions.js" switcher
+'use server'
+
+import { updateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData) {
+  const title = formData.get('title')
+  const content = formData.get('content')
+
+  // Create the post in your database
+  const post = await db.post.create({
+    data: { title, content },
+  })
+
+  // Invalidate cache tags so the new post is immediately visible
+  // 'posts' tag: affects any page that displays a list of posts
+  updateTag('posts')
+  // 'post-{id}' tag: affects the individual post detail page
+  updateTag(`post-${post.id}`)
+
+  // Redirect to the new post - user will see fresh data, not cached
+  redirect(`/posts/${post.id}`)
+}
+```
+
+### 서버 작업 외부에서 사용할 때 오류 발생
+
+```ts filename="app/api/posts/route.ts" switcher
+import { updateTag } from 'next/cache'
+
+export async function POST() {
+  // This will throw an error
+  updateTag('posts')
+  // Error: updateTag can only be called from within a Server Action
+
+  // Use revalidateTag instead in Route Handlers
+  revalidateTag('posts', 'max')
+}
+```
+
+## updateTag를 사용해야 하는 경우
+
+다음과 같은 경우 `updateTag`를 사용하세요.
+
+- 당신은 서버 액션에 있습니다
+- 직접 읽기에 대한 즉각적인 캐시 무효화가 필요합니다.
+- 다음 요청에 업데이트된 데이터가 표시되도록 하려는 경우
+
+다음과 같은 경우에는 `revalidateTag`을 대신 사용하세요.
+
+- Route Handler 또는 기타 비작업 컨텍스트에 있습니다.
+- 재검증하는 동안 오래된 의미를 원합니다.
+- 캐시 무효화를 위해 웹훅 또는 API 엔드포인트를 구축 중입니다.
+
+## 관련
+
+- [`revalidateTag`](revalidateTag.mdx) - 경로 핸들러에서 태그를 무효화하는 경우
+- [`revalidatePath`](revalidatePath.mdx) - 특정 경로를 무효화하는 경우

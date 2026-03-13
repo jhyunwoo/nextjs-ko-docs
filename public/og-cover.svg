@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Next.js 한국어 문서">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#edf3ef" />
+      <stop offset="45%" stop-color="#d6e4e5" />
+      <stop offset="100%" stop-color="#c4d7da" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f3f6f4" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f4c6d" />
+      <stop offset="100%" stop-color="#1a7b83" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <circle cx="124" cy="110" r="82" fill="#d7e9ea" opacity="0.9" />
+  <circle cx="1088" cy="520" r="120" fill="#d1e1e3" opacity="0.8" />
+  <rect x="72" y="72" width="1056" height="486" rx="36" fill="url(#panel)" opacity="0.96" />
+  <rect x="108" y="120" width="156" height="156" rx="34" fill="url(#accent)" />
+  <path
+    d="M154 247V149h29.8l36.2 49.7V149H247v98h-29l-37.7-51.4V247H154Z"
+    fill="#f5f7f2"
+  />
+  <text x="302" y="205" fill="#142132" font-size="64" font-family="'IBM Plex Sans KR', sans-serif" font-weight="700">
+    Next.js 한국어 문서
+  </text>
+  <text x="302" y="272" fill="#49606f" font-size="28" font-family="'IBM Plex Sans KR', sans-serif" font-weight="500">
+    App Router v16.1.6 번역 문서를 정적 사이트로 제공합니다
+  </text>
+  <rect x="110" y="334" width="980" height="144" rx="26" fill="#eef4f2" />
+  <text x="154" y="392" fill="#1f3142" font-size="34" font-family="'IBM Plex Sans KR', sans-serif" font-weight="700">
+    231개 문서 · 전체 검색 · 다크 모드 · 정적 export 지원
+  </text>
+  <text x="154" y="444" fill="#536978" font-size="24" font-family="'IBM Plex Sans KR', sans-serif" font-weight="500">
+    설치 · 가이드 · API 참조 · 아키텍처 · 커뮤니티 문서를 한곳에서 탐색할 수 있습니다
+  </text>
+</svg>

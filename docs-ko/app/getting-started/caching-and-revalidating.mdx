@@ -1,0 +1,323 @@
+---
+title: 캐싱 및 재검증
+description: 애플리케이션에서 데이터를 캐시하고 재검증하는 방법을 알아보세요.
+related:
+  title: API 참조
+  description: API 참조를 읽고 이 페이지에 언급된 기능에 대해 자세히 알아보세요.
+  links:
+    - app/api-reference/functions/fetch
+    - app/api-reference/functions/cacheTag
+    - app/api-reference/functions/revalidateTag
+    - app/api-reference/functions/updateTag
+    - app/api-reference/functions/revalidatePath
+    - app/api-reference/functions/unstable_cache
+---
+
+캐싱은 데이터 가져오기 및 기타 계산 결과를 저장하여 동일한 데이터에 대한 향후 요청이 작업을 다시 수행하지 않고도 더 빠르게 처리될 수 있도록 하는 기술입니다. 재검증을 사용하면 전체 애플리케이션을 다시 빌드하지 않고도 캐시 항목을 업데이트할 수 있습니다.
+
+Next.js는 캐싱 및 재검증을 처리하기 위한 몇 가지 API를 제공합니다. 이 가이드에서는 사용 시기와 방법을 안내합니다.
+
+- [`fetch`](#fetch)
+- [`cacheTag`](#cachetag)
+- [`revalidateTag`](#revalidatetag)
+- [`updateTag`](#updatetag)
+- [`revalidatePath`](#revalidatepath)
+- [`unstable_cache`](#unstable_cache)(레거시)
+
+## `fetch`
+
+기본적으로 [`fetch`](../api-reference/functions/fetch.mdx) 요청은 캐시되지 않습니다. `cache` 옵션을 `'force-cache'`로 설정하여 개별 요청을 캐시할 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+export default async function Page() {
+  const data = await fetch('https://...', { cache: 'force-cache' })
+}
+```
+
+```jsx filename="app/page.jsx" switcher
+export default async function Page() {
+  const data = await fetch('https://...', { cache: 'force-cache' })
+}
+```
+
+> **알아두면 좋은 정보**: `fetch` 요청은 기본적으로 캐시되지 않지만 Next.js는 [사전 렌더링](../guides/caching.mdx#static-rendering)하고 HTML를 캐시합니다. 경로가 `fetch` requests and cache the HTML. If you want to guarantee a route is [동적](../guides/caching.mdx#dynamic-rendering)임을 보장하려면 [`connection` API](../api-reference/functions/connection.mdx)을 사용하세요.
+
+To revalidate the data returned by a `fetch` 요청으로 반환된 데이터를 재검증하려면 `next.revalidate` 옵션을 사용할 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+export default async function Page() {
+  const data = await fetch('https://...', { next: { revalidate: 3600 } })
+}
+```
+
+```jsx filename="app/page.jsx" switcher
+export default async function Page() {
+  const data = await fetch('https://...', { next: { revalidate: 3600 } })
+}
+```
+
+이렇게 하면 지정된 시간(초) 후에 데이터의 유효성이 다시 검사됩니다.
+
+You can also tag `fetch` 요청에 태그를 지정하여 주문형 캐시 무효화를 활성화할 수도 있습니다.
+
+```tsx filename="app/lib/data.ts" switcher
+export async function getUserById(id: string) {
+  const data = await fetch(`https://...`, {
+    next: {
+      tags: ['user'],
+    },
+  })
+}
+```
+
+```jsx filename="app/lib/data.js" switcher
+export async function getUserById(id) {
+  const data = await fetch(`https://...`, {
+    next: {
+      tags: ['user'],
+    },
+  })
+}
+```
+
+자세한 내용은 [`fetch` API 참조](../api-reference/functions/fetch.mdx)를 확인하세요.
+
+## `cacheTag`
+
+[`cacheTag`](../api-reference/functions/cacheTag.mdx)을 사용하면 [캐시 구성 요소](cache-components.mdx)에 캐시된 데이터에 태그를 지정하여 필요할 때 재검증할 수 있습니다. 이전에는 캐시 태그 지정이 `fetch` 요청으로 제한되었으며 다른 작업을 캐싱하려면 실험적인 `unstable_cache` API가 필요했습니다.
+
+캐시 구성 요소를 사용하면 [`use cache`](../api-reference/directives/use-cache.mdx) 지시어를 사용하여 계산을 캐시하고 `cacheTag`를 사용하여 태그를 지정할 수 있습니다. 이는 데이터베이스 쿼리, 파일 시스템 작업 및 기타 서버 측 작업과 함께 작동합니다.
+
+```tsx filename="app/lib/data.ts" switcher
+import { cacheTag } from 'next/cache'
+
+export async function getProducts() {
+  'use cache'
+  cacheTag('products')
+
+  const products = await db.query('SELECT * FROM products')
+  return products
+}
+```
+
+```jsx filename="app/lib/data.js" switcher
+import { cacheTag } from 'next/cache'
+
+export async function getProducts() {
+  'use cache'
+  cacheTag('products')
+
+  const products = await db.query('SELECT * FROM products')
+  return products
+}
+```
+
+태그가 지정되면 [`revalidateTag`](#revalidatetag) 또는 [`updateTag`](#updatetag)을 사용하여 제품의 캐시 항목을 무효화할 수 있습니다.
+
+> **알아두면 좋은 정보**: `cacheTag`는 [캐시 구성 요소](cache-components.mdx) 및 [`use cache`](../api-reference/directives/use-cache.mdx) 지시문과 함께 사용됩니다. `fetch` 이상으로 캐싱 및 재검증 스토리를 확장합니다.
+
+자세한 내용은 [`cacheTag` API 참조](../api-reference/functions/cacheTag.mdx)를 확인하세요.##&#x20;
+
+## `revalidateTag`
+
+`revalidateTag`은 직접 읽기 시나리오에 대해 캐시된 데이터를 즉시 만료하도록 서버 작업을 위해 특별히 설계되었습니다. 과 달리 서버 작업 내에서만 사용할 수 있으며 캐시 항목이 즉시 만료됩니다.
+
+- **With `profile="max"`**: 서버 작업에서만 직접 읽기의 경우 캐시가 즉시 만료됩니다.
+- **Without the second argument**: 서버 작업 및 경로 처리기에서 를 사용하여 오래된 유효성 재검사를 지원합니다.
+
+자세히 알아보려면 [`fetch`](#fetch)를 확인하세요.`next.tags`, or the [`cacheTag`](#cachetag) function, you may call `revalidateTag` in a [Route Handler](../api-reference/file-conventions/route.mdx) or Server Action:
+
+```tsx filename="app/lib/actions.ts" highlight={1,5} switcher
+import { revalidateTag } from 'next/cache'
+
+export async function updateUser(id: string) {
+  // Mutate data
+  revalidateTag('user', 'max') // Recommended: Uses stale-while-revalidate
+}
+```
+
+```jsx filename="app/lib/actions.js" highlight={1,5} switcher
+import { revalidateTag } from 'next/cache'
+
+export async function updateUser(id) {
+  // Mutate data
+  revalidateTag('user', 'max') // Recommended: Uses stale-while-revalidate
+}
+```
+
+자세한 내용은 를 확인하세요.
+
+See the [`revalidateTag` API reference](../api-reference/functions/revalidateTag.mdx) to learn more.을 사용하면 데이터베이스 쿼리 및 기타 비동기 기능의 결과를 캐시할 수 있습니다. 이를 사용하려면 함수 주위에 를 래핑하세요. 예를 들면:
+
+## `updateTag`
+
+`updateTag` is specifically designed for Server Actions to immediately expire cached data for read-your-own-writes scenarios. Unlike `revalidateTag`, it can only be used within Server Actions and immediately expires the cache entry.
+
+```tsx filename="app/lib/actions.ts" highlight={1,6} switcher
+import { updateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  // Create post in database
+  const post = await db.post.create({
+    data: {
+      title: formData.get('title'),
+      content: formData.get('content'),
+    },
+  })
+
+  // Immediately expire cache so the new post is visible
+  updateTag('posts')
+  updateTag(`post-${post.id}`)
+
+  redirect(`/posts/${post.id}`)
+}
+```
+
+```jsx filename="app/lib/actions.js" highlight={1,6} switcher
+import { updateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData) {
+  // Create post in database
+  const post = await db.post.create({
+    data: {
+      title: formData.get('title'),
+      content: formData.get('content'),
+    },
+  })
+
+  // Immediately expire cache so the new post is visible
+  updateTag('posts')
+  updateTag(`post-${post.id}`)
+
+  redirect(`/posts/${post.id}`)
+}
+```
+
+자세한 내용은 `revalidateTag` and `updateTag`:를 확인하세요.
+
+- **`updateTag`**: Only in Server Actions, immediately expires cache, for read-your-own-writes
+- **`revalidateTag`**: In Server Actions and Route Handlers, supports stale-while-revalidate with `profile="max"`
+
+See the [`updateTag` API reference](../api-reference/functions/updateTag.mdx) to learn more.
+
+## `revalidatePath`
+
+`revalidatePath` is used to revalidate a route and following an event. To use it, call it in a [Route Handler](../api-reference/file-conventions/route.mdx) or Server Action:
+
+```tsx filename="app/lib/actions.ts" highlight={1} switcher
+import { revalidatePath } from 'next/cache'
+
+export async function updateUser(id: string) {
+  // Mutate data
+  revalidatePath('/profile')
+```
+
+```jsx filename="app/lib/actions.js" highlight={1} switcher
+import { revalidatePath } from 'next/cache'
+
+export async function updateUser(id) {
+  // Mutate data
+  revalidatePath('/profile')
+```
+
+See the [`revalidatePath` API reference](../api-reference/functions/revalidatePath.mdx) to learn more.
+
+## `unstable_cache`
+
+> **Good to know**: `unstable_cache` is an experimental API. We recommend opting into [Cache Components](cache-components.mdx) and replacing `unstable_cache` with the [`use cache`](../api-reference/directives/use-cache.mdx) directive. See the [Cache Components documentation](cache-components.mdx) for more details.
+
+`unstable_cache` allows you to cache the result of database queries and other async functions. To use it, wrap `unstable_cache` around the function. For example:
+
+```ts filename="app/lib/data.ts" switcher
+import { db } from '@/lib/db'
+export async function getUserById(id: string) {
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.id, id))
+    .then((res) => res[0])
+}
+```
+
+```jsx filename="app/lib/data.js" switcher
+import { db } from '@/lib/db'
+
+export async function getUserById(id) {
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.id, id))
+    .then((res) => res[0])
+}
+```
+
+```tsx filename="app/page.tsx" highlight={2,11,13} switcher
+import { unstable_cache } from 'next/cache'
+import { getUserById } from '@/app/lib/data'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ userId: string }>
+}) {
+  const { userId } = await params
+
+  const getCachedUser = unstable_cache(
+    async () => {
+      return getUserById(userId)
+    },
+    [userId] // add the user ID to the cache key
+  )
+}
+```
+
+```jsx filename="app/page.js" highlight={2,7,9} switcher
+import { unstable_cache } from 'next/cache'
+import { getUserById } from '@/app/lib/data'
+
+export default async function Page({ params }) {
+  const { userId } = await params
+
+  const getCachedUser = unstable_cache(
+    async () => {
+      return getUserById(userId)
+    },
+    [userId] // add the user ID to the cache key
+  )
+}
+```
+
+The function accepts a third optional object to define how the cache should be revalidated. It accepts:
+
+- `tags`: an array of tags used by Next.js to revalidate the cache.
+- `revalidate`: the number of seconds after cache should be revalidated.
+
+```tsx filename="app/page.tsx" highlight={6-9} switcher
+const getCachedUser = unstable_cache(
+  async () => {
+    return getUserById(userId)
+  },
+  [userId],
+  {
+    tags: ['user'],
+    revalidate: 3600,
+  }
+)
+```
+
+```jsx filename="app/page.js" highlight={6-9} switcher
+const getCachedUser = unstable_cache(
+  async () => {
+    return getUserById(userId)
+  },
+  [userId],
+  {
+    tags: ['user'],
+    revalidate: 3600,
+  }
+)
+```
+
+See the [`unstable_cache` API reference](../api-reference/functions/unstable_cache.mdx) to learn more.

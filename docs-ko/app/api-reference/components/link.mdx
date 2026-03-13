@@ -1,0 +1,762 @@
+---
+title: 링크 구성요소
+description: 내장된 `next/link` 구성 요소를 사용하여 빠른 클라이언트 측 탐색을 활성화합니다.
+---
+
+`<Link>`은 HTML `<a>` 요소를 확장하여 경로 간 [프리페치](../../getting-started/linking-and-navigating.mdx#prefetching) 및 클라이언트 측 탐색을 제공하는 React 구성 요소입니다. Next.js의 경로 간을 탐색하는 기본 방법입니다.
+
+기본 사용법:
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return <Link href="/dashboard">Dashboard</Link>
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return <Link href="/dashboard">Dashboard</Link>
+}
+```
+
+## 참조
+
+다음 소품은 `<Link>` 구성 요소에 전달될 수 있습니다.
+
+| 소품 | 예 | 유형 | 필수 |[`href`](#href-required)    | `href="/dashboard"`      | String or Object | Yes      |[`replace`](#replace)       | `replace={false}`        | Boolean          | -        |[`scroll`](#scroll)         | `scroll={false}`         | Boolean          | -        |
+| [`prefetch`](#prefetch)     | `prefetch={false}`       | Boolean or null  | -        |
+| [`onNavigate`](#onnavigate) | `onNavigate={(e) => {}}` | Function         | -        |
+
+> **알아두면 좋은 정보**: `<a>` 또는 `className`과 같은 `target="_blank"` 태그 속성은 `<Link>`에 소품으로 추가될 수 있으며 기본 `<a>` 요소에 전달됩니다.
+
+### `href` (필수)
+
+탐색할 경로 또는 URL입니다.
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+// Navigate to /about?name=test
+export default function Page() {
+  return (
+    <Link
+      href={{
+        pathname: '/about',
+        query: { name: 'test' },
+      }}
+    >
+      About
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+// Navigate to /about?name=test
+export default function Page() {
+  return (
+    <Link
+      href={{
+        pathname: '/about',
+        query: { name: 'test' },
+      }}
+    >
+      About
+    </Link>
+  )
+}
+```
+
+### `replace`
+
+**기본값은 `false`입니다.** `true`인 경우 `next/link`은 [브라우저 기록](https://developer.mozilla.org/docs/Web/API/History_API) 스택에 새 URL를 추가하는 대신 현재 기록 상태를 대체합니다.
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" replace>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" replace>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+### `scroll`
+
+**기본값은 `true`입니다.** Next.js에서 `<Link>`의 기본 스크롤 동작은 **스크롤 위치를 유지하는 것**입니다. 이는 브라우저가 뒤로 및 앞으로 탐색을 처리하는 방식과 유사합니다. 새 [페이지](../file-conventions/page.mdx)로 이동하면 페이지가 뷰포트에 표시되는 동안 스크롤 위치는 동일하게 유지됩니다. 그러나 페이지가 뷰포트에 표시되지 않으면 Next.js는 첫 번째 페이지 요소의 맨 위로 스크롤합니다.
+
+When `scroll = {false}`인 경우 Next.js는 첫 번째 페이지 요소로 스크롤을 시도하지 않습니다.> : Next.js는 스크롤 동작을 관리하기 전에 인지 확인합니다. 스크롤이 활성화되면 탐색을 위해 관련 DOM 노드를 식별하고 각 최상위 요소를 검사합니다. 모든 스크롤할 수 없는 요소와 렌더링된 HTML가 없는 요소는 우회됩니다. 여기에는 고정되거나 고정된 위치 요소 및 으로 계산된 것과 같은 보이지 않는 요소가 포함됩니다. Next.js는 뷰포트에 표시되는 스크롤 가능한 요소를 식별할 때까지 형제를 통해 계속됩니다.
+
+> **Good to know**: Next.js checks if `scroll: false` before managing scroll behavior. If scrolling is enabled, it identifies the relevant DOM node for navigation and inspects each top-level element. All non-scrollable elements and those without rendered HTML are bypassed, this includes sticky or fixed positioned elements, and non-visible elements such as those calculated with `getBoundingClientRect`. Next.js then continues through siblings until it identifies a scrollable element that is visible in the viewport.
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" scroll={false}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" scroll={false}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+### `prefetch`
+
+프리페치는 `<Link />` 구성 요소가 사용자의 뷰포트에 들어갈 때(처음에 또는 스크롤을 통해) 발생합니다. Next.js는 클라이언트 측 탐색 성능을 향상시키기 위해 연결된 경로(`href`로 표시됨)와 해당 데이터를 백그라운드에서 미리 가져오고 로드합니다. 사용자가 `<Link />` 위로 마우스를 가져갈 때 미리 가져온 데이터가 만료된 경우 Next.js는 해당 데이터를 다시 미리 가져오려고 시도합니다. **프리페칭은 프로덕션에서만 활성화됩니다**.
+
+The following values can be passed to the `prefetch` 소품에 다음 값을 전달할 수 있습니다.
+
+- **`"auto"` 또는 `null`(기본값)**: 프리페치 동작은 경로가 정적인지 동적인지에 따라 달라집니다. 정적 경로의 경우 전체 경로가 프리페치됩니다(모든 데이터 포함). 동적 경로의 경우 [`loading.js`](../file-conventions/loading.mdx#instant-loading-states) 경계가 있는 가장 가까운 세그먼트까지의 부분 경로가 미리 가져옵니다.
+- `true`: 정적 경로와 동적 경로 모두에 대해 전체 경로가 미리 가져옵니다.
+- `false`: 뷰포트에 들어갈 때나 마우스를 가져갈 때 모두 미리 가져오기가 발생하지 않습니다.
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" prefetch={false}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/dashboard" prefetch={false}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+### `onNavigate`
+
+클라이언트 측 탐색 중에 호출되는 이벤트 핸들러입니다. 핸들러는 `preventDefault()` 메서드가 포함된 이벤트 개체를 수신하므로 필요한 경우 탐색을 취소할 수 있습니다.
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link
+      href="/dashboard"
+      onNavigate={(e) => {
+        // Only executes during SPA navigation
+        console.log('Navigating...')
+
+        // Optionally prevent navigation
+        // e.preventDefault()
+      }}
+    >
+      Dashboard
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link
+      href="/dashboard"
+      onNavigate={(e) => {
+        // Only executes during SPA navigation
+        console.log('Navigating...')
+
+        // Optionally prevent navigation
+        // e.preventDefault()
+      }}
+    >
+      Dashboard
+    </Link>
+  )
+}
+```
+
+> **알면 좋은 점**: `onClick`과 `onNavigate`은 비슷해 보이지만 서로 다른 용도로 사용됩니다. `onClick`은 모든 클릭 이벤트에 대해 실행되는 반면, `onNavigate`은 클라이언트 측 탐색 중에만 실행됩니다. 몇 가지 주요 차이점은 다음과 같습니다.
+>
+> - 수정자 키(`Ctrl`/`Cmd` + 클릭)를 사용할 때 `onClick`는 실행되지만 Next.js는 새 탭에 대한 기본 탐색을 방지하므로 `onNavigate`은 실행되지 않습니다.
+> - 외부 URL는 클라이언트 측 및 동일 출처 탐색에만 사용되므로 `onNavigate`을 트리거하지 않습니다.
+> - Links with the `download` 속성이 있는 링크는 `onClick`에서는 작동하지만 `onNavigate`에서는 작동하지 않습니다. 브라우저가 연결된 URL를 다운로드로 처리하기 때문입니다.
+
+## 예
+
+다음 예에서는 다양한 시나리오에서 `<Link>` 구성 요소를 사용하는 방법을 보여줍니다.
+
+### 동적 경로 세그먼트에 연결에 연결할 때 을 사용하여 링크 목록을 생성할 수 있습니다. 예를 들어 블로그 게시물 목록을 생성하려면 다음을 수행하세요.
+
+When linking to [dynamic segments](../file-conventions/dynamic-routes.mdx)를 사용하여 링크가 활성 상태인지 확인할 수 있습니다. 예를 들어 활성 링크에 클래스를 추가하려면 현재 [template literals and interpolation](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Template_literals) to generate a list of links. For example, to generate a list of blog posts:이 링크의 과 일치하는지 확인할 수 있습니다.
+
+```tsx filename="app/blog/post-list.tsx" switcher
+import Link from 'next/link'
+
+interface Post {
+  id: number
+  title: string
+  slug: string
+}
+
+export default function PostList({ posts }: { posts: Post[] }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/blog/post-list.js" switcher
+import Link from 'next/link'
+
+export default function PostList({ posts }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Checking active links로 스크롤
+
+탐색에서 특정 [`usePathname()`](../functions/use-pathname.mdx) to determine if a link is active. For example, to add a class to the active link, you can check if the current `pathname`으로 스크롤하려면 `href` 해시 링크와 함께 URL를 추가하거나 해시 링크를  소품에 전달할 수 있습니다. 이는 가  요소로 렌더링되기 때문에 가능합니다.
+
+```tsx filename="app/ui/nav-links.tsx" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+
+export function Links() {
+  const pathname = usePathname()
+
+  return (
+    <nav>
+      <Link className={`link ${pathname === '/' ? 'active' : ''}`} href="/">
+        Home
+      </Link>
+
+      <Link
+        className={`link ${pathname === '/about' ? 'active' : ''}`}
+        href="/about"
+      >
+        About
+      </Link>
+    </nav>
+  )
+}
+```
+
+```jsx filename="app/ui/nav-links.js" switcher
+'use client'
+
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+
+export function Links() {
+  const pathname = usePathname()
+
+  return (
+    <nav>
+      <Link className={`link ${pathname === '/' ? 'active' : ''}`} href="/">
+        Home
+      </Link>
+
+      <Link
+        className={`link ${pathname === '/about' ? 'active' : ''}`}
+        href="/about"
+      >
+        About
+      </Link>
+    </nav>
+  )
+}
+```
+
+### 페이지 상단으로 스크롤 비활성화`id`
+
+Next.js에 있는 `id`의 기본 스크롤 동작은 브라우저가 뒤로 및 앞으로 탐색을 처리하는 방식과 유사하게 `#` hash link or just pass a hash link to the `href` prop. This is possible since `<Link>` renders to an `<a>` element.입니다. 새 로 이동하면 페이지가 뷰포트에 표시되는 동안 스크롤 위치는 동일하게 유지됩니다.
+
+```jsx
+<Link href="/dashboard#settings">Settings</Link>
+
+// Output
+<a href="/dashboard#settings">Settings</a>
+```
+
+> **Good to know**:
+>
+> - Next.js will scroll to the [Page](../file-conventions/page.mdx) if it is not visible in the viewport upon navigation.
+
+### 프록시에서 링크 미리 가져오기
+
+인증이나 사용자를 다른 페이지에 다시 쓰는 것과 관련된 기타 목적으로 `Link` 구성 요소가 프록시를 통해 재작성된 링크를 올바르게 프리페치하려면 표시할 URL와 프리페치할 URL를 모두 Next.js에 알려야 합니다. 이는 프리페치할 올바른 경로를 알기 위해 불필요한 프록시 가져오기를 방지하는 데 필요합니다.`push` a new URL into the `history` stack. You can use the `replace` prop to prevent adding a new entry, as in the following example:
+
+```tsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/about" replace>
+      About us
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/about" replace>
+      About us
+    </Link>
+  )
+}
+```
+
+### 탐색 차단
+
+The default scrolling behavior of `<Link>` 소품을 사용하면 양식에 저장되지 않은 변경 사항이 있는 경우와 같이 특정 조건이 충족될 때 탐색을 차단할 수 있습니다. 앱의 여러 구성 요소에 대한 탐색을 차단해야 하는 경우(예: 양식을 편집하는 동안 링크에서 탐색을 방지하는 경우) React 컨텍스트는 이 차단 상태를 공유하는 깔끔한 방법을 제공합니다. 먼저 탐색 차단 상태를 추적하는 컨텍스트를 만듭니다.**is to maintain scroll position**, similar to how browsers handle back and forwards navigation. When you navigate to a new [Page](../file-conventions/page.mdx), scroll position will stay the same as long as the Page is visible in the viewport.
+
+컨텍스트를 사용하는 양식 구성 요소를 만듭니다.`scroll={false}` to the `<Link>` component, or `scroll: false` to `router.push()` or `router.replace()`.
+
+```jsx filename="app/page.js" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/#hashid" scroll={false}>
+      Disables scrolling to the top
+    </Link>
+  )
+}
+```
+
+```tsx filename="app/page.tsx" switcher
+import Link from 'next/link'
+
+export default function Page() {
+  return (
+    <Link href="/#hashid" scroll={false}>
+      Disables scrolling to the top
+    </Link>
+  )
+}
+```
+
+탐색을 차단하는 사용자 정의 Link 구성 요소를 만듭니다.`router.push()` or `router.replace()`:
+
+```jsx
+// useRouter
+import { useRouter } from 'next/navigation'
+
+const router = useRouter()
+
+router.push('/dashboard', { scroll: false })
+```
+
+### Prefetching links in Proxy
+
+탐색 구성요소를 만듭니다.[Proxy](../file-conventions/proxy.mdx) for authentication or other purposes that involve rewriting the user to a different page. In order for the `<Link />` component to properly prefetch links with rewrites via Proxy, you need to tell Next.js both the URL to display and the URL to prefetch. This is required to avoid un-necessary fetches to proxy to know the correct route to prefetch.
+
+마지막으로 앱을 루트 레이아웃의 `/dashboard`로 래핑하고 페이지의 구성 요소를 사용합니다.
+
+```ts filename="proxy.ts" switcher
+import { NextResponse } from 'next/server'
+
+export function proxy(request: Request) {
+  const nextUrl = request.nextUrl
+  if (nextUrl.pathname === '/dashboard') {
+    if (request.cookies.authToken) {
+      return NextResponse.rewrite(new URL('/auth/dashboard', request.url))
+    } else {
+      return NextResponse.rewrite(new URL('/public/dashboard', request.url))
+    }
+  }
+}
+```
+
+```js filename="proxy.js" switcher
+import { NextResponse } from 'next/server'
+
+export function proxy(request) {
+  const nextUrl = request.nextUrl
+  if (nextUrl.pathname === '/dashboard') {
+    if (request.cookies.authToken) {
+      return NextResponse.rewrite(new URL('/auth/dashboard', request.url))
+    } else {
+      return NextResponse.rewrite(new URL('/public/dashboard', request.url))
+    }
+  }
+}
+```
+
+그런 다음 페이지에서 `<Link />` 및  구성 요소를 사용합니다.
+
+```tsx filename="app/page.tsx" switcher
+'use client'
+
+import Link from 'next/link'
+import useIsAuthed from './hooks/useIsAuthed' // Your auth hook
+
+export default function Page() {
+  const isAuthed = useIsAuthed()
+  const path = isAuthed ? '/auth/dashboard' : '/public/dashboard'
+  return (
+    <Link as="/dashboard" href={path}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+```js filename="app/page.js" switcher
+'use client'
+
+import Link from 'next/link'
+import useIsAuthed from './hooks/useIsAuthed' // Your auth hook
+
+export default function Page() {
+  const isAuthed = useIsAuthed()
+  const path = isAuthed ? '/auth/dashboard' : '/public/dashboard'
+  return (
+    <Link as="/dashboard" href={path}>
+      Dashboard
+    </Link>
+  )
+}
+```
+
+### Blocking navigation
+
+양식에 저장되지 않은 변경 사항이 있는 동안 사용자가 `onNavigate`을 사용하여 다른 곳으로 이동하려고 하면 떠나기 전에 확인하라는 메시지가 표시됩니다.
+
+```tsx filename="app/contexts/navigation-blocker.tsx" switcher
+'use client'
+
+import { createContext, useState, useContext } from 'react'
+
+interface NavigationBlockerContextType {
+  isBlocked: boolean
+  setIsBlocked: (isBlocked: boolean) => void
+}
+
+export const NavigationBlockerContext =
+  createContext<NavigationBlockerContextType>({
+    isBlocked: false,
+    setIsBlocked: () => {},
+  })
+
+export function NavigationBlockerProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [isBlocked, setIsBlocked] = useState(false)
+
+  return (
+    <NavigationBlockerContext.Provider value={{ isBlocked, setIsBlocked }}>
+      {children}
+    </NavigationBlockerContext.Provider>
+  )
+}
+
+export function useNavigationBlocker() {
+  return useContext(NavigationBlockerContext)
+}
+```
+
+```jsx filename="app/contexts/navigation-blocker.js" switcher
+'use client'
+
+import { createContext, useState, useContext } from 'react'
+
+export const NavigationBlockerContext = createContext({
+  isBlocked: false,
+  setIsBlocked: () => {},
+})
+
+export function NavigationBlockerProvider({ children }) {
+  const [isBlocked, setIsBlocked] = useState(false)
+
+  return (
+    <NavigationBlockerContext.Provider value={{ isBlocked, setIsBlocked }}>
+      {children}
+    </NavigationBlockerContext.Provider>
+  )
+}
+
+export function useNavigationBlocker() {
+  return useContext(NavigationBlockerContext)
+}
+```
+
+| 버전 | 변경사항 |
+
+```tsx filename="app/components/form.tsx" switcher
+'use client'
+
+import { useNavigationBlocker } from '../contexts/navigation-blocker'
+
+export default function Form() {
+  const { setIsBlocked } = useNavigationBlocker()
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        setIsBlocked(false)
+      }}
+      onChange={() => setIsBlocked(true)}
+    >
+      <input type="text" name="name" />
+      <button type="submit">Save</button>
+    </form>
+  )
+}
+```
+
+```jsx filename="app/components/form.js" switcher
+'use client'
+
+import { useNavigationBlocker } from '../contexts/navigation-blocker'
+
+export default function Form() {
+  const { setIsBlocked } = useNavigationBlocker()
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        setIsBlocked(false)
+      }}
+      onChange={() => setIsBlocked(true)}
+    >
+      <input type="text" name="name" />
+      <button type="submit">Save</button>
+    </form>
+  )
+}
+```
+
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+
+```tsx filename="app/components/custom-link.tsx" switcher
+'use client'
+
+import Link from 'next/link'
+import { useNavigationBlocker } from '../contexts/navigation-blocker'
+
+interface CustomLinkProps extends React.ComponentProps<typeof Link> {
+  children: React.ReactNode
+}
+
+export function CustomLink({ children, ...props }: CustomLinkProps) {
+  const { isBlocked } = useNavigationBlocker()
+
+  return (
+    <Link
+      onNavigate={(e) => {
+        if (
+          isBlocked &&
+          !window.confirm('You have unsaved changes. Leave anyway?')
+        ) {
+          e.preventDefault()
+        }
+      }}
+      {...props}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/components/custom-link.js" switcher
+'use client'
+
+import Link from 'next/link'
+import { useNavigationBlocker } from '../contexts/navigation-blocker'
+
+export function CustomLink({ children, ...props }) {
+  const { isBlocked } = useNavigationBlocker()
+
+  return (
+    <Link
+      onNavigate={(e) => {
+        if (
+          isBlocked &&
+          !window.confirm('You have unsaved changes. Leave anyway?')
+        ) {
+          e.preventDefault()
+        }
+      }}
+      {...props}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+|  |  API 추가 |
+
+```tsx filename="app/components/nav.tsx" switcher
+'use client'
+
+import { CustomLink as Link } from './custom-link'
+
+export default function Nav() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/about">About</Link>
+    </nav>
+  )
+}
+```
+
+```jsx filename="app/components/nav.js" switcher
+'use client'
+
+import { CustomLink as Link } from './custom-link'
+
+export default function Nav() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/about">About</Link>
+    </nav>
+  )
+}
+```
+
+| `NavigationBlockerProvider` | 동적 경로를 가리키는  소품은 자동으로 확인되며 더 이상  소품이 필요하지 않습니다.                                                                      |
+
+```tsx filename="app/layout.tsx" switcher
+import { NavigationBlockerProvider } from './contexts/navigation-blocker'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <NavigationBlockerProvider>{children}</NavigationBlockerProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+import { NavigationBlockerProvider } from './contexts/navigation-blocker'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <NavigationBlockerProvider>{children}</NavigationBlockerProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+| `Nav` | `Form`이 도입되었습니다.                                                                                                                                                      |
+
+```tsx filename="app/page.tsx" switcher
+import Nav from './components/nav'
+import Form from './components/form'
+
+export default function Page() {
+  return (
+    <div>
+      <Nav />
+      <main>
+        <h1>Welcome to the Dashboard</h1>
+        <Form />
+      </main>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/page.js" switcher
+import Nav from './components/nav'
+import Form from './components/form'
+
+export default function Page() {
+  return (
+    <div>
+      <Nav />
+      <main>
+        <h1>Welcome to the Dashboard</h1>
+        <Form />
+      </main>
+    </div>
+  )
+}
+```
+
+When a user tries to navigate away using `CustomLink` while the form has unsaved changes, they'll be prompted to confirm before leaving.
+
+## Version history
+
+| Version   | Changes                                                                                                                                                                      |`v15.4.0` | Add `auto` as an alias to the default `prefetch` behavior.                                                                                                                   |`v15.3.0` | Add `onNavigate` API                                                                                                                                                         |
+| `v13.0.0` | No longer requires a child `<a>` tag. A [codemod](../../guides/upgrading/codemods.mdx#remove-a-tags-from-link-components) is provided to automatically update your codebase. |
+| `v10.0.0` | `href` props pointing to a dynamic route are automatically resolved and no longer require an `as` prop.                                                                      |
+| `v8.0.0`  | Improved prefetching performance.                                                                                                                                            |
+| `v1.0.0`  | `next/link` introduced.                                                                                                                                                      |

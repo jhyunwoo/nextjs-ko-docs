@@ -1,0 +1,161 @@
+---
+title: 서버 사용
+description: 서버에서 코드를 실행하기 위해 use server 지시문을 사용하는 방법을 알아보세요.
+---
+
+The `use server` 지시어는 **서버 측**에서 실행될 함수나 파일을 지정합니다. 파일의 모든 함수가 서버 측임을 나타내기 위해 파일 상단에 사용하거나, 함수를 [서버 함수](https://19.react.dev/reference/rsc/server-functions)로 표시하기 위해 함수 상단에 인라인으로 사용할 수 있습니다. 이것은 React 기능입니다.
+
+## 파일 상단에 `use server` 사용
+
+다음 예에서는 상단에 `use server` 지시어가 있는 파일을 보여줍니다. 파일의 모든 기능은 서버에서 실행됩니다.
+
+```tsx filename="app/actions.ts" highlight={1} switcher
+'use server'
+import { db } from '@/lib/db' // Your database client
+
+export async function createUser(data: { name: string; email: string }) {
+  const user = await db.user.create({ data })
+  return user
+}
+```
+
+```jsx filename="app/actions.js" highlight={1} switcher
+'use server'
+import { db } from '@/lib/db' // Your database client
+
+export async function createUser(data) {
+  const user = await db.user.create({ data })
+  return user
+}
+```
+
+### 클라이언트 구성요소에서 서버 기능 사용
+
+클라이언트 구성 요소에서 서버 기능을 사용하려면 파일 상단에 있는 `use server` 지시문을 사용하여 전용 파일에 서버 기능을 생성해야 합니다. 그런 다음 이러한 서버 기능을 클라이언트 및 서버 구성 요소로 가져와서 실행할 수 있습니다.
+
+Assuming you have a `fetchUsers`에 `actions.ts` 서버 기능이 있다고 가정합니다.
+
+```tsx filename="app/actions.ts" highlight={1} switcher
+'use server'
+import { db } from '@/lib/db' // Your database client
+
+export async function fetchUsers() {
+  const users = await db.user.findMany()
+  return users
+}
+```
+
+```jsx filename="app/actions.js" highlight={1} switcher
+'use server'
+import { db } from '@/lib/db' // Your database client
+
+export async function fetchUsers() {
+  const users = await db.user.findMany()
+  return users
+}
+```
+
+그런 다음 `fetchUsers` 서버 기능을 클라이언트 구성 요소로 가져와 클라이언트 측에서 실행할 수 있습니다.
+
+```tsx filename="app/components/my-button.tsx" highlight={1,2,8} switcher
+'use client'
+import { fetchUsers } from '../actions'
+
+export default function MyButton() {
+  return <button onClick={() => fetchUsers()}>Fetch Users</button>
+}
+```
+
+```jsx filename="app/components/my-button.js" highlight={1,2,8} switcher
+'use client'
+import { fetchUsers } from '../actions'
+
+export default function MyButton() {
+  return <button onClick={() => fetchUsers()}>Fetch Users</button>
+}
+```
+
+## Using `use server` 인라인 사용
+
+다음 예에서 `use server`은 함수 상단에서 인라인으로 사용되어 함수를 [서버 함수](https://19.react.dev/reference/rsc/server-functions)로 표시합니다.
+
+```tsx filename="app/posts/[id]/page.tsx" switcher highlight={8}
+import { EditPost } from './edit-post'
+import { revalidatePath } from 'next/cache'
+
+export default async function PostPage({ params }: { params: { id: string } }) {
+  const post = await getPost(params.id)
+
+  async function updatePost(formData: FormData) {
+    'use server'
+    await savePost(params.id, formData)
+    revalidatePath(`/posts/${params.id}`)
+  }
+
+  return <EditPost updatePostAction={updatePost} post={post} />
+}
+```
+
+```jsx filename="app/posts/[id]/page.js" switcher highlight={8}
+import { EditPost } from './edit-post'
+import { revalidatePath } from 'next/cache'
+
+export default async function PostPage({ params }) {
+  const post = await getPost(params.id)
+
+  async function updatePost(formData) {
+    'use server'
+    await savePost(params.id, formData)
+    revalidatePath(`/posts/${params.id}`)
+  }
+
+  return <EditPost updatePostAction={updatePost} post={post} />
+}
+```
+
+## 보안 고려 사항
+
+When using the `use server` 지시문을 사용할 때 모든 서버 측 논리가 안전하고 민감한 데이터가 보호되는지 확인하는 것이 중요합니다.
+
+### 인증 및 승인
+
+중요한 서버 측 작업을 수행하기 전에 항상 사용자를 인증하고 권한을 부여하십시오.
+
+```tsx filename="app/actions.ts" highlight={1,7,8,9,10} switcher
+'use server'
+
+import { db } from '@/lib/db' // Your database client
+import { authenticate } from '@/lib/auth' // Your authentication library
+
+export async function createUser(
+  data: { name: string; email: string },
+  token: string
+) {
+  const user = authenticate(token)
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+  const newUser = await db.user.create({ data })
+  return newUser
+}
+```
+
+```jsx filename="app/actions.js" highlight={1,7,8,9,10} switcher
+'use server'
+
+import { db } from '@/lib/db' // Your database client
+import { authenticate } from '@/lib/auth' // Your authentication library
+
+export async function createUser(data, token) {
+  const user = authenticate(token)
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+  const newUser = await db.user.create({ data })
+  return newUser
+}
+```
+
+## 참조
+
+See the [React 문서](https://react.dev/reference/rsc/use-server)를 참조하세요.`use server`.

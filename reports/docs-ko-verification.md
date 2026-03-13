@@ -1,0 +1,180 @@
+# docs-ko Verification Report
+
+- Date: 2026-03-13
+- Total docs: 231
+- PASS: 173
+- WARN: 2
+- FAIL: 56
+
+## Issue Types
+- Inline code changed between source and target. (56)
+- Code fences changed between source and target. (45)
+- Unable to normalize target MDX for validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph` (1)
+- Unable to parse target MDX for wrapper validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph` (1)
+
+## Failing Files
+- docs-ko/app/api-reference/components/font.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/components/image.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/components/link.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/components/script.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/eslint.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/next-config-js/cacheHandlers.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/next-config-js/headers.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/next-config-js/rewrites.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/next-config-js/taint.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/config/typescript.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/directives/use-cache-remote.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/edge.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/error.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/layout.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/not-found.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/parallel-routes.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/proxy.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/route-segment-config.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/route.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/file-conventions/src-folder.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/after.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/fetch.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/generate-metadata.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/generate-static-params.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/generate-viewport.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/use-link-status.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/use-report-web-vitals.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/use-router.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/functions/userAgent.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/api-reference/turbopack.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/caching-and-revalidating.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/css.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/error-handling.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/project-structure.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/route-handlers.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/getting-started/server-and-client-components.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/backend-for-frontend.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/caching.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/guides/environment-variables.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/internationalization.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/local-development.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/mdx.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/migrating/app-router-migration.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/migrating/from-vite.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/multi-zones.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/guides/open-telemetry.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/prefetching.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/scripts.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/static-exports.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/testing/cypress.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/testing/jest.mdx
+  - Unable to normalize target MDX for validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`
+  - Unable to parse target MDX for wrapper validation: Expected a closing tag for `<rootDir>` (225:82-225:91) before the end of `paragraph`
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/third-party-libraries.mdx
+  - Inline code changed between source and target.
+- docs-ko/app/guides/upgrading/codemods.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/upgrading/version-15.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/app/guides/upgrading/version-16.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+- docs-ko/architecture/nextjs-compiler.mdx
+  - Code fences changed between source and target.
+  - Inline code changed between source and target.
+
+## Warn-only Files
+- docs-ko/app/api-reference/file-conventions/loading.mdx
+  - Potential English residue detected: hello world
+- docs-ko/app/guides/mcp.mdx
+  - Potential English residue detected: help you fix the errors, the page, first check what errors exist, current state, the project

@@ -1,0 +1,330 @@
+---
+title: 레이아웃 및 페이지
+description: 첫 번째 페이지와 레이아웃을 만들고 링크 구성 요소를 사용하여 페이지와 레이아웃을 연결하는 방법을 알아보세요.
+related:
+  title: API 참조
+  description: API 참조를 읽고 이 페이지에 언급된 기능에 대해 자세히 알아보세요.
+  links:
+    - app/getting-started/linking-and-navigating
+    - app/api-reference/file-conventions/layout
+    - app/api-reference/file-conventions/page
+    - app/api-reference/components/link
+    - app/api-reference/file-conventions/dynamic-routes
+---
+
+Next.js는 **파일 시스템 기반 라우팅**을 사용합니다. 즉, 폴더와 파일을 사용하여 경로를 정의할 수 있습니다. 이 페이지에서는 레이아웃과 페이지를 생성하고 이들 사이를 연결하는 방법을 안내합니다.
+
+## 페이지 만들기
+
+A **페이지**는 특정 경로에서 렌더링되는 UI입니다. 페이지를 생성하려면 [`page` 파일](../api-reference/file-conventions/page.mdx)을 추가하고 기본적으로 React 구성 요소를 내보냅니다. 예를 들어 색인 페이지(`app`)를 생성하려면 다음을 수행합니다.`/`):
+
+<Image alt="page.js 특수 파일" srcLight="/docs/light/page-special-file.png" srcDark="/docs/dark/page-special-file.png" width="1600" height="282" />
+
+```tsx filename="app/page.tsx" switcher
+export default function Page() {
+  return <h1>Hello Next.js!</h1>
+}
+```
+
+```jsx filename="app/page.js" switcher
+export default function Page() {
+  return <h1>Hello Next.js!</h1>
+}
+```
+
+## 레이아웃 만들기
+
+레이아웃은 여러 페이지 간에 **공유**되는 UI입니다. 탐색 시 레이아웃은 상태를 유지하고 대화형을 유지하며 다시 렌더링되지 않습니다.
+
+You can define a layout by default exporting a React component from a [`layout` 파일](../api-reference/file-conventions/layout.mdx)에서 React 구성 요소를 내보내는 기본적으로 레이아웃을 정의할 수 있습니다. 구성요소는 페이지 또는 다른 `children` 소품을 허용해야 합니다.[layout](#nesting-layouts).
+
+예를 들어, 색인 페이지를 하위 페이지로 허용하는 레이아웃을 생성하려면 `layout` 디렉터리 내에 `app` 파일을 추가합니다.
+
+<Image alt="layout.js 특수 파일" srcLight="/docs/light/layout-special-file.png" srcDark="/docs/dark/layout-special-file.png" width="1600" height="363" />
+
+```tsx filename="app/layout.tsx" switcher
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {/* Layout UI */}
+        {/* Place children where you want to render a page or nested layout */}
+        <main>{children}</main>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx filename="app/layout.js" switcher
+export default function DashboardLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        {/* Layout UI */}
+        {/* Place children where you want to render a page or nested layout */}
+        <main>{children}</main>
+      </body>
+    </html>
+  )
+}
+```
+
+위의 레이아웃은 [루트 레이아웃](../api-reference/file-conventions/layout.mdx#root-layout)이라고 합니다. 루트 레이아웃은 `app` 및 **required** and must contain `html` 태그를 포함해야 합니다.`body` tags.
+
+## 중첩 경로 만들기
+
+중첩 경로는 여러 URL 세그먼트로 구성된 경로입니다. 예를 들어, `/blog/[slug]` 경로는 세 개의 세그먼트로 구성됩니다.
+
+- `/`(루트 세그먼트)
+- `blog`(세그먼트)
+- `[slug]`(리프 세그먼트)
+
+Next.js에서:
+
+- **폴더**는 URL 세그먼트에 매핑되는 경로 세그먼트를 정의하는 데 사용됩니다.
+- **파일**(예: `page` 및 `layout`)은 세그먼트에 표시되는 UI를 만드는 데 사용됩니다.
+
+중첩된 경로를 만들려면 폴더를 서로 중첩하면 됩니다. 예를 들어, `/blog`에 대한 경로를 추가하려면 `blog` 디렉터리에 `app`라는 폴더를 만듭니다. 그런 다음 `/blog`에 공개적으로 액세스할 수 있도록 하려면 `page.tsx` 파일을 추가하세요.
+
+<Image alt="블로그 폴더와 page.js 파일을 보여주는 파일 계층 구조" srcLight="/docs/light/blog-nested-route.png" srcDark="/docs/dark/blog-nested-route.png" width="1600" height="525" />
+
+```tsx filename="app/blog/page.tsx" switcher
+// Dummy imports
+import { getPosts } from '@/lib/posts'
+import { Post } from '@/ui/post'
+
+export default async function Page() {
+  const posts = await getPosts()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <Post key={post.id} post={post} />
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+// Dummy imports
+import { getPosts } from '@/lib/posts'
+import { Post } from '@/ui/post'
+
+export default async function Page() {
+  const posts = await getPosts()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <Post key={post.id} post={post} />
+      ))}
+    </ul>
+  )
+}
+```
+
+계속해서 폴더를 중첩하여 중첩 경로를 만들 수 있습니다. 예를 들어, 특정 블로그 게시물에 대한 경로를 생성하려면 `[slug]` 내에 새 `blog` 폴더를 생성하고 `page` 파일을 추가합니다.
+
+<Image alt="중첩된 슬러그 폴더와 page.js 파일이 있는 블로그 폴더를 보여주는 파일 계층 구조" srcLight="/docs/light/blog-post-nested-route.png" srcDark="/docs/dark/blog-post-nested-route.png" width="1600" height="687" />
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+function generateStaticParams() {}
+
+export default function Page() {
+  return <h1>Hello, Blog Post Page!</h1>
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+function generateStaticParams() {}
+
+export default function Page() {
+  return <h1>Hello, Blog Post Page!</h1>
+}
+```
+
+폴더 이름을 대괄호(예: `[slug]`)로 묶으면 데이터에서 여러 페이지를 생성하는 데 사용되는 [동적 경로 세그먼트](../api-reference/file-conventions/dynamic-routes.mdx)가 생성됩니다. 예를 들어 블로그 게시물, 제품 페이지 등
+
+## 중첩 레이아웃기본적으로 폴더 계층 구조의 레이아웃도 중첩됩니다. 즉,  소품을 통해 하위 레이아웃을 래핑합니다. 특정 경로 세그먼트(폴더) 내에 을 추가하여 레이아웃을 중첩할 수 있습니다.
+
+예를 들어, `children` 경로에 대한 레이아웃을 생성하려면 `layout` 폴더 내에 새  파일을 추가합니다.
+
+위의 두 레이아웃을 결합하는 경우 루트 레이아웃(`/blog`)은 블로그 레이아웃(`layout`)을 래핑하고, 이는 블로그(`blog`)와 블로그 게시물 페이지()를 래핑합니다.
+
+<Image alt="File hierarchy showing root layout wrapping the blog layout" srcLight="/docs/light/nested-layouts.png" srcDark="/docs/dark/nested-layouts.png" width="1600" height="768" />
+
+```tsx filename="app/blog/layout.tsx" switcher
+export default function BlogLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <section>{children}</section>
+}
+```
+
+```jsx filename="app/blog/layout.js" switcher
+export default function BlogLayout({ children }) {
+  return <section>{children}</section>
+}
+```
+
+If you were to combine the two layouts above, the root layout (`app/layout.js`) would wrap the blog layout (`app/blog/layout.js`), which would wrap the blog (`app/blog/page.js`) and blog post page (`app/blog/[slug]/page.js`). 및  소품에 대해 자세히 알아보세요.
+
+## 검색 매개변수를 사용한 렌더링
+
+[Dynamic segments](../api-reference/file-conventions/dynamic-routes.mdx) 소품을 사용하여 검색 매개변수에 액세스할 수 있습니다.
+
+To create a dynamic segment, wrap the segment (folder) name in square brackets: `[segmentName]`을 사용하면 검색 매개변수를 읽으려면 수신 요청이 필요하기 때문에 페이지가 `app/blog/[slug]/page.tsx` route, the `[slug]` is the dynamic segment.으로 선택됩니다.
+
+```tsx filename="app/blog/[slug]/page.tsx" switcher
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const post = await getPost(slug)
+
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  )
+}
+```
+
+```jsx filename="app/blog/[slug]/page.js" switcher
+export default async function BlogPostPage({ params }) {
+  const { slug } = await params
+  const post = await getPost(slug)
+
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  )
+}
+```
+
+Next.js는 경로 구조에서 [Dynamic Segments](../api-reference/file-conventions/dynamic-routes.mdx) and the [`params`](../api-reference/file-conventions/page.mdx#params-optional) props. 및 명명된 슬롯을 추론하는 유틸리티 유형을 노출합니다.
+
+이는 [layouts within Dynamic Segments](../api-reference/file-conventions/layout.mdx#params-optional)을 실행할 때 생성되는 전역적으로 사용 가능한 도우미입니다.`params` props.
+
+## Rendering with search params
+
+In a Server Component **page**, you can access search parameters using the [`searchParams`](../api-reference/file-conventions/page.mdx#searchparams-optional) prop:
+
+```tsx filename="app/page.tsx" switcher
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const filters = (await searchParams).filters
+}
+```
+
+```jsx filename="app/page.jsx" switcher
+export default async function Page({ searchParams }) {
+  const filters = (await searchParams).filters
+}
+```
+
+Using `searchParams` opts your page into [**dynamic rendering**](../guides/caching.mdx#dynamic-rendering) because it requires an incoming request to read the search parameters from.
+
+Client Components can read search params using the [`useSearchParams`](../api-reference/functions/use-search-params.mdx) hook.
+
+Learn more about `useSearchParams` in [statically rendered](../api-reference/functions/use-search-params.mdx#static-rendering) and [dynamically rendered](../api-reference/functions/use-search-params.mdx#dynamic-rendering) routes.
+
+### What to use and when
+
+- Use the `searchParams` prop when you need search parameters to **load data for the page** (e.g. pagination, filtering from a database).
+- Use `useSearchParams` when search parameters are used **only on the client** (e.g. filtering a list already loaded via props).
+- As a small optimization, you can use `new URLSearchParams(window.location.search)` in **callbacks or event handlers** to read search params without triggering re-renders.
+
+## Linking between pages
+
+You can use the [`<Link>` component](../api-reference/components/link.mdx) to navigate between routes. `<Link>` is a built-in Next.js component that extends the HTML `<a>` tag to provide [prefetching](linking-and-navigating.mdx#prefetching) and [client-side navigation](linking-and-navigating.mdx#client-side-transitions).
+
+For example, to generate a list of blog posts, import `<Link>` from `next/link` and pass a `href` prop to the component:
+
+```tsx filename="app/ui/post.tsx" highlight={1,10} switcher
+import Link from 'next/link'
+
+export default async function Post({ post }) {
+  const posts = await getPosts()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.slug}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx filename="app/ui/post.js" highlight={1,10}  switcher
+import Link from 'next/link'
+
+export default async function Post({ post }) {
+  const posts = await getPosts()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.slug}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+> **알면 좋은 점**: `<Link>` is the primary way to navigate between routes in Next.js. You can also use the [`useRouter` hook](../api-reference/functions/use-router.mdx) for more advanced navigation.
+
+## Route Props Helpers
+
+Next.js exposes utility types that infer `params` and named slots from your route structure:
+
+- [**PageProps**](../api-reference/file-conventions/page.mdx#page-props-helper): Props for `page` components, including `params` and `searchParams`.
+- [**LayoutProps**](../api-reference/file-conventions/layout.mdx#layout-props-helper): Props for `layout` components, including `children` and any named slots (e.g. folders like `@analytics`).
+
+These are globally available helpers, generated when running either `next dev`, `next build` or [`next typegen`](../api-reference/cli/next.mdx#next-typegen-options).
+
+```tsx filename="app/blog/[slug]/page.tsx"
+export default async function Page(props: PageProps<'/blog/[slug]'>) {
+  const { slug } = await props.params
+  return <h1>Blog post: {slug}</h1>
+}
+```
+
+```tsx filename="app/dashboard/layout.tsx"
+export default function Layout(props: LayoutProps<'/dashboard'>) {
+  return (
+    <section>
+      {props.children}
+      {/* If you have app/dashboard/@analytics, it appears as a typed slot: */}
+      {/* {props.analytics} */}
+    </section>
+  )
+}
+```
+
+> **Good to know**
+>
+> - Static routes resolve `params` to `{}`.
+> - `PageProps`, `LayoutProps` are global helpers — no imports required.
+> - Types are generated during `next dev`, `next build` or `next typegen`.

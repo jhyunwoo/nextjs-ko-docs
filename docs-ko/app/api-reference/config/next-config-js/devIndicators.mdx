@@ -1,0 +1,47 @@
+---
+title: 개발 지표
+description: 개발 중에 현재 보고 있는 경로에 대한 컨텍스트를 제공하는 화면 표시기에 대한 구성 옵션입니다.
+---
+
+`devIndicators`를 사용하면 개발 중에 현재 보고 있는 경로에 대한 컨텍스트를 제공하는 화면 표시기를 구성할 수 있습니다.
+
+```ts filename="Types"
+  devIndicators: false | {
+    position?: 'bottom-right'
+    | 'bottom-left'
+    | 'top-right'
+    | 'top-left', // defaults to 'bottom-left',
+  },
+```
+
+Setting `devIndicators`을 `false`로 설정하면 표시기가 숨겨지지만 Next.js는 발생한 빌드 또는 런타임 오류를 계속 표시합니다.
+
+## 문제 해결
+
+### 표시기가 경로를 정적으로 표시하지 않음
+
+경로가 정적으로 예상되고 표시기가 이를 동적으로 표시한 경우 해당 경로가 정적 렌더링을 선택 해제했을 가능성이 높습니다.
+
+You can confirm if a route is [정적](../../../guides/caching.mdx#static-rendering) 또는 [동적](../../../guides/caching.mdx#dynamic-rendering)인지 확인할 수 있습니다. 정적(또는 사전 렌더링된) 경로는 `next build --debug` 기호를 표시하는 반면 동적 경로는 `○` 기호를 표시합니다. 예를 들면:`ƒ` symbol. For example:
+
+```bash filename="Build Output"
+Route (app)
+┌ ○ /_not-found
+└ ƒ /products/[id]
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+경로가 정적 렌더링을 선택 해제하는 데에는 두 가지 이유가 있습니다.
+
+- 런타임 정보에 의존하는 [동적 API](../../../guides/caching.mdx#dynamic-rendering)가 있습니다.
+- ORM 또는 데이터베이스 드라이버에 대한 호출과 같은 [캐싱되지 않은 데이터 요청](../../../getting-started/fetching-data.mdx).
+
+경로에 이러한 조건이 있는지 확인하고 경로를 정적으로 렌더링할 수 없는 경우 [`loading.js`](../../file-conventions/loading.mdx) 또는 [`<Suspense />`](https://react.dev/reference/react/Suspense)을 사용하여 [스트리밍](../../../getting-started/linking-and-navigating.mdx#streaming)을 활용하는 것이 좋습니다.
+
+## 버전 기록
+
+| 버전 | 변경사항 |`v16.0.0` | `appIsrStatus`, `buildActivity`, and `buildActivityPosition` options have been removed.                                                             |
+| `v15.2.0` | Improved on-screen indicator with new `position` option. `appIsrStatus`, `buildActivity`, and `buildActivityPosition` options have been deprecated. |
+| `v15.0.0` | Static on-screen indicator added with `appIsrStatus` option.                                                                                        |

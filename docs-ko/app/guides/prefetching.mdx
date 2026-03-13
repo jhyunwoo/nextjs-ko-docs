@@ -1,0 +1,361 @@
+---
+title: 프리페칭
+description: Next.js에서 프리패치를 구성하는 방법 알아보기
+---
+
+프리페칭을 사용하면 애플리케이션의 다양한 경로 간 이동이 즉각적으로 느껴집니다. Next.js는 기본적으로 애플리케이션 코드에 사용된 링크를 기반으로 지능적으로 프리페치를 시도합니다.
+
+이 가이드에서는 프리패치가 작동하는 방식을 설명하고 일반적인 구현 패턴을 보여줍니다.
+
+- [자동 프리패치](#automatic-prefetch)
+- [수동 프리패치](#manual-prefetch)
+- [호버로 인한 프리패치](#hover-triggered-prefetch)
+- [링크 확장 또는 제거](#extending-or-ejecting-link)
+- [프리패치 비활성화됨](#disabled-prefetch)
+
+## 프리페칭은 어떻게 작동하나요?
+
+경로 간을 탐색할 때 브라우저는 HTML 및 JavaScript 파일과 같은 페이지에 대한 자산을 요청합니다. 프리페칭은 새 경로로 이동하기 전에 이러한 리소스를 *미리* 가져오는 프로세스입니다.
+
+Next.js는 경로에 따라 애플리케이션을 더 작은 JavaScript 청크로 자동으로 분할합니다. 기존 SPA처럼 모든 코드를 미리 로드하는 대신 현재 경로에 필요한 코드만 로드됩니다. 이렇게 하면 앱의 다른 부분이 백그라운드에 로드되는 동안 초기 로드 시간이 줄어듭니다. 링크를 클릭하면 새 경로에 대한 리소스가 이미 브라우저 캐시에 로드되어 있습니다.
+
+새 페이지로 이동할 때 전체 페이지 새로고침이나 브라우저 로딩 스피너가 없습니다. 대신 Next.js는 [클라이언트측 전환](../getting-started/linking-and-navigating.mdx#client-side-transitions)을 수행하여 페이지 탐색이 즉각적인 느낌을 줍니다.
+
+## 정적 경로와 동적 경로 미리 가져오기
+
+|                                                                   | **정적 페이지** | **동적 페이지** |**Prefetched**                                                    | Yes, full route | No, unless [`loading.js`](../api-reference/file-conventions/loading.mdx)     |[**Client Cache TTL**](caching.mdx#full-route-cache) | 5 min (default) | Off, unless [enabled](../api-reference/config/next-config-js/staleTimes.mdx) |**Server roundtrip on click**                                     | No              | Yes, streamed after [shell](../getting-started/cache-components.mdx)         |
+
+> **알아두면 좋은 점:** 초기 탐색 중에 브라우저는 HTML, JavaScript 및 React 서버 구성 요소(RSC) 페이로드를 가져옵니다. 후속 탐색을 위해 브라우저는 서버 구성 요소용 RSC 페이로드와 클라이언트 구성 요소용 JS 번들을 가져옵니다.
+
+## 자동 프리패치
+
+```tsx filename="app/ui/nav-link.tsx" switcher
+import Link from 'next/link'
+
+export default function NavLink() {
+  return <Link href="/about">About</Link>
+}
+```
+
+```jsx filename="app/ui/nav-link.js" switcher
+import Link from 'next/link'
+
+export default function NavLink() {
+  return <Link href="/about">About</Link>
+}
+```
+
+| **컨텍스트** | **프리패치된 페이로드** | **클라이언트 캐시 TTL** |`loading.js`   | Entire page                      | Until app reload                                                               |`loading.js` | Layout to first loading boundary | 30s ([configurable](../api-reference/config/next-config-js/staleTimes.mdx)) |
+
+| With `prefetch={false}` | Layout to first loading boundary | 30s ([configurable](#disabled-prefetch)) |
+
+## 수동 프리패치
+
+수동 프리페칭을 수행하려면 `useRouter`에서 `next/navigation` 후크를 가져오고 `router.prefetch()`을 호출하여 뷰포트 외부의 웜 경로나 분석, 마우스 오버, 스크롤 등에 대한 응답으로 호출합니다.
+
+```tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { CustomLink } from '@components/link'
+
+export function PricingCard() {
+  const router = useRouter()
+
+  return (
+    <div onMouseEnter={() => router.prefetch('/pricing')}>
+      {/* other UI elements */}
+      <CustomLink href="/pricing">View Pricing</CustomLink>
+    </div>
+  )
+}
+```
+
+구성 요소가 로드될 때 URL를 프리페치하려는 경우 링크 확장 또는 거부\[예]를 참조하세요.
+
+## 호버로 인한 프리패치
+
+> **주의해서 진행하세요.** `Link`를 확장하면 프리페치, 캐시 무효화 및 접근성 문제를 유지하도록 선택됩니다. 기본값이 충분하지 않은 경우에만 진행하십시오.
+
+Next.js는 기본적으로 올바른 프리페치를 수행하려고 시도하지만 고급 사용자는 필요에 따라 꺼내고 수정할 수 있습니다. 성능과 리소스 소비를 제어할 수 있습니다.
+
+예를 들어 뷰포트에 들어갈 때가 아닌 마우스 오버 시에만 프리페치를 트리거해야 할 수도 있습니다(기본 동작).
+
+```tsx
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+
+export function HoverPrefetchLink({
+  href,
+  children,
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  const [active, setActive] = useState(false)
+
+  return (
+    <Link
+      href={href}
+      prefetch={active ? null : false}
+      onMouseEnter={() => setActive(true)}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+`prefetch={null}`은 사용자가 의도를 표시하면 기본(정적) 프리페치를 복원합니다.
+
+## 링크 확장 또는 꺼내기
+
+You can extend the `<Link>` 구성 요소를 확장하여 사용자 정의 프리페칭 전략을 만들 수 있습니다. 예를 들어, 사용자 커서의 방향을 예측하여 링크를 미리 가져오는 [ForesightJS](https://foresightjs.com/docs/integrations/nextjs) 라이브러리를 사용합니다.
+
+또는 [`useRouter`](../api-reference/functions/use-router.mdx)를 사용하여 기본 `<Link>` 동작 중 일부를 재현할 수 있습니다. 그러나 이렇게 하면 프리패치 및 캐시 무효화를 유지하게 된다는 점에 유의하세요.
+
+```tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+
+function ManualPrefetchLink({
+  href,
+  children,
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    const poll = () => {
+      if (!cancelled) router.prefetch(href, { onInvalidate: poll })
+    }
+    poll()
+    return () => {
+      cancelled = true
+    }
+  }, [href, router])
+
+  return (
+    <a
+      href={href}
+      onClick={(event) => {
+        event.preventDefault()
+        router.push(href)
+      }}
+    >
+      {children}
+    </a>
+  )
+}
+```
+
+[`onInvalidate`](../api-reference/functions/use-router.mdx#userouter)는 Next.js에서 캐시된 데이터가 오래되었다고 의심할 때 호출되어 프리페치를 새로 고칠 수 있습니다.
+
+> **알아두면 좋은 점:** `a` 태그를 사용하면 대상 경로로 전체 페이지 탐색이 발생합니다. `onClick`를 사용하여 전체 페이지 탐색을 방지한 다음 `router.push`을 호출하여 대상으로 이동할 수 있습니다.
+
+## 프리패치 비활성화됨
+
+리소스 소비를 보다 세밀하게 제어하기 위해 특정 경로에 대한 프리페칭을 완전히 비활성화할 수 있습니다.
+
+```tsx
+'use client'
+
+import Link, { LinkProps } from 'next/link'
+
+function NoPrefetchLink({
+  prefetch,
+  ...rest
+}: LinkProps & { children: React.ReactNode }) {
+  return <Link {...rest} prefetch={false} />
+}
+```
+
+예를 들어, 애플리케이션에서 `<Link>`을 일관되게 사용하기를 원할 수 있지만 뷰포트에 들어갈 때 바닥글의 링크를 미리 가져올 필요가 없을 수도 있습니다.
+
+## 미리 가져오기 최적화
+
+### 클라이언트 캐시
+
+Next.js는 미리 가져온 React 서버 구성 요소 페이로드를 경로 세그먼트별로 입력하여 메모리에 저장합니다. 형제 경로(예: `/dashboard/settings` → `/dashboard/analytics`) 간을 탐색할 때 상위 레이아웃을 재사용하고 업데이트된 리프 페이지만 가져옵니다. 이렇게 하면 네트워크 트래픽이 줄어들고 탐색 속도가 향상됩니다.
+
+### 프리페치 예약
+
+Next.js는 다음 순서로 미리 가져오는 작은 작업 대기열을 유지 관리합니다.
+
+1. 뷰포트의 링크
+1. 사용자 의도를 보여주는 링크(호버 또는 터치)
+1. 최신 링크가 이전 링크를 대체합니다.
+1. 화면 밖으로 스크롤된 링크는 삭제됩니다.
+
+스케줄러는 사용되지 않는 다운로드를 최소화하면서 가능한 탐색의 우선순위를 지정합니다.
+
+### 부분 사전 렌더링(PPR)
+
+PPR가 활성화되면 페이지는 정적 셸과 스트리밍된 동적 섹션으로 나뉩니다.
+
+- 프리페치가 가능한 쉘은 즉시 스트리밍됩니다.
+- 준비되면 동적 데이터 스트림
+- 데이터 무효화(`revalidateTag`, `revalidatePath`) 관련 프리페치를 자동으로 새로 고칩니다.
+
+## 문제 해결
+
+### 미리 가져오는 동안 원치 않는 부작용 유발
+
+레이아웃이나 페이지가 [순수](https://react.dev/learn/keeping-components-pure#purity-components-as-formulas) 아니고 부작용(예: 추적 분석)이 있는 경우 사용자가 페이지를 방문할 때가 아니라 경로를 미리 가져올 때 트리거될 수 있습니다.
+
+이를 방지하려면 부작용을 `useEffect` 후크 또는 클라이언트 구성 요소에서 트리거된 서버 작업으로 이동해야 합니다.
+
+**이전**:
+
+```tsx filename="app/dashboard/layout.tsx" switcher
+import { trackPageView } from '@/lib/analytics'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  // This runs during prefetch
+  trackPageView()
+
+  return <div>{children}</div>
+}
+```
+
+```jsx filename="app/dashboard/layout.js" switcher
+import { trackPageView } from '@/lib/analytics'
+
+export default function Layout({ children }) {
+  // This runs during prefetch
+  trackPageView()
+
+  return <div>{children}</div>
+}
+```
+
+**이후**:
+
+```tsx filename="app/ui/analytics-tracker.tsx" switcher
+'use client'
+
+import { useEffect } from 'react'
+import { trackPageView } from '@/lib/analytics'
+
+export function AnalyticsTracker() {
+  useEffect(() => {
+    trackPageView()
+  }, [])
+
+  return null
+}
+```
+
+```jsx filename="app/ui/analytics-tracker.js" switcher
+'use client'
+
+import { useEffect } from 'react'
+import { trackPageView } from '@/lib/analytics'
+
+export function AnalyticsTracker() {
+  useEffect(() => {
+    trackPageView()
+  }, [])
+
+  return null
+}
+```
+
+```tsx filename="app/dashboard/layout.tsx" switcher
+import { AnalyticsTracker } from '@/app/ui/analytics-tracker'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div>
+      <AnalyticsTracker />
+      {children}
+    </div>
+  )
+}
+```
+
+```jsx filename="app/dashboard/layout.js" switcher
+import { AnalyticsTracker } from '@/app/ui/analytics-tracker'
+
+export default function Layout({ children }) {
+  return (
+    <div>
+      <AnalyticsTracker />
+      {children}
+    </div>
+  )
+}
+```
+
+### 너무 많은 프리페치 방지
+
+Next.js는 `<Link>` 구성 요소를 사용할 때 뷰포트의 링크를 자동으로 프리페치합니다.
+
+대규모 링크 목록(예: 무한 스크롤 테이블)을 렌더링할 때와 같이 불필요한 리소스 사용을 피하기 위해 이를 방지하려는 경우가 있을 수 있습니다.
+
+You can disable prefetching by setting the `prefetch` 구성 요소의 `<Link>` 소품을 `false`으로 설정하여 프리패치를 비활성화할 수 있습니다.
+
+```tsx filename="app/ui/no-prefetch-link.tsx" switcher
+<Link prefetch={false} href={`/blog/${post.id}`}>
+  {post.title}
+</Link>
+```
+
+그러나 이는 정적 경로는 클릭 시에만 가져오고 동적 경로는 탐색하기 전에 서버가 렌더링될 때까지 기다린다는 것을 의미합니다.
+
+프리페치를 완전히 비활성화하지 않고 리소스 사용량을 줄이려면 사용자가 링크 위로 마우스를 이동할 때까지 프리페치를 연기할 수 있습니다. 이는 사용자가 방문할 가능성이 있는 링크만 대상으로 합니다.
+
+```tsx filename="app/ui/hover-prefetch-link.tsx" switcher
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+
+export function HoverPrefetchLink({
+  href,
+  children,
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  const [active, setActive] = useState(false)
+
+  return (
+    <Link
+      href={href}
+      prefetch={active ? null : false}
+      onMouseEnter={() => setActive(true)}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+```jsx filename="app/ui/hover-prefetch-link.js" switcher
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+
+export function HoverPrefetchLink({ href, children }) {
+  const [active, setActive] = useState(false)
+
+  return (
+    <Link
+      href={href}
+      prefetch={active ? null : false}
+      onMouseEnter={() => setActive(true)}
+    >
+      {children}
+    </Link>
+  )
+}
+```

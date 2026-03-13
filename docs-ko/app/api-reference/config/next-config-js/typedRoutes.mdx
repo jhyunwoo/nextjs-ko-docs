@@ -1,0 +1,17 @@
+---
+title: 입력된 경로
+description: 정적으로 유형이 지정된 링크에 대한 지원을 활성화합니다.
+---
+
+> **참고**: 이 옵션은 안정적인 것으로 표시되었으므로 `typedRoutes` 대신 `experimental.typedRoutes`을 사용해야 합니다.
+
+[정적으로 유형이 지정된 링크](../typescript.mdx#statically-typed-links)를 지원합니다. 이 기능을 사용하려면 프로젝트에서 TypeScript를 사용해야 합니다.
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  typedRoutes: true,
+}
+
+module.exports = nextConfig
+```
